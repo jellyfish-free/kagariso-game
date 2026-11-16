@@ -193,7 +193,8 @@ async function openMaterialCatalog(){
 }
 async function openInventory(from='hall'){
   inventoryReturn=from;
-  const {items}=await api('/inventory');
+  const {items:serverItems}=await api('/inventory');
+  const items=serverItems.filter(i=>materialById(i.id)); // v0.9.1: 旧素材は画面にも表示しない
   $('#inventory-list').innerHTML=items.length?items.map(i=>`<article class="inventory-item">${matIcon(i.id)}<div><strong>${safe(i.name)}</strong><div class="muted tiny">${safe(i.category)} · ${'★'.repeat(Math.max(1,Math.min(5,i.rarity)))}</div></div><strong>×${Number(i.quantity)}</strong></article>`).join(''):'<p class="muted">まだ素材を持っていません。洞窟で採取してみよう。</p>';
   show('inventory');
 }
@@ -335,7 +336,7 @@ async function openNpcGifts(from='hall',message=''){
   const select=$('#gift-receiver');select.replaceChildren();
   for(const r of recip.residents){const opt=document.createElement('option');opt.value=r.id;opt.textContent=r.name;select.append(opt);}
   if(!recip.residents.length){const opt=document.createElement('option');opt.value='';opt.textContent='ほかの住人がまだいません';select.append(opt);}
-  giftInventory=(await api('/inventory')).items.filter(i=>i.quantity>0);
+  giftInventory=(await api('/inventory')).items.filter(i=>i.quantity>0&&materialById(i.id));
   $('#gift-send-rows').replaceChildren();$('#gift-send-message').value='';
   if(giftInventory.length)addGiftRow();
  }
