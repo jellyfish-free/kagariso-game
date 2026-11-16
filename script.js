@@ -41,25 +41,29 @@ async function openHall(){const data=await api('/hall');resident=data.resident;$
   $('#npc-list').querySelectorAll('[data-npc]').forEach(b=>b.addEventListener('click',handler(openNpc)));
   show('hall');
 }
-async function openNpc(){const {npc}=await api('/npcs/paper');currentNpc=npc;lastLocation=npc.state.location;profileScene=npc.scene;$('#npc-move-notice').classList.add('hidden');renderNpc(false);show('npc');profileTimer=setInterval(async()=>{if(document.hidden)return;try{const {npc:updated}=await api('/npcs/paper');const old=lastLocation;currentNpc=updated;lastLocation=updated.state.location;renderNpc(old!==updated.state.location);}catch{}},15000);}
+async function openNpc(){const {npc}=await api('/npcs/paper');currentNpc=npc;lastLocation=npc.state.location;profileScene=npc.scene;$('#life-action-result').classList.add('hidden');$('#npc-move-notice').classList.add('hidden');renderNpc(false);show('npc');profileTimer=setInterval(async()=>{if(document.hidden)return;try{const {npc:updated}=await api('/npcs/paper');const old=lastLocation;currentNpc=updated;lastLocation=updated.state.location;renderNpc(old!==updated.state.location);}catch{}},15000);}
 function renderNpc(moved){const n=currentNpc;
   $('#npc-affinity').textContent='♥'.repeat(n.affinity)+'♡'.repeat(10-n.affinity);
   $('#npc-relationship').textContent=`あなたとの関係：${n.relationship}`;
   $('#npc-relationship-detail').textContent=`${n.relationship}（好感度 ${n.affinity}/10）`;
+  $('#npc-life-status').innerHTML=['energy','hunger','mood'].map((k)=>{const labels={energy:'元気',hunger:'空腹',mood:'気分'};const descriptions={energy:n.state.energyLabel,hunger:n.state.hungerLabel,mood:n.state.moodLabel};return `<div class="life-item"><span>${labels[k]}</span><strong>${safe(descriptions[k])}</strong></div>`;}).join('');
+  $('#rest-btn').disabled=n.state.activity!=='awake';
+  $('#wake-btn').disabled=n.state.activity!=='sleeping'||!n.roomUnlocked;
   $('#npc-live-state').innerHTML=`<div class="state-item"><span>現在地</span><strong>${safe(n.state.locationLabel)}</strong></div><div class="state-item"><span>活動状態</span><strong>${safe(n.state.activityLabel)}</strong></div>`;
   $('#npc-scene').textContent=profileScene;
   $('#npc-bio').textContent=n.description;$('#npc-personality').textContent=n.personality;
   if(moved){$('#npc-move-notice').textContent=`ぺーぱーは${n.state.locationLabel}へ移動しました。描写はプロフィールを開き直すと更新されます。` ;$('#npc-move-notice').classList.remove('hidden');}
   else if($('#npc-move-notice').classList.contains('hidden')) {} // 移動通知は開き直すまで残す
-  $('#talk-btn').disabled=n.state.activity==='sleeping';
+  $('#talk-btn').disabled=n.state.activity==='sleeping'||(n.state.location==='room'&&!n.roomUnlocked);
   $('#talk-btn').title=n.state.activity==='sleeping'?'ぺーぱーは眠っています。':'';
   $('#visit-btn').textContent=n.state.location==='hall'?'ホールで会う':'自室へ会いに行く';
   $('#visit-btn').disabled=n.state.location==='room'&&!n.roomUnlocked;
-  $('#room-btn').disabled=!n.roomUnlocked;
+  $('#room-btn').disabled=!n.roomUnlocked||n.state.location!=='room'||n.state.activity==='sleeping';
   $('#room-btn').title=n.roomUnlocked?'':'仲良くなると訪問できます。';
 }
 const openConversation=async()=>{
   const {npc}=await api('/npcs/paper'); if(npc.state.activity==='sleeping') throw new Error('ぺーぱーは眠っています。');
+  if(npc.state.location==='room'&&!npc.roomUnlocked)throw new Error('今はぺーぱーの自室に入れません。');
   currentNpc=npc;
   $('#conversation-scene').textContent=npc.scene;
   $('#speech-line').textContent='「あっ、来てくれたんだ！ 何のお話する？」';
@@ -74,6 +78,7 @@ const openConversation=async()=>{
   show('conversation');
 };
 bind('#refresh-hall',openHall);
+for(const [selector,action] of [['#rest-btn','rest'],['#wake-btn','wake']]){bind(selector,async()=>{const data=await api('/npcs/paper/life/action','POST',{action});currentNpc=data.npc;const last=lastLocation;lastLocation=data.npc.state.location;renderNpc(last!==lastLocation);$('#life-action-result').textContent=data.message;$('#life-action-result').classList.remove('hidden');});}
 bind('#talk-btn',openConversation);
 bind('#visit-btn',async()=>{if(currentNpc.state.location==='hall'){toast('ぺーぱーはホールにいます。');return;}await enterRoom();});
 bind('#room-btn',enterRoom);
