@@ -31,3 +31,17 @@
 
 /* v0.8 共通受信箱・住人同士の贈り物 */
 #gift-send-rows{margin:12px 0}.gift-send-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(75px,.7fr) auto;gap:8px;align-items:center}.gift-send-row select{min-width:0;width:100%}.gift-send-row input{min-width:0}#gift-send-message{display:block;width:100%;padding:12px;margin:8px 0 14px;resize:vertical;background:#17192b;color:var(--ink);border:1px solid #777389;border-radius:10px}#gift-send{width:100%;margin-top:12px}#gift-receiver{width:100%}#gifts-common-sections label{display:block;font-size:12px;color:var(--muted);margin-top:12px}.mailbox-note{font-size:12px;color:var(--muted)}@media(max-width:480px){.gift-send-row{grid-template-columns:minmax(0,1fr) 75px;}.gift-send-row .remove-gift-row{grid-column:1 / -1}}
+
+/* v0.9 素材画像と図鑑 */
+.material-thumb{width:64px;height:64px;object-fit:contain;flex:0 0 auto;border-radius:10px;background:rgba(255,255,255,.06)}
+.inventory-item{display:flex;align-items:center;gap:12px}
+.inventory-item>div{flex:1}
+.material-catalog-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px;margin-top:16px}
+.material-catalog-card{border:1px solid rgba(180,157,115,.32);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.material-catalog-image{height:110px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.04);border-radius:10px}
+.material-catalog-image .material-thumb{width:104px;height:104px}
+.material-missing-icon{font-size:40px;color:#9a9387}
+.material-catalog-card strong{overflow-wrap:anywhere}
+.material-catalog-card.undiscovered{opacity:.72}
+
+.material-inline,.material-found-item{display:inline-flex;align-items:center;gap:8px;vertical-align:middle}.material-inline{display:flex}.material-found-item{margin:4px 6px 4px 0}.material-inline .material-thumb,.material-found-item .material-thumb{width:42px;height:42px}

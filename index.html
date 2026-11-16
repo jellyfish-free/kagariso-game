@@ -8,6 +8,9 @@
   <title>神狩荘｜ふしぎなホール</title>
   <link rel="stylesheet" href="style.css">
   <script src="config.js" defer></script>
+  <script src="data/materials.js" defer></script>
+  <script src="data/gifts.js" defer></script>
+  <script src="data/npcs.js" defer></script>
   <script src="script.js" defer></script>
 </head>
 <body>
@@ -28,7 +31,7 @@
         </div>
       </section>
       <section id="recovery-page" class="page hidden narrow"><div class="panel recovery-panel"><div class="big-icon">✉</div><span class="eyebrow">IMPORTANT</span><h1>復旧コードを保存してね</h1><p>このコードは<strong>今回だけ</strong>表示されます。端末やブラウザを変更したとき、住人データを復旧するために必要です。</p><div class="secret-code" id="recovery-output"></div><button id="copy-recovery" class="secondary">コードをコピー</button><label class="confirm"><input id="confirmed-recovery" type="checkbox"> 安全な場所に保存しました</label><button id="enter-after-recovery" class="primary" disabled>ホールへ進む →</button></div></section>
-      <section id="hall-page" class="page hidden"><div class="hall-head"><div><span class="eyebrow">THE HALL OF DOORS</span><h1>ふしぎなホール</h1><p>静かな大理石の広間。今日は誰に会えるだろう。</p></div><div class="actions hall-utilities"><button id="open-inventory" class="secondary small">持ち物</button><button id="open-gifts" class="secondary small">受信箱 <span id="gift-ready-badge" class="hidden"></span></button><button id="refresh-hall" class="secondary small">↻ 更新</button></div></div><div class="hall-sky"><div class="star star-1">✦</div><div class="star star-2">✧</div><div class="star star-3">✦</div><div class="hall-arch"><span class="arch-light">✧</span><div class="arch-caption">ようこそ、神狩荘へ。</div></div><div class="floor"></div></div><div class="section-top"><h2>ここにいる住人たち</h2><p class="muted">NPCの居場所は、住人全員で共有されています。</p></div><div id="npc-list" class="npc-list"></div><div class="section-top"><h2>不思議な扉</h2><p class="muted">扉の向こうには、新しい探索が待っている。</p></div><div id="doors" class="doors"></div></section>
+      <section id="hall-page" class="page hidden"><div class="hall-head"><div><span class="eyebrow">THE HALL OF DOORS</span><h1>ふしぎなホール</h1><p>静かな大理石の広間。今日は誰に会えるだろう。</p></div><div class="actions hall-utilities"><button id="open-inventory" class="secondary small">持ち物</button><button id="open-material-catalog" class="secondary small">素材図鑑</button><button id="open-gifts" class="secondary small">受信箱 <span id="gift-ready-badge" class="hidden"></span></button><button id="refresh-hall" class="secondary small">↻ 更新</button></div></div><div class="hall-sky"><div class="star star-1">✦</div><div class="star star-2">✧</div><div class="star star-3">✦</div><div class="hall-arch"><span class="arch-light">✧</span><div class="arch-caption">ようこそ、神狩荘へ。</div></div><div class="floor"></div></div><div class="section-top"><h2>ここにいる住人たち</h2><p class="muted">NPCの居場所は、住人全員で共有されています。</p></div><div id="npc-list" class="npc-list"></div><div class="section-top"><h2>不思議な扉</h2><p class="muted">扉の向こうには、新しい探索が待っている。</p></div><div id="doors" class="doors"></div></section>
       <section id="cave-page" class="page hidden narrow">
         <button class="back" data-back="hall">← ホールに戻る</button>
         <div class="panel">
@@ -65,6 +68,15 @@
           <button id="cave-story-next" class="primary hidden">続きを読む →</button>
           <div id="cave-story-result" class="notice hidden"></div>
           <button id="cave-story-done" class="primary hidden">洞窟へ戻る →</button>
+        </div>
+      </section>
+      <section id="material-catalog-page" class="page hidden narrow">
+        <button class="back" id="material-catalog-back">← ホールへ戻る</button>
+        <div class="panel"><span class="eyebrow">MATERIAL FIELD GUIDE</span><h1>素材図鑑</h1>
+          <p class="muted">通常素材は全45種類。まだ見つけていないものも「未開放素材」として表示されます。</p>
+          <p id="catalog-progress" class="muted"></p><label for="catalog-filter">表示する素材</label>
+          <select id="catalog-filter"><option value="all">すべて</option><option value="found">発見済み</option><option value="missing">未発見</option></select>
+          <div id="material-catalog-grid" class="material-catalog-grid"></div>
         </div>
       </section>
       <section id="inventory-page" class="page hidden narrow"><button class="back" id="inventory-back">← 戻る</button><div class="panel"><span class="eyebrow">MY BELONGINGS</span><h1>自分の持ち物</h1><p class="muted">入手した素材はほかの住人と共有されません。</p><div id="inventory-list" class="inventory-list"></div></div></section>
@@ -107,7 +119,7 @@
       <section id="room-page" class="page hidden narrow"><button class="back" data-back="npc">← プロフィールへ</button><div class="panel story"><div class="big-icon">⌂</div><span class="eyebrow">THE YELLOW BEAST'S ROOM</span><h1>黄色い獣の部屋</h1><div id="room-message" class="scene"></div><p class="muted">小さな部屋には、ふかふかの寝床や、黄色い獣のお気に入りのものが置かれている。</p><button class="primary" id="room-talk">黄色い獣と話す</button></div></section>
       <section id="history-page" class="page hidden narrow"><button class="back" data-back="npc">← プロフィールへ</button><div class="panel"><span class="eyebrow">MEMORIES</span><h1>黄色い獣との会話履歴</h1><div id="history-list"></div></div></section>
     </main>
-    <footer>神狩荘 · ふしぎなホール <span>初期版 0.8</span></footer>
+    <footer>神狩荘 · ふしぎなホール <span>初期版 0.9</span></footer>
   </div>
 </body>
 </html>

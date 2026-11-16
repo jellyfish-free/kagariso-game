@@ -9,7 +9,7 @@ let resident=null, currentNpc=null, lastLocation=null, profileScene='', profileT
 let pendingRecovery='';
 let inventoryReturn='hall';
 let gathering=false;
-const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','npc-requests','npc-gifts'];
+const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-gifts'];
 const show=(name)=>{
   pages.forEach(p=>$(`#${p}-page`).classList.toggle('hidden',p!==name));
   if(name!=='npc'&&profileTimer){clearInterval(profileTimer);profileTimer=null;}
@@ -24,6 +24,10 @@ const api=async(path,method='GET',payload)=>{
   return data;
 };
 const safe=(text)=>String(text??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const MATERIALS=window.KAGARISO_MATERIALS||[];
+const materialById=id=>MATERIALS.find(m=>m.id===id);
+const matIcon=(id)=>{const m=materialById(id);return m?`<img class="material-thumb" src="${safe(m.image)}" alt="" loading="lazy" onerror="this.style.display='none'">`:'';};
+
 const handler=fn=>async(event)=>{try{await fn(event);}catch(err){toast(err.message||'エラーが発生しました。');}};
 const bind=(selector,fn)=>$(selector).addEventListener('click',handler(fn));
 const login=(data)=>{token=data.token;localStorage.setItem(SESSION_KEY,token);pendingRecovery=data.recoveryCode;$('#recovery-output').textContent=pendingRecovery;$('#confirmed-recovery').checked=false;$('#enter-after-recovery').disabled=true;show('recovery');};
@@ -69,7 +73,7 @@ async function openCave(sectionId=null){
     const {items}=await api('/inventory');const owned=Object.fromEntries(items.map(i=>[i.id,i.quantity]));
     for(const req of cave.requirements){
       const card=document.createElement('div');card.className='requirement-row';
-      const info=document.createElement('div');info.innerHTML=`<strong>${safe(req.name)}</strong><div class="muted tiny">納品済み ${req.donated} / ${req.needed}　残り ${req.remaining}　｜持ち物 ×${owned[req.id]||0}</div>`;
+      const info=document.createElement('div');info.innerHTML=`<div class="material-inline">${matIcon(req.id)}<div><strong>${safe(req.name)}</strong><div class="muted tiny">納品済み ${req.donated} / ${req.needed}　残り ${req.remaining}　｜持ち物 ×${owned[req.id]||0}</div></div></div>`;
       card.append(info);
       if(req.remaining>0){
         const form=document.createElement('form');form.className='donation-form';
@@ -109,7 +113,7 @@ async function openCave(sectionId=null){
       gathering=true;list.querySelectorAll('button').forEach(b=>b.disabled=true);
       try{
         const result=await api('/cave/gather','POST',{sectionId,spotId:spot.id});
-        const found=result.items.map(item=>`<strong>${safe(item.name)} ×${Number(item.quantity)}</strong>`).join('、');
+        const found=result.items.map(item=>`<span class="material-found-item">${matIcon(item.id)}<strong>${safe(item.name)} ×${Number(item.quantity)}</strong></span>`).join('、');
         $('#cave-result').innerHTML=`<div>${safe(result.message)}</div>${found?`<div>入手：${found}</div>`:''}`;
         $('#cave-result').classList.remove('hidden');
       }finally{gathering=false;list.querySelectorAll('button').forEach(b=>b.disabled=false);}
@@ -171,10 +175,26 @@ async function openStory(storyId,replay){
   };
   render();show('cave-story');
 }
+async function openMaterialCatalog(){
+ const {ids}=await api('/materials/discovered');
+ const discovered=new Set(ids);
+ const progress=document.querySelector('#catalog-progress');
+ progress.textContent=`発見済み：${MATERIALS.filter(m=>discovered.has(m.id)).length} / ${MATERIALS.length} 種類`;
+ const render=()=>{
+  const filter=document.querySelector('#catalog-filter').value;
+  document.querySelector('#material-catalog-grid').innerHTML=MATERIALS.filter(m=>filter==='all'||(filter==='found'?discovered.has(m.id):!discovered.has(m.id))).map(m=>{
+   const found=discovered.has(m.id);
+   const thumb=found?matIcon(m.id):'<div class="material-missing-icon" aria-hidden="true">？</div>';
+   return `<article class="material-catalog-card ${found?'':'undiscovered'}"><div class="material-catalog-image">${thumb}</div><div class="muted tiny">${safe(m.imageId)}</div><strong>${found?safe(m.name):'？？？？？'}</strong><div class="muted tiny">${found?safe(m.category)+' · '+'★'.repeat(m.rarity):'未開放素材'}</div>${found?`<p class="muted tiny">${safe(m.description)}</p>`:''}</article>`;
+  }).join('');
+ };
+ document.querySelector('#catalog-filter').onchange=render;
+ render();show('material-catalog');
+}
 async function openInventory(from='hall'){
   inventoryReturn=from;
   const {items}=await api('/inventory');
-  $('#inventory-list').innerHTML=items.length?items.map(i=>`<article class="inventory-item"><div><strong>${safe(i.name)}</strong><div class="muted tiny">${safe(i.category)} · ${'★'.repeat(Math.max(1,Math.min(5,i.rarity)))}</div></div><strong>×${Number(i.quantity)}</strong></article>`).join(''):'<p class="muted">まだ素材を持っていません。洞窟で採取してみよう。</p>';
+  $('#inventory-list').innerHTML=items.length?items.map(i=>`<article class="inventory-item">${matIcon(i.id)}<div><strong>${safe(i.name)}</strong><div class="muted tiny">${safe(i.category)} · ${'★'.repeat(Math.max(1,Math.min(5,i.rarity)))}</div></div><strong>×${Number(i.quantity)}</strong></article>`).join(''):'<p class="muted">まだ素材を持っていません。洞窟で採取してみよう。</p>';
   show('inventory');
 }
 async function openNpc(){const {npc}=await api('/npcs/paper');currentNpc=npc;lastLocation=npc.state.location;profileScene=npc.scene;$('#life-action-result').classList.add('hidden');$('#npc-move-notice').classList.add('hidden');renderNpc(false);show('npc');profileTimer=setInterval(async()=>{if(document.hidden)return;try{const {npc:updated}=await api('/npcs/paper');const old=lastLocation;currentNpc=updated;lastLocation=updated.state.location;renderNpc(old!==updated.state.location);}catch{}},15000);}
@@ -339,7 +359,7 @@ async function openNpcRequests(message=''){
     for(const item of req.items){
       if(item.remaining>0)ready=false;
       const row=document.createElement('div');row.className='request-item';
-      const line=document.createElement('p');line.className='muted tiny';line.textContent=`${item.name}：${item.donated} / ${item.needed}（残り ${item.remaining}・持ち物 ${item.owned}）`;
+      const line=document.createElement('div');line.className='material-inline muted tiny';line.innerHTML=`${matIcon(item.id)}<span>${safe(item.name)}：${item.donated} / ${item.needed}（残り ${item.remaining}・持ち物 ${item.owned}）</span>`;
       row.append(line);
       if(item.remaining>0){
         const form=document.createElement('form');form.className='request-donate-form';
@@ -373,7 +393,7 @@ async function openNpcRequests(message=''){
   if(!requests.active.length)activeList.innerHTML='<p class="muted">今、引き受けているお願いはありません。</p>';
   for(const t of requests.templates){
     const card=document.createElement('article');card.className='request-card';card.append(subHeading(t.title,t.description));
-    const p=document.createElement('p');p.className='muted tiny';p.textContent='必要素材：'+t.items.map(i=>`${i.name} ×${i.needed}`).join('、');card.append(p);
+    const p=document.createElement('div');p.className='muted tiny';p.innerHTML='必要素材：'+t.items.map(i=>`<span class="material-found-item">${matIcon(i.id)}${safe(i.name)} ×${i.needed}</span>`).join('、');card.append(p);
     const button=document.createElement('button');button.className='secondary small';button.textContent='このお願いを引き受ける';button.disabled=!requests.canAccept;
     button.onclick=handler(async()=>{
       if(requestBusy)return;requestBusy=true;button.disabled=true;
@@ -391,6 +411,8 @@ bind('#npc-requests-back',openNpc);
 
 bind('#refresh-hall',openHall);
 bind('#open-inventory',()=>openInventory('hall'));
+bind('#open-material-catalog',openMaterialCatalog);
+bind('#material-catalog-back',openHall);
 bind('#cave-inventory-btn',()=>openInventory('cave'));
 bind('#cave-refresh',()=>openCave(selectedCaveSection));
 bind('#cave-story-back',()=>openCave(selectedCaveSection));
