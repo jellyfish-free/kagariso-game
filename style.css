@@ -22,3 +22,6 @@
 /* v0.5 洞窟の物語：段落を読みやすく表示する */
 #cave-story-scene, #cave-story-speech {white-space:pre-line;overflow-wrap:anywhere;line-height:2;}
 #cave-story-next {margin-top:18px;width:100%;}
+
+/* v0.6: NPCのお願い */
+.request-list{display:grid;gap:14px;margin:14px 0 22px}.request-card{padding:18px;border-radius:14px;background:#181b2c9c;border:1px solid #ffffff24}.request-card strong{color:#f2d4a1}.request-card p{margin:8px 0}.request-item{padding:12px 0;border-top:1px solid #ffffff19}.request-donate-form{display:flex;gap:10px;align-items:center}.request-donate-form input{max-width:100px}.request-ready{color:#e9c995;font-weight:700}.request-history-entry{padding:10px 0;border-bottom:1px solid #ffffff22;font-size:13px}.request-card .actions{margin-bottom:0}#open-npc-requests{width:100%}

@@ -9,7 +9,7 @@ let resident=null, currentNpc=null, lastLocation=null, profileScene='', profileT
 let pendingRecovery='';
 let inventoryReturn='hall';
 let gathering=false;
-const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory'];
+const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','npc-requests'];
 const show=(name)=>{
   pages.forEach(p=>$(`#${p}-page`).classList.toggle('hidden',p!==name));
   if(name!=='npc'&&profileTimer){clearInterval(profileTimer);profileTimer=null;}
@@ -212,6 +212,72 @@ const openConversation=async()=>{
   }));$('#conversation-choices').append(btn);}
   show('conversation');
 };
+
+// v0.6 ぺーぱーのお願い。表示情報はすべてサーバーから取得する。
+let requestBusy=false;
+const showRequestsMessage=(text)=>{const el=$('#npc-requests-message');el.textContent=text;el.classList.remove('hidden');};
+async function openNpcRequests(message=''){
+  const {requests}=await api('/npcs/paper/requests');
+  const activeList=$('#npc-requests-active'),availableList=$('#npc-requests-available'),historyList=$('#npc-requests-history');
+  activeList.replaceChildren();availableList.replaceChildren();historyList.replaceChildren();
+  if(message)showRequestsMessage(message);else $('#npc-requests-message').classList.add('hidden');
+  const subHeading=(name,description)=>{const div=document.createElement('div');div.innerHTML=`<strong>${safe(name)}</strong><p class="muted tiny">${safe(description)}</p>`;return div;};
+  for(const req of requests.active){
+    const card=document.createElement('article');card.className='request-card';card.append(subHeading(req.title,'預けた素材は完了報告まで保管されます。'));
+    const list=document.createElement('div');list.className='request-items';let ready=true;
+    for(const item of req.items){
+      if(item.remaining>0)ready=false;
+      const row=document.createElement('div');row.className='request-item';
+      const line=document.createElement('p');line.className='muted tiny';line.textContent=`${item.name}：${item.donated} / ${item.needed}（残り ${item.remaining}・持ち物 ${item.owned}）`;
+      row.append(line);
+      if(item.remaining>0){
+        const form=document.createElement('form');form.className='request-donate-form';
+        const input=document.createElement('input');input.type='number';input.min='1';input.max=String(Math.min(item.remaining,item.owned));input.step='1';input.value=String(Math.min(5,item.remaining,item.owned)||1);input.setAttribute('aria-label',item.name+'の納品個数');
+        const button=document.createElement('button');button.type='submit';button.className='secondary small';button.textContent='預ける';button.disabled=item.owned<1;
+        form.append(input,button);
+        form.addEventListener('submit',handler(async e=>{
+          e.preventDefault();const quantity=Number(input.value);
+          if(!Number.isSafeInteger(quantity)||quantity<1||quantity>item.remaining||quantity>item.owned)throw new Error('素材の個数を確認してください。');
+          if(requestBusy)return;requestBusy=true;button.disabled=true;
+          try{const data=await api('/npcs/paper/requests/donate','POST',{requestId:req.id,itemId:item.id,quantity});await openNpcRequests(data.message);}finally{requestBusy=false;}
+        }));row.append(form);
+      }
+      list.append(row);
+    }
+    card.append(list);
+    if(ready){const note=document.createElement('p');note.className='request-ready';note.textContent='素材が揃ったよ！ ぺーぱー本人に報告しよう。';card.append(note);}
+    const actions=document.createElement('div');actions.className='actions';
+    const report=document.createElement('button');report.className='primary small';report.textContent='ぺーぱーに報告する';report.disabled=!ready;
+    report.onclick=handler(async()=>{
+      if(requestBusy)return;requestBusy=true;report.disabled=true;
+      try{const data=await api('/npcs/paper/requests/resolve','POST',{requestId:req.id,action:'report'});await openNpcRequests(data.message);}finally{requestBusy=false;}
+    });
+    const cancel=document.createElement('button');cancel.className='secondary small';cancel.textContent='お願いを取り消す';
+    cancel.onclick=handler(async()=>{
+      if(!confirm('このお願いを取り消しますか？ 預けた素材はすべて返却されます。'))return;
+      if(requestBusy)return;requestBusy=true;cancel.disabled=true;
+      try{const data=await api('/npcs/paper/requests/resolve','POST',{requestId:req.id,action:'cancel'});await openNpcRequests(data.message);}finally{requestBusy=false;}
+    });actions.append(report,cancel);card.append(actions);activeList.append(card);
+  }
+  if(!requests.active.length)activeList.innerHTML='<p class="muted">今、引き受けているお願いはありません。</p>';
+  for(const t of requests.templates){
+    const card=document.createElement('article');card.className='request-card';card.append(subHeading(t.title,t.description));
+    const p=document.createElement('p');p.className='muted tiny';p.textContent='必要素材：'+t.items.map(i=>`${i.name} ×${i.needed}`).join('、');card.append(p);
+    const button=document.createElement('button');button.className='secondary small';button.textContent='このお願いを引き受ける';button.disabled=!requests.canAccept;
+    button.onclick=handler(async()=>{
+      if(requestBusy)return;requestBusy=true;button.disabled=true;
+      try{const data=await api('/npcs/paper/requests/accept','POST',{templateKey:t.key});await openNpcRequests(data.message);}finally{requestBusy=false;}
+    });card.append(button);availableList.append(card);
+  }
+  if(!requests.templates.length)availableList.innerHTML='<p class="muted">今は新しいお願いがありません。</p>';
+  if(!requests.canAccept){const p=document.createElement('p');p.className='muted tiny';p.textContent='同時に受けられるお願いは3件までです。';availableList.prepend(p);}
+  for(const r of requests.history){const p=document.createElement('div');p.className='request-history-entry';p.textContent=`${r.title} — ${r.status==='completed'?'完了':'取り消し'}（${r.resolvedAt||r.createdAt} UTC）`;historyList.append(p);}
+  if(!requests.history.length)historyList.textContent='まだ履歴はありません。';
+  show('npc-requests');
+}
+bind('#open-npc-requests',()=>openNpcRequests());
+bind('#npc-requests-back',openNpc);
+
 bind('#refresh-hall',openHall);
 bind('#open-inventory',()=>openInventory('hall'));
 bind('#cave-inventory-btn',()=>openInventory('cave'));
