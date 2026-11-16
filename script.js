@@ -7,7 +7,9 @@ const SESSION_KEY='kagariso_starter_session_v1';
 let token=localStorage.getItem(SESSION_KEY)||'';
 let resident=null, currentNpc=null, lastLocation=null, profileScene='', profileTimer=null;
 let pendingRecovery='';
-const pages=['auth','recovery','hall','npc','conversation','room','history'];
+let inventoryReturn='hall';
+let gathering=false;
+const pages=['auth','recovery','hall','npc','conversation','room','history','cave','inventory'];
 const show=(name)=>{
   pages.forEach(p=>$(`#${p}-page`).classList.toggle('hidden',p!==name));
   if(name!=='npc'&&profileTimer){clearInterval(profileTimer);profileTimer=null;}
@@ -37,9 +39,37 @@ bind('#logout-btn',async()=>{try{await api('/logout','POST');}finally{token='';r
 const stateText=(npc)=>npc.state.locationLabel;
 async function openHall(){const data=await api('/hall');resident=data.resident;$('#user-name').textContent=resident.name;$('#user-bar').classList.remove('hidden');
   $('#npc-list').innerHTML=data.npcs.map(n=>`<article class="npc-card"><div class="avatar" aria-hidden="true">✦<span class="avatar-ears">⌃⌃</span></div><div><strong>${safe(n.name)}</strong><div class="muted">${safe(stateText(n))} · ${safe(n.state.activityLabel)}</div></div><button class="secondary small" data-npc="${safe(n.id)}">詳細を見る</button></article>`).join('');
-  $('#doors').innerHTML=data.hall.doors.map(d=>`<article class="door-card"><span class="door-glyph">◇</span><div><strong>${safe(d.name)}</strong><div class="muted">探索機能は次の開発段階で実装</div></div><span class="tag">準備中</span></article>`).join('');
+  $('#doors').innerHTML=data.hall.doors.map(d=>`<article class="door-card"><span class="door-glyph">◇</span><div><strong>${safe(d.name)}</strong><div class="muted">${d.status==='available'?'入口の採取ができます':'探索機能は次の開発段階で実装'}</div></div>${d.status==='available'?'<button class="secondary small" data-door="cave">探索する</button>':'<span class="tag">準備中</span>'}</article>`).join('');
+  $('#doors').querySelector('[data-door="cave"]')?.addEventListener('click',handler(openCave));
   $('#npc-list').querySelectorAll('[data-npc]').forEach(b=>b.addEventListener('click',handler(openNpc)));
   show('hall');
+}
+async function openCave(){
+  const {cave}=await api('/cave');
+  $('#cave-description').textContent=cave.section.description+' '+cave.message;
+  $('#cave-result').classList.add('hidden');
+  const list=$('#cave-spots');list.replaceChildren();
+  for(const spot of cave.spots){
+    const btn=document.createElement('button');btn.className='secondary gather-btn';
+    btn.innerHTML=`<strong>${safe(spot.name)}</strong><span class="muted tiny">${safe(spot.description)}</span>`;
+    btn.addEventListener('click',handler(async()=>{
+      if(gathering)return;
+      gathering=true;list.querySelectorAll('button').forEach(b=>b.disabled=true);
+      try{
+        const result=await api('/cave/gather','POST',{spotId:spot.id});
+        const found=result.items.length?`<strong>入手：${safe(result.items[0].name)} ×${result.items[0].quantity}</strong>`:'';
+        $('#cave-result').innerHTML=`<div>${safe(result.message)}</div>${found}`;
+        $('#cave-result').classList.remove('hidden');
+      }finally{gathering=false;list.querySelectorAll('button').forEach(b=>b.disabled=false);}
+    }));list.append(btn);
+  }
+  show('cave');
+}
+async function openInventory(from='hall'){
+  inventoryReturn=from;
+  const {items}=await api('/inventory');
+  $('#inventory-list').innerHTML=items.length?items.map(i=>`<article class="inventory-item"><div><strong>${safe(i.name)}</strong><div class="muted tiny">${safe(i.category)} · ${'★'.repeat(Math.max(1,Math.min(5,i.rarity)))}</div></div><strong>×${Number(i.quantity)}</strong></article>`).join(''):'<p class="muted">まだ素材を持っていません。洞窟で採取してみよう。</p>';
+  show('inventory');
 }
 async function openNpc(){const {npc}=await api('/npcs/paper');currentNpc=npc;lastLocation=npc.state.location;profileScene=npc.scene;$('#life-action-result').classList.add('hidden');$('#npc-move-notice').classList.add('hidden');renderNpc(false);show('npc');profileTimer=setInterval(async()=>{if(document.hidden)return;try{const {npc:updated}=await api('/npcs/paper');const old=lastLocation;currentNpc=updated;lastLocation=updated.state.location;renderNpc(old!==updated.state.location);}catch{}},15000);}
 function renderNpc(moved){const n=currentNpc;
@@ -78,6 +108,9 @@ const openConversation=async()=>{
   show('conversation');
 };
 bind('#refresh-hall',openHall);
+bind('#open-inventory',()=>openInventory('hall'));
+bind('#cave-inventory-btn',()=>openInventory('cave'));
+bind('#inventory-back',async()=>{if(inventoryReturn==='cave')await openCave();else await openHall();});
 for(const [selector,action] of [['#rest-btn','rest'],['#wake-btn','wake']]){bind(selector,async()=>{const data=await api('/npcs/paper/life/action','POST',{action});currentNpc=data.npc;const last=lastLocation;lastLocation=data.npc.state.location;renderNpc(last!==lastLocation);$('#life-action-result').textContent=data.message;$('#life-action-result').classList.remove('hidden');});}
 bind('#talk-btn',openConversation);
 bind('#visit-btn',async()=>{if(currentNpc.state.location==='hall'){toast('ぺーぱーはホールにいます。');return;}await enterRoom();});
