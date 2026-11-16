@@ -29,14 +29,50 @@
       </section>
       <section id="recovery-page" class="page hidden narrow"><div class="panel recovery-panel"><div class="big-icon">✉</div><span class="eyebrow">IMPORTANT</span><h1>復旧コードを保存してね</h1><p>このコードは<strong>今回だけ</strong>表示されます。端末やブラウザを変更したとき、住人データを復旧するために必要です。</p><div class="secret-code" id="recovery-output"></div><button id="copy-recovery" class="secondary">コードをコピー</button><label class="confirm"><input id="confirmed-recovery" type="checkbox"> 安全な場所に保存しました</label><button id="enter-after-recovery" class="primary" disabled>ホールへ進む →</button></div></section>
       <section id="hall-page" class="page hidden"><div class="hall-head"><div><span class="eyebrow">THE HALL OF DOORS</span><h1>ふしぎなホール</h1><p>静かな大理石の広間。今日は誰に会えるだろう。</p></div><div class="actions hall-utilities"><button id="open-inventory" class="secondary small">持ち物</button><button id="refresh-hall" class="secondary small">↻ 更新</button></div></div><div class="hall-sky"><div class="star star-1">✦</div><div class="star star-2">✧</div><div class="star star-3">✦</div><div class="hall-arch"><span class="arch-light">✧</span><div class="arch-caption">ようこそ、神狩荘へ。</div></div><div class="floor"></div></div><div class="section-top"><h2>ここにいる住人たち</h2><p class="muted">NPCの居場所は、住人全員で共有されています。</p></div><div id="npc-list" class="npc-list"></div><div class="section-top"><h2>不思議な扉</h2><p class="muted">扉の向こうには、新しい探索が待っている。</p></div><div id="doors" class="doors"></div></section>
-      <section id="cave-page" class="page hidden narrow"><button class="back" data-back="hall">← ホールに戻る</button><div class="panel"><span class="eyebrow">THE FIRST CAVE</span><h1>洞窟入口</h1><p id="cave-description" class="muted"></p><p class="note">探索は何度でもできます。素材は住人ごとの持ち物に入ります。</p><div class="section-top"><h2>採取する場所</h2></div><div id="cave-spots" class="choice-list"></div><div id="cave-result" class="notice hidden" role="status" aria-live="polite"></div><div class="actions"><button id="cave-inventory-btn" class="secondary">自分の持ち物を見る</button></div><p class="note">奥の区画・共同開拓・NPC救出は今後の更新で追加します。</p></div></section>
+      <section id="cave-page" class="page hidden narrow">
+        <button class="back" data-back="hall">← ホールに戻る</button>
+        <div class="panel">
+          <span class="eyebrow">THE FIRST CAVE</span><h1>洞窟探索</h1>
+          <p class="muted">一度開いた場所へは、いつでも戻れます。素材は住人それぞれの持ち物に入ります。</p>
+          <div id="cave-sections" class="cave-section-nav" aria-label="開放済みの区画"></div>
+          <div id="cave-section-content" class="hidden">
+            <h2 id="cave-section-name"></h2><p id="cave-description" class="muted"></p>
+            <div id="cave-first-story" class="story-teaser hidden"></div>
+            <div class="section-top"><h2>採取する場所</h2></div><div id="cave-spots" class="choice-list"></div>
+            <div id="cave-result" class="notice hidden" role="status" aria-live="polite"></div>
+          </div>
+          <section id="cave-construction" class="cave-construction">
+            <div class="section-top"><h2>現在の開拓</h2><p class="muted tiny">納品は全住人で共有されます。納品済みの素材は返却されません。</p></div>
+            <h3 id="cave-gate-title"></h3>
+            <div class="progress-track" aria-label="現在の区画の納品進捗"><div id="cave-progress-fill" class="progress-fill"></div></div>
+            <p id="cave-progress-label" class="muted tiny"></p>
+            <div id="cave-requirements" class="cave-requirements"></div>
+            <button id="cave-excavate" class="primary hidden">開拓する</button>
+            <p id="cave-excavate-note" class="muted tiny"></p>
+          </section>
+          <div id="cave-rescue-status" class="notice hidden"></div>
+          <div class="section-top"><h2>自分の思い出</h2><p class="muted tiny">体験した物語だけを読み返せます。</p></div>
+          <div id="cave-history" class="choice-list"></div>
+          <div class="actions"><button id="cave-inventory-btn" class="secondary">自分の持ち物を見る</button><button id="cave-refresh" class="secondary">↻ 開拓状況を更新</button></div>
+        </div>
+      </section>
+      <section id="cave-story-page" class="page hidden narrow">
+        <button class="back" id="cave-story-back">← 洞窟に戻る</button>
+        <div class="panel story"><span class="eyebrow">A MEMORY IN THE CAVE</span><h1 id="cave-story-title"></h1>
+          <div id="cave-story-scene" class="scene"></div>
+          <div class="speech"><span class="speaker">ぺーぱー</span><p id="cave-story-speech"></p></div>
+          <div id="cave-story-choices" class="choice-list"></div>
+          <div id="cave-story-result" class="notice hidden"></div>
+          <button id="cave-story-done" class="primary hidden">洞窟へ戻る →</button>
+        </div>
+      </section>
       <section id="inventory-page" class="page hidden narrow"><button class="back" id="inventory-back">← 戻る</button><div class="panel"><span class="eyebrow">MY BELONGINGS</span><h1>自分の持ち物</h1><p class="muted">入手した素材はほかの住人と共有されません。</p><div id="inventory-list" class="inventory-list"></div></div></section>
       <section id="npc-page" class="page hidden narrow"><button class="back" data-back="hall">← ホールに戻る</button><div class="panel npc-profile"><div class="npc-heading"><div class="avatar large" aria-hidden="true">✦<span class="avatar-ears">⌃⌃</span></div><div><span class="eyebrow">NPC-001</span><h1>ぺーぱー</h1><div id="npc-affinity" class="hearts"></div><div id="npc-relationship" class="muted"></div></div></div><div id="npc-live-state" class="state-grid"></div><div id="npc-move-notice" class="notice hidden"></div><div class="life-status" id="npc-life-status" aria-label="ぺーぱーの生活状態"></div><div class="section-top compact"><h2>現在の様子</h2><span class="muted tiny">プロフィールを開いたときの描写</span></div><p id="npc-scene" class="scene"></p><div class="actions"><button class="primary" id="talk-btn">話しかける</button><button class="secondary" id="visit-btn">会いに行く</button><button class="secondary" id="room-btn">自室を訪ねる</button></div><section class="life-actions"><h3>ぺーぱーの生活</h3><p class="muted tiny">NPCの意思で休息・睡眠します。状態の変化は住人全員で共有されます。</p><div class="actions"><button class="secondary" id="rest-btn">休憩をすすめる</button><button class="secondary" id="wake-btn">そっと声をかけて起こす</button></div><div id="life-action-result" class="notice hidden"></div></section><details id="profile-more"><summary>詳細を見る</summary><div class="details-content"><h3>この子について</h3><p id="npc-bio"></p><h3>性格</h3><p id="npc-personality"></p><h3>趣味・特技</h3><p>食べることが大好き。料理はまだ練習中。</p><h3>あなたとの関係</h3><p id="npc-relationship-detail"></p><h3>思い出</h3><button class="secondary small" id="history-btn">会話履歴を見る</button><p class="note">特別なイベント、成長履歴、記念品は次の開発段階で追加予定。</p></div></details></div></section>
       <section id="conversation-page" class="page hidden narrow"><button class="back" data-back="npc">← プロフィールへ</button><div class="panel story"><span class="eyebrow">A MOMENT WITH PAPER</span><h1>ぺーぱーとのお話</h1><div id="conversation-scene" class="scene"></div><div class="speech"><span class="speaker">ぺーぱー</span><p id="speech-line">「ねえねえ！ なにかお話する？」</p></div><div id="conversation-choices" class="choice-list"></div><div id="conversation-result" class="notice hidden"></div><button id="conversation-close" class="secondary">お話を終える</button></div></section>
       <section id="room-page" class="page hidden narrow"><button class="back" data-back="npc">← プロフィールへ</button><div class="panel story"><div class="big-icon">⌂</div><span class="eyebrow">PAPER'S ROOM</span><h1>ぺーぱーの部屋</h1><div id="room-message" class="scene"></div><p class="muted">小さな部屋には、ふかふかの寝床や、ぺーぱーのお気に入りのものが置かれている。</p><button class="primary" id="room-talk">ぺーぱーと話す</button></div></section>
       <section id="history-page" class="page hidden narrow"><button class="back" data-back="npc">← プロフィールへ</button><div class="panel"><span class="eyebrow">MEMORIES</span><h1>ぺーぱーとの会話履歴</h1><div id="history-list"></div></div></section>
     </main>
-    <footer>神狩荘 · ふしぎなホール <span>初期版 0.3</span></footer>
+    <footer>神狩荘 · ふしぎなホール <span>初期版 0.4</span></footer>
   </div>
 </body>
 </html>

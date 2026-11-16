@@ -4,3 +4,17 @@
 
 /* v0.3 洞窟と持ち物 */
 .hall-utilities{margin:0}.gather-btn{text-align:left;display:grid;gap:5px}.gather-btn strong{font-size:15px}.gather-btn .muted{font-weight:normal}.inventory-list{display:grid;gap:10px}.inventory-item{padding:14px 16px;border:1px solid var(--line);background:#181b2c8f;border-radius:12px;display:flex;justify-content:space-between;align-items:center;gap:18px}.inventory-item .muted{margin-top:5px}.door-card button{flex:none}.hall-head .actions button{min-width:0}@media(max-width:580px){.hall-head{flex-wrap:wrap}.hall-utilities{width:100%}.hall-utilities button{flex:1}}
+
+/* v0.4: 洞窟の共同開拓 */
+.cave-section-nav{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 26px}
+.cave-section-nav button.selected{border-color:#eac38a;background:rgba(234,195,138,.12);color:#f7ddae}
+.cave-construction{margin:26px 0;padding:18px;border:1px solid rgba(210,198,236,.22);border-radius:14px}
+.progress-track{height:12px;border-radius:20px;background:#171729;overflow:hidden;margin:12px 0 7px}
+.progress-fill{height:100%;width:0;background:linear-gradient(90deg,#c6a6dc,#eac38a);transition:width .3s}
+.requirement-row{border-bottom:1px solid rgba(218,211,240,.15);padding:14px 0;display:flex;gap:14px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.requirement-row:last-child{border-bottom:0}
+.donation-form{display:flex;align-items:center;gap:8px}
+.donation-form input{width:88px;min-width:70px;padding:10px;background:#1d1d30;color:#faf5ff;border:1px solid #767189;border-radius:8px}
+.story-teaser{margin:14px 0}
+#cave-excavate{margin-top:18px;width:100%}
+@media(max-width:520px){.requirement-row{display:block}.donation-form{margin-top:12px}}

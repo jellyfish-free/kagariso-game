@@ -9,7 +9,7 @@ let resident=null, currentNpc=null, lastLocation=null, profileScene='', profileT
 let pendingRecovery='';
 let inventoryReturn='hall';
 let gathering=false;
-const pages=['auth','recovery','hall','npc','conversation','room','history','cave','inventory'];
+const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory'];
 const show=(name)=>{
   pages.forEach(p=>$(`#${p}-page`).classList.toggle('hidden',p!==name));
   if(name!=='npc'&&profileTimer){clearInterval(profileTimer);profileTimer=null;}
@@ -44,26 +44,97 @@ async function openHall(){const data=await api('/hall');resident=data.resident;$
   $('#npc-list').querySelectorAll('[data-npc]').forEach(b=>b.addEventListener('click',handler(openNpc)));
   show('hall');
 }
-async function openCave(){
+let selectedCaveSection=1,activeCaveStory=null,caveStoryReplay=false;
+const caveQty=(n)=>Number(n)||0;
+async function openCave(sectionId=null){
   const {cave}=await api('/cave');
-  $('#cave-description').textContent=cave.section.description+' '+cave.message;
-  $('#cave-result').classList.add('hidden');
+  if(!cave.sections.length)throw new Error('洞窟のデータがまだありません。');
+  if(sectionId===null||!cave.sections.some(s=>s.id===sectionId))sectionId=cave.currentSection;
+  selectedCaveSection=sectionId;
+  const navigation=$('#cave-sections');navigation.replaceChildren();
+  for(const sec of cave.sections){
+    const btn=document.createElement('button');btn.type='button';btn.className='secondary small'+(sec.id===sectionId?' selected':'');
+    btn.textContent=sec.name;btn.addEventListener('click',handler(()=>openCave(sec.id)));navigation.append(btn);
+  }
+  $('#cave-construction').classList.toggle('hidden',cave.rescued);
+  $('#cave-rescue-status').classList.toggle('hidden',!cave.rescued);
+  if(cave.rescued)$('#cave-rescue-status').textContent='洞窟の出口が開かれました。すべての開放済み区画で、引き続き採取できます。';
+  if(!cave.rescued){
+    $('#cave-gate-title').textContent=cave.gateLabel;
+    const total=cave.requirements.reduce((s,r)=>s+r.needed,0),done=cave.requirements.reduce((s,r)=>s+r.donated,0);
+    $('#cave-progress-fill').style.width=(total?100*done/total:0)+'%';
+    $('#cave-progress-label').textContent=`現在の区画：${done} / ${total} 納品済み`;
+    const requirements=$('#cave-requirements');requirements.replaceChildren();
+    const {items}=await api('/inventory');const owned=Object.fromEntries(items.map(i=>[i.id,i.quantity]));
+    for(const req of cave.requirements){
+      const card=document.createElement('div');card.className='requirement-row';
+      const info=document.createElement('div');info.innerHTML=`<strong>${safe(req.name)}</strong><div class="muted tiny">納品済み ${req.donated} / ${req.needed}　残り ${req.remaining}　｜持ち物 ×${owned[req.id]||0}</div>`;
+      card.append(info);
+      if(req.remaining>0){
+        const form=document.createElement('form');form.className='donation-form';
+        const input=document.createElement('input');input.type='number';input.min='1';input.step='1';input.max=String(Math.min(req.remaining,owned[req.id]||0));input.value=String(Math.min(req.remaining,owned[req.id]||0,10)||1);input.setAttribute('aria-label',req.name+'の納品数');
+        const btn=document.createElement('button');btn.type='submit';btn.textContent='納品';btn.className='secondary small';btn.disabled=(owned[req.id]||0)===0;
+        form.append(input,btn);form.addEventListener('submit',handler(async e=>{
+          e.preventDefault();const quantity=Number(input.value);
+          if(!Number.isSafeInteger(quantity)||quantity<1||quantity>req.remaining||quantity>(owned[req.id]||0))throw new Error('納品数を確認してください。');
+          btn.disabled=true;
+          try{const result=await api('/cave/donate','POST',{sectionId:cave.currentSection,itemId:req.id,quantity});toast(result.message);await openCave(selectedCaveSection);}finally{btn.disabled=false;}
+        }));card.append(form);
+      }
+      requirements.append(card);
+    }
+    $('#cave-excavate').classList.toggle('hidden',!cave.ready);
+    $('#cave-excavate-note').textContent=cave.ready?'必要な素材がすべて揃いました。誰でも開拓できます。':'必要な素材を住人全員で持ち寄りましょう。';
+    $('#cave-excavate').onclick=handler(async()=>{
+      const btn=$('#cave-excavate');btn.disabled=true;
+      try{const result=await api('/cave/excavate','POST',{sectionId:cave.currentSection});toast(result.message);await openCave();if(result.cave.rescued)await openStory('rescue',false);}finally{btn.disabled=false;}
+    });
+  }
+  const history=$('#cave-history');history.replaceChildren();
+  for(const event of cave.stories){const btn=document.createElement('button');btn.className='secondary';btn.textContent=event.title+'（読み返す）';btn.addEventListener('click',handler(()=>openStory(event.id,true)));history.append(btn);}
+  if(cave.rescued&&!cave.stories.some(s=>s.id==='rescue')){
+    const btn=document.createElement('button');btn.className='secondary';btn.textContent='ぺーぱーの救出を体験する';btn.addEventListener('click',handler(()=>openStory('rescue',false)));history.prepend(btn);
+  }
+  if(!history.children.length){const p=document.createElement('p');p.className='muted';p.textContent='まだ思い出がありません。';history.append(p);}
+  const entry=await api('/cave/section?id='+sectionId);
+  $('#cave-section-name').textContent=entry.section.name;
+  $('#cave-description').textContent=entry.section.description;
   const list=$('#cave-spots');list.replaceChildren();
-  for(const spot of cave.spots){
+  for(const spot of entry.spots){
     const btn=document.createElement('button');btn.className='secondary gather-btn';
     btn.innerHTML=`<strong>${safe(spot.name)}</strong><span class="muted tiny">${safe(spot.description)}</span>`;
     btn.addEventListener('click',handler(async()=>{
       if(gathering)return;
       gathering=true;list.querySelectorAll('button').forEach(b=>b.disabled=true);
       try{
-        const result=await api('/cave/gather','POST',{spotId:spot.id});
-        const found=result.items.length?`<strong>入手：${safe(result.items[0].name)} ×${result.items[0].quantity}</strong>`:'';
-        $('#cave-result').innerHTML=`<div>${safe(result.message)}</div>${found}`;
+        const result=await api('/cave/gather','POST',{sectionId,spotId:spot.id});
+        const found=result.items.map(item=>`<strong>${safe(item.name)} ×${Number(item.quantity)}</strong>`).join('、');
+        $('#cave-result').innerHTML=`<div>${safe(result.message)}</div>${found?`<div>入手：${found}</div>`:''}`;
         $('#cave-result').classList.remove('hidden');
       }finally{gathering=false;list.querySelectorAll('button').forEach(b=>b.disabled=false);}
     }));list.append(btn);
   }
-  show('cave');
+  $('#cave-result').classList.add('hidden');$('#cave-section-content').classList.remove('hidden');show('cave');
+  if(entry.story)await openStory(entry.story.id,false);
+}
+async function openStory(storyId,replay){
+  const {story,seen,originalChoice}=await api('/cave/story?id='+encodeURIComponent(storyId));
+  if(replay&&!seen)throw new Error('まだ体験していない物語です。');
+  activeCaveStory=storyId;caveStoryReplay=replay;
+  $('#cave-story-title').textContent=story.title;
+  $('#cave-story-scene').textContent=story.scene;
+  $('#cave-story-speech').textContent=story.speech;
+  $('#cave-story-result').classList.add('hidden');$('#cave-story-done').classList.add('hidden');
+  const choices=$('#cave-story-choices');choices.replaceChildren();
+  if(replay){const note=document.createElement('p');note.className='muted tiny';note.textContent='読み返し中：好きな返答を試せます。最初に選んだ内容は変わりません。';choices.append(note);}
+  for(const choice of story.choices){const btn=document.createElement('button');btn.className='secondary';btn.textContent=choice.label+(replay&&choice.id===originalChoice?'（初回の選択）':'');
+    btn.addEventListener('click',handler(async()=>{
+      const response=await api('/cave/story/choose','POST',{storyId,choiceId:choice.id,replay});
+      $('#cave-story-result').textContent=response.message;$('#cave-story-result').classList.remove('hidden');
+      $('#cave-story-done').classList.remove('hidden');if(!replay)choices.querySelectorAll('button').forEach(b=>b.disabled=true);
+    }));choices.append(btn);
+  }
+  show('cave-story');
 }
 async function openInventory(from='hall'){
   inventoryReturn=from;
@@ -110,7 +181,10 @@ const openConversation=async()=>{
 bind('#refresh-hall',openHall);
 bind('#open-inventory',()=>openInventory('hall'));
 bind('#cave-inventory-btn',()=>openInventory('cave'));
-bind('#inventory-back',async()=>{if(inventoryReturn==='cave')await openCave();else await openHall();});
+bind('#cave-refresh',()=>openCave(selectedCaveSection));
+bind('#cave-story-back',()=>openCave(selectedCaveSection));
+bind('#cave-story-done',()=>openCave(selectedCaveSection));
+bind('#inventory-back',async()=>{if(inventoryReturn==='cave')await openCave(selectedCaveSection);else await openHall();});
 for(const [selector,action] of [['#rest-btn','rest'],['#wake-btn','wake']]){bind(selector,async()=>{const data=await api('/npcs/paper/life/action','POST',{action});currentNpc=data.npc;const last=lastLocation;lastLocation=data.npc.state.location;renderNpc(last!==lastLocation);$('#life-action-result').textContent=data.message;$('#life-action-result').classList.remove('hidden');});}
 bind('#talk-btn',openConversation);
 bind('#visit-btn',async()=>{if(currentNpc.state.location==='hall'){toast('ぺーぱーはホールにいます。');return;}await enterRoom();});
