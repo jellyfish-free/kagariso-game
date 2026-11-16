@@ -122,19 +122,53 @@ async function openStory(storyId,replay){
   if(replay&&!seen)throw new Error('まだ体験していない物語です。');
   activeCaveStory=storyId;caveStoryReplay=replay;
   $('#cave-story-title').textContent=story.title;
-  $('#cave-story-scene').textContent=story.scene;
-  $('#cave-story-speech').textContent=story.speech;
-  $('#cave-story-result').classList.add('hidden');$('#cave-story-done').classList.add('hidden');
-  const choices=$('#cave-story-choices');choices.replaceChildren();
-  if(replay){const note=document.createElement('p');note.className='muted tiny';note.textContent='読み返し中：好きな返答を試せます。最初に選んだ内容は変わりません。';choices.append(note);}
-  for(const choice of story.choices){const btn=document.createElement('button');btn.className='secondary';btn.textContent=choice.label+(replay&&choice.id===originalChoice?'（初回の選択）':'');
-    btn.addEventListener('click',handler(async()=>{
-      const response=await api('/cave/story/choose','POST',{storyId,choiceId:choice.id,replay});
-      $('#cave-story-result').textContent=response.message;$('#cave-story-result').classList.remove('hidden');
-      $('#cave-story-done').classList.remove('hidden');if(!replay)choices.querySelectorAll('button').forEach(b=>b.disabled=true);
-    }));choices.append(btn);
-  }
-  show('cave-story');
+  const scene=$('#cave-story-scene'),speech=$('#cave-story-speech');
+  const choices=$('#cave-story-choices'),result=$('#cave-story-result'),done=$('#cave-story-done');
+  const next=$('#cave-story-next');
+  let phase='pre', index=0,selected=null;
+  const pre=Array.isArray(story.pre)&&story.pre.length?story.pre:[story.scene];
+  const post=Array.isArray(story.post)&&story.post.length?story.post:[];
+  const showParagraph=(value)=>{scene.textContent=value;scene.classList.remove('hidden');};
+  const render=()=>{
+    choices.replaceChildren(); result.classList.add('hidden');done.classList.add('hidden');next.classList.add('hidden');
+    speech.parentElement.classList.add('hidden');
+    if(phase==='pre'){
+      showParagraph(pre[index]); next.textContent=index===pre.length-1?'ぺーぱーの話を聞く →':'続きを読む →'; next.classList.remove('hidden');
+      return;
+    }
+    if(phase==='choice'){
+      showParagraph('ぺーぱーがこちらの返事を待っている。');
+      speech.textContent=story.speech;speech.parentElement.classList.remove('hidden');
+      if(replay){const note=document.createElement('p');note.className='muted tiny';note.textContent='読み返し中：返答を試せます。初回の選択記録は変わりません。';choices.append(note);}
+      for(const opt of story.choices){
+        const btn=document.createElement('button');btn.className='secondary';btn.textContent=opt.label+(replay&&opt.id===originalChoice?'（初回の選択）':'');
+        btn.addEventListener('click',handler(async()=>{
+          // 初回だけこの時点で記録。再読は初回の選択を書き換えない。
+          const answer=await api('/cave/story/choose','POST',{storyId,choiceId:opt.id,replay});
+          selected=opt; phase='response';render();
+        })); choices.append(btn);
+      }
+      return;
+    }
+    if(phase==='response'){
+      showParagraph('あなたの返答を聞いて、ぺーぱーは少し考えたあと、ゆっくり口を開いた。');
+      speech.textContent=selected.response;speech.parentElement.classList.remove('hidden');
+      next.textContent='物語の続きを読む →';next.classList.remove('hidden');return;
+    }
+    if(phase==='post'){
+      showParagraph(post[index]);next.textContent=index===post.length-1?'物語を終える →':'続きを読む →';next.classList.remove('hidden');return;
+    }
+    scene.classList.add('hidden');
+    result.textContent=replay?'読み返しはここまで。初回の記録は変更されていません。':'この出来事を思い出に記録しました。';
+    result.classList.remove('hidden');done.classList.remove('hidden');
+  };
+  next.onclick=()=>{
+    if(phase==='pre'){if(++index>=pre.length){phase='choice';index=0;}}
+    else if(phase==='response'){phase=post.length?'post':'complete';index=0;}
+    else if(phase==='post'){if(++index>=post.length)phase='complete';}
+    render();
+  };
+  render();show('cave-story');
 }
 async function openInventory(from='hall'){
   inventoryReturn=from;

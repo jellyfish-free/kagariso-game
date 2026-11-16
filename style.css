@@ -18,3 +18,7 @@
 .story-teaser{margin:14px 0}
 #cave-excavate{margin-top:18px;width:100%}
 @media(max-width:520px){.requirement-row{display:block}.donation-form{margin-top:12px}}
+
+/* v0.5 洞窟の物語：段落を読みやすく表示する */
+#cave-story-scene, #cave-story-speech {white-space:pre-line;overflow-wrap:anywhere;line-height:2;}
+#cave-story-next {margin-top:18px;width:100%;}
