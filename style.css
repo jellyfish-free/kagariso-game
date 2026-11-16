@@ -25,3 +25,6 @@
 
 /* v0.6: NPCのお願い */
 .request-list{display:grid;gap:14px;margin:14px 0 22px}.request-card{padding:18px;border-radius:14px;background:#181b2c9c;border:1px solid #ffffff24}.request-card strong{color:#f2d4a1}.request-card p{margin:8px 0}.request-item{padding:12px 0;border-top:1px solid #ffffff19}.request-donate-form{display:flex;gap:10px;align-items:center}.request-donate-form input{max-width:100px}.request-ready{color:#e9c995;font-weight:700}.request-history-entry{padding:10px 0;border-bottom:1px solid #ffffff22;font-size:13px}.request-card .actions{margin-bottom:0}#open-npc-requests{width:100%}
+
+/* v0.7 NPCからの贈り物 */
+#open-npc-gifts{width:100%;margin:0 0 10px}.gift-reply{width:100%;padding:12px;border:1px solid #777389;border-radius:10px;background:#191b2e;color:#faf6ff;margin:9px 0 12px}.gift-history-entry{margin:5px 0;padding:13px;border:1px solid #ffffff22;border-radius:12px}.gift-history-entry summary{cursor:pointer}.gift-history-entry p{margin:9px 0;overflow-wrap:anywhere}#gift-ready-badge{color:#f3d69d}
