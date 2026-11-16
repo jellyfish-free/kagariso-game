@@ -439,7 +439,7 @@ window.KAGARISO_MATERIALS = [
   },
   {
     "id": "C020",
-    "name": "澄んだ洞窟水",
+    "name": "夜光の雫",
     "rarity": 1,
     "category": "液体・甘味",
     "sections": [
@@ -451,7 +451,7 @@ window.KAGARISO_MATERIALS = [
     "chestOnly": false,
     "image": "images/materials/sozai0029.png",
     "imageId": "sozai0029",
-    "description": "澄んだ洞窟水。洞窟で見つけられる素材。"
+    "description": "夜光の雫。洞窟で見つけられる素材。"
   },
   {
     "id": "C025",
