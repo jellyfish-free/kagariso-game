@@ -43,7 +43,7 @@ async function openHall(){const data=await api('/hall');resident=data.resident;$
   $('#doors').querySelector('[data-door="cave"]')?.addEventListener('click',handler(openCave));
   $('#npc-list').querySelectorAll('[data-npc]').forEach(b=>b.addEventListener('click',handler(openNpc)));
   show('hall');
-  try{const gifts=await api('/npcs/paper/gifts');const badge=$('#gift-ready-badge');badge.textContent=gifts.readyCount?`(${gifts.readyCount})`:'';badge.classList.toggle('hidden',!gifts.readyCount);}catch(e){console.warn('受信箱の更新に失敗:',e);}
+  try{const gifts=await api('/gifts');const badge=$('#gift-ready-badge');badge.textContent=gifts.readyCount?`(${gifts.readyCount})`:'';badge.classList.toggle('hidden',!gifts.readyCount);}catch(e){console.warn('受信箱の更新に失敗:',e);}
 }
 let selectedCaveSection=1,activeCaveStory=null,caveStoryReplay=false;
 const caveQty=(n)=>Number(n)||0;
@@ -214,19 +214,50 @@ const openConversation=async()=>{
   show('conversation');
 };
 
-// v0.7: NPCからのプレゼント。返信は受取時の選択肢として記録される。
-let giftBusy=false,giftReturn='hall';
+// v0.8: 共通受信箱。ホールからは全員分、プロフィールからはぺーぱー分を表示。
+let giftBusy=false,giftReturn='hall',giftInventory=[];
 const giftDate=text=>text?new Date(String(text).replace(' ','T')+'Z').toLocaleString('ja-JP',{timeZone:'Asia/Tokyo'}):'';
+const giftCard=(title,desc)=>{const c=document.createElement('article');c.className='request-card';const strong=document.createElement('strong');strong.textContent=title;c.append(strong);if(desc){const p=document.createElement('p');p.className='muted tiny';p.textContent=desc;c.append(p);}return c;};
+const giftEmpty=(target,text)=>{if(!target.children.length){const p=document.createElement('p');p.className='muted';p.textContent=text;target.append(p);}};
+function addGiftRow(){
+ const box=$('#gift-send-rows');if(box.children.length>=10){toast('一度に送れるのは10種類までです。');return;}
+ if(!giftInventory.length){toast('送れる素材をまだ持っていません。');return;}
+ const row=document.createElement('div');row.className='gift-send-row';
+ const sel=document.createElement('select');sel.className='gift-reply';sel.setAttribute('aria-label','贈る素材');
+ for(const item of giftInventory){const opt=document.createElement('option');opt.value=item.id;opt.textContent=`${item.name}（所持 ${item.quantity}）`;sel.append(opt);}
+ const qty=document.createElement('input');qty.type='number';qty.min='1';qty.step='1';qty.value='1';qty.setAttribute('aria-label','個数');
+ const remove=document.createElement('button');remove.className='secondary small remove-gift-row';remove.type='button';remove.textContent='削除';remove.onclick=()=>row.remove();
+ row.append(sel,qty,remove);box.append(row);
+}
+$('#gift-add-row').addEventListener('click',addGiftRow);
+$('#gift-send').addEventListener('click',handler(async()=>{
+ if(giftBusy)return;
+ const receiverId=$('#gift-receiver').value;
+ const items=[...$('#gift-send-rows').children].map(row=>({itemId:row.querySelector('select').value,quantity:Number(row.querySelector('input').value)}));
+ if(!receiverId)throw new Error('贈る相手を選んでください。');
+ if(!items.length)throw new Error('素材を一つ以上選んでください。');
+ if(items.some(i=>!Number.isSafeInteger(i.quantity)||i.quantity<1))throw new Error('個数を確認してください。');
+ if(new Set(items.map(x=>x.itemId)).size!==items.length)throw new Error('同じ素材は一行にまとめてください。');
+ const counts=Object.fromEntries(giftInventory.map(x=>[x.id,x.quantity]));
+ if(items.some(i=>i.quantity>counts[i.itemId]))throw new Error('所持数を超えて送ることはできません。');
+ giftBusy=true;$('#gift-send').disabled=true;
+ try{const result=await api('/gifts/send','POST',{receiverId,items,message:$('#gift-send-message').value});await openNpcGifts('hall',result.message);}finally{giftBusy=false;$('#gift-send').disabled=false;}
+}));
 async function openNpcGifts(from='hall',message=''){
  giftReturn=from;
- const data=await api('/npcs/paper/gifts');
+ const onlyPaper=from==='npc';
+ const data=await api(onlyPaper?'/npcs/paper/gifts':'/gifts');
+ const npc=onlyPaper?data:data.npc;
  const inbox=$('#npc-gifts-inbox'),inventory=$('#npc-gifts-inventory'),history=$('#npc-gifts-history');
+ const common=$('#gifts-common-sections');common.classList.toggle('hidden',onlyPaper);
+ $('#resident-gifts-history-wrap').classList.toggle('hidden',onlyPaper);
+ $('#gifts-heading').textContent=onlyPaper?'受けとったプレゼント':'受信箱';
+ $('#gifts-eyebrow').textContent=onlyPaper?'GIFTS FROM PAPER':'YOUR MAILBOX';
+ $('#npc-gift-section-heading').textContent=onlyPaper?'ぺーぱーからの贈り物':'NPCから届いた贈り物';
  inbox.replaceChildren();inventory.replaceChildren();history.replaceChildren();
  const notification=$('#npc-gifts-message');notification.classList.toggle('hidden',!message);notification.textContent=message;
- for(const gift of data.inbox){
-  const card=document.createElement('article');card.className='request-card';
-  const title=document.createElement('strong');title.textContent=gift.ready?gift.name:'ぺーぱーがお礼を準備中';card.append(title);
-  const p=document.createElement('p');p.className='muted tiny';p.textContent=gift.ready?'贈り主：ぺーぱー　・　受け取りできます':`贈り主：ぺーぱー　・　完成予定：${giftDate(gift.readyAt)}（日本時間）`;card.append(p);
+ for(const gift of npc.inbox){
+  const card=giftCard(gift.ready?gift.name:'ぺーぱーがお礼を準備中',gift.ready?'贈り主：ぺーぱー　・　受け取りできます':`贈り主：ぺーぱー　・　完成予定：${giftDate(gift.readyAt)}（日本時間）`);
   if(gift.ready){
    const desc=document.createElement('p');desc.textContent=gift.description;card.append(desc);
    const msg=document.createElement('p');msg.textContent=`ぺーぱー「${gift.message}」`;card.append(msg);
@@ -240,15 +271,54 @@ async function openNpcGifts(from='hall',message=''){
   }else{const note=document.createElement('p');note.className='muted';note.textContent='ぺーぱーが頑張って作っています。完成を待ってね。';card.append(note);}
   inbox.append(card);
  }
- if(!data.inbox.length)inbox.innerHTML='<p class="muted">届いている贈り物はありません。</p>';
- for(const item of data.inventory){const card=document.createElement('article');card.className='request-card';const title=document.createElement('strong');title.textContent=`${item.name} ×${item.quantity}`;const desc=document.createElement('p');desc.className='muted tiny';desc.textContent=item.description;card.append(title,desc);inventory.append(card);}
- if(!data.inventory.length)inventory.innerHTML='<p class="muted">まだ記念品を受け取っていません。</p>';
- for(const gift of data.history){
+ giftEmpty(inbox,'届いている贈り物はありません。');
+ for(const item of npc.inventory){inventory.append(giftCard(`${item.name} ×${item.quantity}`,item.description));}
+ giftEmpty(inventory,'まだ記念品を受け取っていません。');
+ for(const gift of npc.history){
   const detail=document.createElement('details');detail.className='gift-history-entry';const title=document.createElement('summary');title.textContent=`${gift.name}｜${giftDate(gift.receivedAt)}`;detail.append(title);
   for(const str of [`説明：${gift.description}`,`贈り主：${gift.sender}`,`受け取った日：${giftDate(gift.receivedAt)}`,`メッセージ：${gift.message}`,`あなたの返答：${gift.replyChoice==='effort'?'頑張って作ってくれたんだね':'ありがとう！ 嬉しいよ！'}`]){const p=document.createElement('p');p.className='muted tiny';p.textContent=str;detail.append(p);}
   history.append(detail);
  }
- if(!data.history.length)history.innerHTML='<p class="muted">まだ受け取り履歴はありません。</p>';
+ giftEmpty(history,'まだ受け取り履歴はありません。');
+ if(!onlyPaper){
+  const incoming=$('#resident-gifts-inbox'),outgoing=$('#resident-gifts-outgoing'),received=$('#resident-gifts-history');
+  incoming.replaceChildren();outgoing.replaceChildren();received.replaceChildren();
+  for(const g of data.transfers){
+   const summary=g.items.map(i=>`${i.name} ×${i.quantity}`).join('、');
+   if(g.incoming&&g.status==='pending'){
+    const card=giftCard(`${g.sender}からの贈り物`,summary);
+    if(g.message){const d=document.createElement('details');const t=document.createElement('summary');t.textContent='メッセージを読む';d.append(t);const p=document.createElement('p');p.textContent=g.message;d.append(p);card.append(d);}
+    const actions=document.createElement('div');actions.className='actions';
+    for(const [action,label] of [['accept','受け取る'],['decline','辞退する']]){
+     const btn=document.createElement('button');btn.className=action==='accept'?'primary small':'secondary small';btn.textContent=label;
+     btn.addEventListener('click',handler(async()=>{if(giftBusy)return;giftBusy=true;btn.disabled=true;try{const result=await api('/gifts/resolve','POST',{giftId:g.id,action});await openNpcGifts('hall',result.message);}finally{giftBusy=false;}}));actions.append(btn);
+    }card.append(actions);incoming.append(card);
+   }
+   if(!g.incoming){
+    const label={pending:'受取待ち',accepted:'受取済み',declined:'辞退されました',cancelled:'取り消し'}[g.status]||g.status;
+    const card=giftCard(`${g.receiver}へ贈った素材｜${label}`,summary);
+    if(g.message){const p=document.createElement('p');p.className='muted tiny';p.textContent=`添えたメッセージ：${g.message}`;card.append(p);}
+    if(g.status==='pending'){const btn=document.createElement('button');btn.className='secondary small';btn.textContent='送信を取り消す';btn.addEventListener('click',handler(async()=>{if(giftBusy)return;giftBusy=true;btn.disabled=true;try{const result=await api('/gifts/resolve','POST',{giftId:g.id,action:'cancel'});await openNpcGifts('hall',result.message);}finally{giftBusy=false;}}));card.append(btn);}
+    outgoing.append(card);
+   }
+   if(g.incoming&&g.status==='accepted'){
+    const card=document.createElement('details');card.className='gift-history-entry';
+    const title=document.createElement('summary');title.textContent=`${summary}｜${giftDate(g.resolvedAt)}`;card.append(title);
+    for(const str of [`贈り主：${g.sender}`,`受け取った日：${giftDate(g.resolvedAt)}`,`メッセージ：${g.message||'なし'}`]){const p=document.createElement('p');p.className='muted tiny';p.textContent=str;card.append(p);}
+    received.append(card);
+   }
+  }
+  giftEmpty(incoming,'住人から届いている贈り物はありません。');
+  giftEmpty(outgoing,'送った贈り物はありません。');
+  giftEmpty(received,'住人からの受け取り履歴はありません。');
+  const recip=await api('/gifts/recipients');
+  const select=$('#gift-receiver');select.replaceChildren();
+  for(const r of recip.residents){const opt=document.createElement('option');opt.value=r.id;opt.textContent=r.name;select.append(opt);}
+  if(!recip.residents.length){const opt=document.createElement('option');opt.value='';opt.textContent='ほかの住人がまだいません';select.append(opt);}
+  giftInventory=(await api('/inventory')).items.filter(i=>i.quantity>0);
+  $('#gift-send-rows').replaceChildren();$('#gift-send-message').value='';
+  if(giftInventory.length)addGiftRow();
+ }
  show('npc-gifts');
 }
 bind('#open-gifts',()=>openNpcGifts('hall'));

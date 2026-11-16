@@ -68,7 +68,7 @@
         </div>
       </section>
       <section id="inventory-page" class="page hidden narrow"><button class="back" id="inventory-back">← 戻る</button><div class="panel"><span class="eyebrow">MY BELONGINGS</span><h1>自分の持ち物</h1><p class="muted">入手した素材はほかの住人と共有されません。</p><div id="inventory-list" class="inventory-list"></div></div></section>
-      <section id="npc-page" class="page hidden narrow"><button class="back" data-back="hall">← ホールに戻る</button><div class="panel npc-profile"><div class="npc-heading"><div class="avatar large" aria-hidden="true">✦<span class="avatar-ears">⌃⌃</span></div><div><span class="eyebrow">NPC-001</span><h1>ぺーぱー</h1><div id="npc-affinity" class="hearts"></div><div id="npc-relationship" class="muted"></div></div></div><div id="npc-live-state" class="state-grid"></div><div id="npc-move-notice" class="notice hidden"></div><div class="life-status" id="npc-life-status" aria-label="ぺーぱーの生活状態"></div><div class="section-top compact"><h2>現在の様子</h2><span class="muted tiny">プロフィールを開いたときの描写</span></div><p id="npc-scene" class="scene"></p><div class="actions"><button class="primary" id="talk-btn">話しかける</button><button class="secondary" id="visit-btn">会いに行く</button><button class="secondary" id="room-btn">自室を訪ねる</button></div><section class="life-actions"><h3>ぺーぱーの生活</h3><p class="muted tiny">NPCの意思で休息・睡眠します。状態の変化は住人全員で共有されます。</p><div class="actions"><button class="secondary" id="rest-btn">休憩をすすめる</button><button class="secondary" id="wake-btn">そっと声をかけて起こす</button></div><div id="life-action-result" class="notice hidden"></div></section><div class="section-top compact"><h2>ぺーぱーからのお願い</h2><p class="muted tiny">住人ごとのお願いです。素材を集めたら本人に報告しよう。</p></div><button class="secondary" id="open-npc-requests">お願いを見る</button><div class="section-top compact"><h2>NPCからのプレゼント</h2><p class="muted tiny">お願いのお礼は完成すると受信箱に届くよ。</p></div><button class="secondary" id="open-npc-gifts">受信箱を見る</button><details id="profile-more"><summary>詳細を見る</summary><div class="details-content"><h3>この子について</h3><p id="npc-bio"></p><h3>性格</h3><p id="npc-personality"></p><h3>趣味・特技</h3><p>食べることが大好き。料理はまだ練習中。</p><h3>あなたとの関係</h3><p id="npc-relationship-detail"></p><h3>思い出</h3><button class="secondary small" id="history-btn">会話履歴を見る</button><p class="note">特別なイベント、成長履歴、記念品は次の開発段階で追加予定。</p></div></details></div></section>
+      <section id="npc-page" class="page hidden narrow"><button class="back" data-back="hall">← ホールに戻る</button><div class="panel npc-profile"><div class="npc-heading"><div class="avatar large" aria-hidden="true">✦<span class="avatar-ears">⌃⌃</span></div><div><h1>ぺーぱー</h1><div id="npc-affinity" class="hearts"></div><div id="npc-relationship" class="muted"></div></div></div><div id="npc-live-state" class="state-grid"></div><div id="npc-move-notice" class="notice hidden"></div><div class="life-status" id="npc-life-status" aria-label="ぺーぱーの生活状態"></div><div class="section-top compact"><h2>現在の様子</h2><span class="muted tiny">プロフィールを開いたときの描写</span></div><p id="npc-scene" class="scene"></p><div class="actions"><button class="primary" id="talk-btn">話しかける</button><button class="secondary" id="visit-btn">会いに行く</button><button class="secondary" id="room-btn">自室を訪ねる</button></div><section class="life-actions"><h3>ぺーぱーの生活</h3><p class="muted tiny">NPCの意思で休息・睡眠します。状態の変化は住人全員で共有されます。</p><div class="actions"><button class="secondary" id="rest-btn">休憩をすすめる</button><button class="secondary" id="wake-btn">そっと声をかけて起こす</button></div><div id="life-action-result" class="notice hidden"></div></section><div class="section-top compact"><h2>ぺーぱーからのお願い</h2><p class="muted tiny">住人ごとのお願いです。素材を集めたら本人に報告しよう。</p></div><button class="secondary" id="open-npc-requests">お願いを見る</button><div class="section-top compact"><h2>受けとったプレゼント</h2><p class="muted tiny">お願いのお礼は完成すると受信箱に届くよ。</p></div><button class="secondary" id="open-npc-gifts">ぺーぱーのプレゼントを見る</button><details id="profile-more"><summary>詳細を見る</summary><div class="details-content"><h3>この子について</h3><p id="npc-bio"></p><h3>性格</h3><p id="npc-personality"></p><h3>趣味・特技</h3><p>食べることが大好き。料理はまだ練習中。</p><h3>あなたとの関係</h3><p id="npc-relationship-detail"></p><h3>思い出</h3><button class="secondary small" id="history-btn">会話履歴を見る</button><p class="note">特別なイベント、成長履歴、記念品は次の開発段階で追加予定。</p></div></details></div></section>
       <section id="conversation-page" class="page hidden narrow"><button class="back" data-back="npc">← プロフィールへ</button><div class="panel story"><span class="eyebrow">A MOMENT WITH PAPER</span><h1>ぺーぱーとのお話</h1><div id="conversation-scene" class="scene"></div><div class="speech"><span class="speaker">ぺーぱー</span><p id="speech-line">「ねえねえ！ なにかお話する？」</p></div><div id="conversation-choices" class="choice-list"></div><div id="conversation-result" class="notice hidden"></div><button id="conversation-close" class="secondary">お話を終える</button></div></section>
       <section id="npc-requests-page" class="page hidden narrow">
         <button class="back" id="npc-requests-back">← ぺーぱーのプロフィールへ</button>
@@ -82,18 +82,32 @@
       </section>
       <section id="npc-gifts-page" class="page hidden narrow">
         <button id="npc-gifts-back" class="back">← 戻る</button>
-        <div class="panel"><span class="eyebrow">GIFTS FROM PAPER</span><h1>NPCからのプレゼント</h1>
+        <div class="panel"><span class="eyebrow" id="gifts-eyebrow">YOUR MAILBOX</span><h1 id="gifts-heading">受信箱</h1>
           <p class="muted">準備中の贈り物は完成まで保管されます。受取期限はありません。</p>
           <div id="npc-gifts-message" class="notice hidden" role="status" aria-live="polite"></div>
-          <div class="section-top"><h2>受信箱</h2></div><div id="npc-gifts-inbox" class="request-list"></div>
+          <div id="gifts-common-sections">
+            <div class="section-top"><h2>住人からの贈り物</h2><p class="muted tiny">受け取るまでは贈り主の素材をお預かりします。</p></div>
+            <div id="resident-gifts-inbox" class="request-list"></div>
+            <details><summary>住人へ贈る</summary><div class="details-content">
+              <label for="gift-receiver">贈る相手</label><select id="gift-receiver" class="gift-reply"></select>
+              <div id="gift-send-rows" class="request-list"></div>
+              <button id="gift-add-row" type="button" class="secondary small">＋ 素材の種類を追加</button>
+              <label for="gift-send-message">ひとこと（200文字まで・任意）</label>
+              <textarea id="gift-send-message" maxlength="200" rows="3" placeholder="メッセージを添える（省略可）"></textarea>
+              <button id="gift-send" type="button" class="primary">この内容で贈る</button>
+            </div></details>
+            <details><summary>送った贈り物・取引履歴</summary><div id="resident-gifts-outgoing" class="request-list details-content"></div></details>
+          </div>
+          <div class="section-top"><h2 id="npc-gift-section-heading">NPCから届いた贈り物</h2></div><div id="npc-gifts-inbox" class="request-list"></div>
           <div class="section-top"><h2>もらった記念品</h2></div><div id="npc-gifts-inventory" class="request-list"></div>
           <details><summary>受け取り履歴</summary><div id="npc-gifts-history" class="request-list details-content"></div></details>
+          <div id="resident-gifts-history-wrap"><details><summary>住人からの受け取り履歴</summary><div id="resident-gifts-history" class="request-list details-content"></div></details></div>
         </div>
       </section>
       <section id="room-page" class="page hidden narrow"><button class="back" data-back="npc">← プロフィールへ</button><div class="panel story"><div class="big-icon">⌂</div><span class="eyebrow">PAPER'S ROOM</span><h1>ぺーぱーの部屋</h1><div id="room-message" class="scene"></div><p class="muted">小さな部屋には、ふかふかの寝床や、ぺーぱーのお気に入りのものが置かれている。</p><button class="primary" id="room-talk">ぺーぱーと話す</button></div></section>
       <section id="history-page" class="page hidden narrow"><button class="back" data-back="npc">← プロフィールへ</button><div class="panel"><span class="eyebrow">MEMORIES</span><h1>ぺーぱーとの会話履歴</h1><div id="history-list"></div></div></section>
     </main>
-    <footer>神狩荘 · ふしぎなホール <span>初期版 0.6</span></footer>
+    <footer>神狩荘 · ふしぎなホール <span>初期版 0.8</span></footer>
   </div>
 </body>
 </html>
