@@ -45,3 +45,10 @@
 .material-catalog-card.undiscovered{opacity:.72}
 
 .material-inline,.material-found-item{display:inline-flex;align-items:center;gap:8px;vertical-align:middle}.material-inline{display:flex}.material-found-item{margin:4px 6px 4px 0}.material-inline .material-thumb,.material-found-item .material-thumb{width:42px;height:42px}
+
+/* v0.9.2: 図鑑の独立した3つの絞り込み */
+.catalog-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:18px 0 10px}
+.catalog-controls label{display:block;margin-bottom:6px}
+.catalog-controls select{width:100%;min-width:0;max-width:100%}
+.catalog-placeholder{font-size:38px;color:#cab17b}
+.catalog-empty{grid-column:1/-1;padding:16px 0}

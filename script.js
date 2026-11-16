@@ -175,20 +175,52 @@ async function openStory(storyId,replay){
   };
   render();show('cave-story');
 }
+// v0.9.2 図鑑: 素材は45枠を常時公開し、イベント品・プレゼントは取得後のみ追加。
+// ジャンル／発見状態／入手場所を独立して絞り込める。
 async function openMaterialCatalog(){
- const {ids}=await api('/materials/discovered');
- const discovered=new Set(ids);
- const progress=document.querySelector('#catalog-progress');
- progress.textContent=`発見済み：${MATERIALS.filter(m=>discovered.has(m.id)).length} / ${MATERIALS.length} 種類`;
+ const [discovery,eventData,giftData]=await Promise.all([
+   api('/materials/discovered'),
+   api('/catalog/events'),
+   api('/npcs/paper/gifts')
+ ]);
+ const discovered=new Set(discovery.ids||[]);
+ const materials=MATERIALS.map(m=>({id:m.id,name:m.name,image:m.image,rarity:m.rarity,
+   category:m.category,description:m.description,kind:'material',source:'洞窟',found:discovered.has(m.id)}));
+ const events=(eventData.items||[]).map(e=>({id:e.id,name:e.name,description:e.description,
+   kind:'event',source:e.source||'その他',found:true}));
+ // 実際に「受け取った」プレゼントのみ。準備中や未受取は図鑑に出さない。
+ const giftDefs=new Map((window.KAGARISO_GIFTS||[]).map(g=>[g.id,g]));
+ const gifts=(giftData.inventory||[]).filter(g=>Number(g.quantity)>0).map(g=>{
+   const def=giftDefs.get(g.itemId)||{};
+   return {id:g.itemId,name:g.name||def.name,description:g.description||def.description,
+     image:def.image||'',kind:'gift',source:'NPC',found:true};
+ });
+ // 作製物の所持記録は未実装。今後の調合・工作システム追加時にここへ統合する。
+ const entries=[...materials,...events,...gifts];
+ const progress=$('#catalog-progress');
+ progress.textContent=`通常素材：${materials.filter(m=>m.found).length} / ${materials.length} 種類発見　｜　イベントアイテム：${events.length} 種類　｜　プレゼント：${gifts.length} 種類`;
+ const kindLabels={material:'素材',event:'イベントアイテム',gift:'プレゼント',crafted:'作製物'};
  const render=()=>{
-  const filter=document.querySelector('#catalog-filter').value;
-  document.querySelector('#material-catalog-grid').innerHTML=MATERIALS.filter(m=>filter==='all'||(filter==='found'?discovered.has(m.id):!discovered.has(m.id))).map(m=>{
-   const found=discovered.has(m.id);
-   const thumb=found?matIcon(m.id):'<div class="material-missing-icon" aria-hidden="true">？</div>';
-   return `<article class="material-catalog-card ${found?'':'undiscovered'}"><div class="material-catalog-image">${thumb}</div><div class="muted tiny">${safe(m.imageId)}</div><strong>${found?safe(m.name):'？？？？？'}</strong><div class="muted tiny">${found?safe(m.category)+' · '+'★'.repeat(m.rarity):'未開放素材'}</div>${found?`<p class="muted tiny">${safe(m.description)}</p>`:''}</article>`;
-  }).join('');
+   const state=$('#catalog-filter').value;
+   const kind=$('#catalog-kind').value;
+   const source=$('#catalog-source').value;
+   const selected=entries.filter(m=>(state==='all'||(state==='found'?m.found:!m.found))
+     &&(kind==='all'||m.kind===kind)&&(source==='all'||m.source===source));
+   $('#catalog-results').textContent=`表示：${selected.length} 件`;
+   $('#material-catalog-grid').innerHTML=selected.map(item=>{
+     const found=item.found;
+     // 管理用ID（sozai0001 / C020 / GIFT_*）は画面には出さない。
+     const thumb=found&&item.image
+       ?`<img class="material-thumb" src="${safe(item.image)}" alt="" loading="lazy" onerror="this.replaceWith(document.createTextNode('✧'))">`
+       :found?'<span class="catalog-placeholder" aria-hidden="true">✧</span>'
+       :'<div class="material-missing-icon" aria-hidden="true">？</div>';
+     const subtitle=found
+       ?`${safe(kindLabels[item.kind]||item.kind)} · ${safe(item.source)}${item.kind==='material'?' · '+safe(item.category)+' · '+'★'.repeat(item.rarity):''}`
+       :'未開放素材';
+     return `<article class="material-catalog-card ${found?'':'undiscovered'}"><div class="material-catalog-image">${thumb}</div><strong>${found?safe(item.name):'？？？？？'}</strong><div class="muted tiny">${subtitle}</div>${found&&item.description?`<p class="muted tiny">${safe(item.description)}</p>`:''}</article>`;
+   }).join('')||'<p class="muted catalog-empty">該当する品はまだありません。</p>';
  };
- document.querySelector('#catalog-filter').onchange=render;
+ for(const selector of ['#catalog-filter','#catalog-kind','#catalog-source'])$(selector).onchange=render;
  render();show('material-catalog');
 }
 async function openInventory(from='hall'){
