@@ -94,7 +94,7 @@ async function openCave(sectionId=null){
   const history=$('#cave-history');history.replaceChildren();
   for(const event of cave.stories){const btn=document.createElement('button');btn.className='secondary';btn.textContent=event.title+'（読み返す）';btn.addEventListener('click',handler(()=>openStory(event.id,true)));history.append(btn);}
   if(cave.rescued&&!cave.stories.some(s=>s.id==='rescue')){
-    const btn=document.createElement('button');btn.className='secondary';btn.textContent='ぺーぱーの救出を体験する';btn.addEventListener('click',handler(()=>openStory('rescue',false)));history.prepend(btn);
+    const btn=document.createElement('button');btn.className='secondary';btn.textContent='黄色い獣の救出を体験する';btn.addEventListener('click',handler(()=>openStory('rescue',false)));history.prepend(btn);
   }
   if(!history.children.length){const p=document.createElement('p');p.className='muted';p.textContent='まだ思い出がありません。';history.append(p);}
   const entry=await api('/cave/section?id='+sectionId);
@@ -134,11 +134,11 @@ async function openStory(storyId,replay){
     choices.replaceChildren(); result.classList.add('hidden');done.classList.add('hidden');next.classList.add('hidden');
     speech.parentElement.classList.add('hidden');
     if(phase==='pre'){
-      showParagraph(pre[index]); next.textContent=index===pre.length-1?'ぺーぱーの話を聞く →':'続きを読む →'; next.classList.remove('hidden');
+      showParagraph(pre[index]); next.textContent=index===pre.length-1?'黄色い獣の話を聞く →':'続きを読む →'; next.classList.remove('hidden');
       return;
     }
     if(phase==='choice'){
-      showParagraph('ぺーぱーがこちらの返事を待っている。');
+      showParagraph('黄色い獣がこちらの返事を待っている。');
       speech.textContent=story.speech;speech.parentElement.classList.remove('hidden');
       if(replay){const note=document.createElement('p');note.className='muted tiny';note.textContent='読み返し中：返答を試せます。初回の選択記録は変わりません。';choices.append(note);}
       for(const opt of story.choices){
@@ -152,7 +152,7 @@ async function openStory(storyId,replay){
       return;
     }
     if(phase==='response'){
-      showParagraph('あなたの返答を聞いて、ぺーぱーは少し考えたあと、ゆっくり口を開いた。');
+      showParagraph('あなたの返答を聞いて、黄色い獣は少し考えたあと、ゆっくり口を開いた。');
       speech.textContent=selected.response;speech.parentElement.classList.remove('hidden');
       next.textContent='物語の続きを読む →';next.classList.remove('hidden');return;
     }
@@ -188,18 +188,18 @@ function renderNpc(moved){const n=currentNpc;
   $('#npc-live-state').innerHTML=`<div class="state-item"><span>現在地</span><strong>${safe(n.state.locationLabel)}</strong></div><div class="state-item"><span>活動状態</span><strong>${safe(n.state.activityLabel)}</strong></div>`;
   $('#npc-scene').textContent=profileScene;
   $('#npc-bio').textContent=n.description;$('#npc-personality').textContent=n.personality;
-  if(moved){$('#npc-move-notice').textContent=`ぺーぱーは${n.state.locationLabel}へ移動しました。描写はプロフィールを開き直すと更新されます。` ;$('#npc-move-notice').classList.remove('hidden');}
+  if(moved){$('#npc-move-notice').textContent=`黄色い獣は${n.state.locationLabel}へ移動しました。描写はプロフィールを開き直すと更新されます。` ;$('#npc-move-notice').classList.remove('hidden');}
   else if($('#npc-move-notice').classList.contains('hidden')) {} // 移動通知は開き直すまで残す
   $('#talk-btn').disabled=n.state.activity==='sleeping'||(n.state.location==='room'&&!n.roomUnlocked);
-  $('#talk-btn').title=n.state.activity==='sleeping'?'ぺーぱーは眠っています。':'';
+  $('#talk-btn').title=n.state.activity==='sleeping'?'黄色い獣は眠っています。':'';
   $('#visit-btn').textContent=n.state.location==='hall'?'ホールで会う':'自室へ会いに行く';
   $('#visit-btn').disabled=n.state.location==='room'&&!n.roomUnlocked;
   $('#room-btn').disabled=!n.roomUnlocked||n.state.location!=='room'||n.state.activity==='sleeping';
   $('#room-btn').title=n.roomUnlocked?'':'仲良くなると訪問できます。';
 }
 const openConversation=async()=>{
-  const {npc}=await api('/npcs/paper'); if(npc.state.activity==='sleeping') throw new Error('ぺーぱーは眠っています。');
-  if(npc.state.location==='room'&&!npc.roomUnlocked)throw new Error('今はぺーぱーの自室に入れません。');
+  const {npc}=await api('/npcs/paper'); if(npc.state.activity==='sleeping') throw new Error('黄色い獣は眠っています。');
+  if(npc.state.location==='room'&&!npc.roomUnlocked)throw new Error('今は黄色い獣の自室に入れません。');
   currentNpc=npc;
   $('#conversation-scene').textContent=npc.scene;
   $('#speech-line').textContent='「あっ、来てくれたんだ！ 何のお話する？」';
@@ -208,13 +208,13 @@ const openConversation=async()=>{
   const options=[{id:'greet',label:'挨拶する'},{id:'food',label:'好きな食べ物について聞く'},{id:'cave',label:'洞窟について聞く'}];
   for(const opt of options){const btn=document.createElement('button');btn.className='secondary';btn.textContent=opt.label;btn.addEventListener('click',handler(async()=>{
     const data=await api('/npcs/paper/conversation','POST',{choice:opt.id});currentNpc=data.npc;$('#speech-line').textContent=data.response;
-    $('#conversation-result').textContent=data.affinityChange?'ぺーぱーと少し仲良くなりました！':'ぺーぱーはあなたとの会話を楽しんでいるようです。';
+    $('#conversation-result').textContent=data.affinityChange?'黄色い獣と少し仲良くなりました！':'黄色い獣はあなたとの会話を楽しんでいるようです。';
     $('#conversation-result').classList.remove('hidden');
   }));$('#conversation-choices').append(btn);}
   show('conversation');
 };
 
-// v0.8: 共通受信箱。ホールからは全員分、プロフィールからはぺーぱー分を表示。
+// v0.8: 共通受信箱。ホールからは全員分、プロフィールからは黄色い獣分を表示。
 let giftBusy=false,giftReturn='hall',giftInventory=[];
 const giftDate=text=>text?new Date(String(text).replace(' ','T')+'Z').toLocaleString('ja-JP',{timeZone:'Asia/Tokyo'}):'';
 const giftCard=(title,desc)=>{const c=document.createElement('article');c.className='request-card';const strong=document.createElement('strong');strong.textContent=title;c.append(strong);if(desc){const p=document.createElement('p');p.className='muted tiny';p.textContent=desc;c.append(p);}return c;};
@@ -253,22 +253,22 @@ async function openNpcGifts(from='hall',message=''){
  $('#resident-gifts-history-wrap').classList.toggle('hidden',onlyPaper);
  $('#gifts-heading').textContent=onlyPaper?'受けとったプレゼント':'受信箱';
  $('#gifts-eyebrow').textContent=onlyPaper?'GIFTS FROM PAPER':'YOUR MAILBOX';
- $('#npc-gift-section-heading').textContent=onlyPaper?'ぺーぱーからの贈り物':'NPCから届いた贈り物';
+ $('#npc-gift-section-heading').textContent=onlyPaper?'黄色い獣からの贈り物':'NPCから届いた贈り物';
  inbox.replaceChildren();inventory.replaceChildren();history.replaceChildren();
  const notification=$('#npc-gifts-message');notification.classList.toggle('hidden',!message);notification.textContent=message;
  for(const gift of npc.inbox){
-  const card=giftCard(gift.ready?gift.name:'ぺーぱーがお礼を準備中',gift.ready?'贈り主：ぺーぱー　・　受け取りできます':`贈り主：ぺーぱー　・　完成予定：${giftDate(gift.readyAt)}（日本時間）`);
+  const card=giftCard(gift.ready?gift.name:'黄色い獣がお礼を準備中',gift.ready?'贈り主：黄色い獣　・　受け取りできます':`贈り主：黄色い獣　・　完成予定：${giftDate(gift.readyAt)}（日本時間）`);
   if(gift.ready){
    const desc=document.createElement('p');desc.textContent=gift.description;card.append(desc);
-   const msg=document.createElement('p');msg.textContent=`ぺーぱー「${gift.message}」`;card.append(msg);
-   const sel=document.createElement('select');sel.className='gift-reply';sel.setAttribute('aria-label','ぺーぱーへの返答');
+   const msg=document.createElement('p');msg.textContent=`黄色い獣「${gift.message}」`;card.append(msg);
+   const sel=document.createElement('select');sel.className='gift-reply';sel.setAttribute('aria-label','黄色い獣への返答');
    for(const [id,label] of [['thanks','ありがとう！ 嬉しいよ！'],['effort','頑張って作ってくれたんだね']]){const opt=document.createElement('option');opt.value=id;opt.textContent=label;sel.append(opt);}
    const btn=document.createElement('button');btn.className='primary small';btn.textContent='返答して受け取る';
    btn.addEventListener('click',handler(async()=>{
     if(giftBusy)return;giftBusy=true;btn.disabled=true;
-    try{const result=await api('/npcs/paper/gifts/claim','POST',{giftId:gift.id,replyChoice:sel.value});await openNpcGifts(giftReturn,`受け取りました：${result.gift.name}。ぺーぱー ${result.reply}`);}finally{giftBusy=false;}
+    try{const result=await api('/npcs/paper/gifts/claim','POST',{giftId:gift.id,replyChoice:sel.value});await openNpcGifts(giftReturn,`受け取りました：${result.gift.name}。黄色い獣 ${result.reply}`);}finally{giftBusy=false;}
    }));card.append(sel,btn);
-  }else{const note=document.createElement('p');note.className='muted';note.textContent='ぺーぱーが頑張って作っています。完成を待ってね。';card.append(note);}
+  }else{const note=document.createElement('p');note.className='muted';note.textContent='黄色い獣が頑張って作っています。完成を待ってね。';card.append(note);}
   inbox.append(card);
  }
  giftEmpty(inbox,'届いている贈り物はありません。');
@@ -324,7 +324,7 @@ async function openNpcGifts(from='hall',message=''){
 bind('#open-gifts',()=>openNpcGifts('hall'));
 bind('#open-npc-gifts',()=>openNpcGifts('npc'));
 bind('#npc-gifts-back',async()=>{if(giftReturn==='npc')await openNpc();else await openHall();});
-// v0.6 ぺーぱーのお願い。表示情報はすべてサーバーから取得する。
+// v0.6 黄色い獣のお願い。表示情報はすべてサーバーから取得する。
 let requestBusy=false;
 const showRequestsMessage=(text)=>{const el=$('#npc-requests-message');el.textContent=text;el.classList.remove('hidden');};
 async function openNpcRequests(message=''){
@@ -356,9 +356,9 @@ async function openNpcRequests(message=''){
       list.append(row);
     }
     card.append(list);
-    if(ready){const note=document.createElement('p');note.className='request-ready';note.textContent='素材が揃ったよ！ ぺーぱー本人に報告しよう。';card.append(note);}
+    if(ready){const note=document.createElement('p');note.className='request-ready';note.textContent='素材が揃ったよ！ 黄色い獣本人に報告しよう。';card.append(note);}
     const actions=document.createElement('div');actions.className='actions';
-    const report=document.createElement('button');report.className='primary small';report.textContent='ぺーぱーに報告する';report.disabled=!ready;
+    const report=document.createElement('button');report.className='primary small';report.textContent='黄色い獣に報告する';report.disabled=!ready;
     report.onclick=handler(async()=>{
       if(requestBusy)return;requestBusy=true;report.disabled=true;
       try{const data=await api('/npcs/paper/requests/resolve','POST',{requestId:req.id,action:'report'});await openNpcRequests(data.message);}finally{requestBusy=false;}
@@ -398,7 +398,7 @@ bind('#cave-story-done',()=>openCave(selectedCaveSection));
 bind('#inventory-back',async()=>{if(inventoryReturn==='cave')await openCave(selectedCaveSection);else await openHall();});
 for(const [selector,action] of [['#rest-btn','rest'],['#wake-btn','wake']]){bind(selector,async()=>{const data=await api('/npcs/paper/life/action','POST',{action});currentNpc=data.npc;const last=lastLocation;lastLocation=data.npc.state.location;renderNpc(last!==lastLocation);$('#life-action-result').textContent=data.message;$('#life-action-result').classList.remove('hidden');});}
 bind('#talk-btn',openConversation);
-bind('#visit-btn',async()=>{if(currentNpc.state.location==='hall'){toast('ぺーぱーはホールにいます。');return;}await enterRoom();});
+bind('#visit-btn',async()=>{if(currentNpc.state.location==='hall'){toast('黄色い獣はホールにいます。');return;}await enterRoom();});
 bind('#room-btn',enterRoom);
 async function enterRoom(){const data=await api('/npcs/paper/room/enter','POST',{});$('#room-message').textContent=data.message;show('room');}
 bind('#room-talk',openConversation);
