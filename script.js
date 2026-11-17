@@ -7,6 +7,7 @@ const SESSION_KEY='kagariso_starter_session_v1';
 const ADMIN_SESSION_KEY='kagariso_admin_session_v0115';
 let adminToken=sessionStorage.getItem(ADMIN_SESSION_KEY)||'';
 let adminTopicsCache=[],adminSelected=null;
+let adminRequestsCache=[],adminRequestSelected=null;
 let token=localStorage.getItem(SESSION_KEY)||'';
 let resident=null, currentNpc=null, lastLocation=null, profileScene='', profileTimer=null;
 let pendingRecovery='';
@@ -503,6 +504,9 @@ async function openNpcRequests(message=''){
   const {requests}=await api('/npcs/paper/requests');
   const activeList=$('#npc-requests-active'),availableList=$('#npc-requests-available'),historyList=$('#npc-requests-history');
   activeList.replaceChildren();availableList.replaceChildren();historyList.replaceChildren();
+  $('#npc-request-daily-status').textContent=`今日の受注 ${requests.acceptedToday} / ${requests.dailyLimit} 件（あと ${requests.remainingToday} 件）`;
+  $('#npc-request-daily-note').textContent=`日本時間 ${requests.day} の日替わり候補です。受注は1日3件まで。達成・キャンセルしても回数は戻りません。受注済みのお願いは翌日以降も続けられます。`;
+
   if(message)showRequestsMessage(message);else $('#npc-requests-message').classList.add('hidden');
   const subHeading=(name,description)=>{const div=document.createElement('div');div.innerHTML=`<strong>${safe(name)}</strong><p class="muted tiny">${safe(description)}</p>`;return div;};
   for(const req of requests.active){
@@ -543,8 +547,8 @@ async function openNpcRequests(message=''){
     });actions.append(report,cancel);card.append(actions);activeList.append(card);
   }
   if(!requests.active.length)activeList.innerHTML='<p class="muted">今、引き受けているお願いはありません。</p>';
-  for(const t of requests.templates){
-    const card=document.createElement('article');card.className='request-card';card.append(subHeading(t.title,t.description));
+  for(const t of [...requests.templates,...(requests.permanent||[])]){
+    const card=document.createElement('article');card.className='request-card';card.append(subHeading(`${t.mode==='permanent'?'［常設］':'［今日の候補］'} ★${'★'.repeat(Math.max(0,t.difficulty-1))} ${t.title}`,t.description));
     const p=document.createElement('div');p.className='muted tiny';p.innerHTML='必要素材：'+t.items.map(i=>`<span class="material-found-item">${matIcon(i.id)}${safe(i.name)} ×${i.needed}</span>`).join('、');card.append(p);
     const button=document.createElement('button');button.className='secondary small';button.textContent='このお願いを引き受ける';button.disabled=!requests.canAccept;
     button.onclick=handler(async()=>{
@@ -552,8 +556,8 @@ async function openNpcRequests(message=''){
       try{const data=await api('/npcs/paper/requests/accept','POST',{templateKey:t.key});await openNpcRequests(data.message);}finally{requestBusy=false;}
     });card.append(button);availableList.append(card);
   }
-  if(!requests.templates.length)availableList.innerHTML='<p class="muted">今は新しいお願いがありません。</p>';
-  if(!requests.canAccept){const p=document.createElement('p');p.className='muted tiny';p.textContent='同時に受けられるお願いは3件までです。';availableList.prepend(p);}
+  if(!requests.templates.length&&!(requests.permanent||[]).length)availableList.innerHTML='<p class="muted">今日の候補はすべて受注済み、または完了しました。また明日見にきてね。</p>';
+  if(!requests.canAccept){const p=document.createElement('p');p.className='muted tiny';p.textContent='今日の受注上限、または同時受注3件の上限に達しています。';availableList.prepend(p);}
   for(const r of requests.history){const p=document.createElement('div');p.className='request-history-entry';p.textContent=`${r.title} — ${r.status==='completed'?'完了':'取り消し'}（${r.resolvedAt||r.createdAt} UTC）`;historyList.append(p);}
   if(!requests.history.length)historyList.textContent='まだ履歴はありません。';
   show('npc-requests');
@@ -745,6 +749,81 @@ bind('#admin-show-history',async()=>{
     const p=document.createElement('p');p.className='muted tiny';
     p.textContent=`${x.at} UTC ／ ${x.admin} ／ ${x.action} ／ ${x.label||x.id}`;list.append(p);
   });
+});
+
+
+// v0.11.6 管理者専用「お願いエディター」。管理者ログインをそのまま利用。
+const ADMIN_MATERIALS=[
+  ['C026','廃木材'],['C002','金属スクラップ'],['C008','洞窟キノコ'],['C001','ごつごつした石'],['C003','湿った粘土'],['C004','赤錆鉱石'],['C005','青白い水晶'],['C006','呼吸する石'],
+  ['C009','岩陰の豆'],['C010','白い根菜'],['C011','鈴鳴り苔'],['C012','眠り茸'],['C013','逆さに咲く花'],['C014','洞窟鳥の卵'],['C015','洞窟鳥の羽根'],['C016','抜け落ちた牙'],['C017','脱皮した透明な皮'],['C018','洞窟獣の柔らかな毛'],['C021','岩蜜'],['C022','甘い地底果汁'],['C020','夜光の雫'],['C025','折れた木の棒'],['C027','丈夫な地下蔓'],['C028','色褪せた布'],['C029','しなやかな根木'],['C023','光る石'],['C019','誰のものでもない卵'],['C024','いつまでも冷たい水']
+];
+const blankAdminRequest=()=>({key:null,npcId:'paper',title:'',description:'',acceptText:'えへへ！ ありがとぉ！',completeText:'やったぁ！ ありがとぉ！',difficulty:2,minSection:1,mode:'daily',giftKind:'food',enabled:true,revision:0,items:[{id:'C008',needed:3}]});
+const adminRequestListRender=()=>{
+  const q=$('#admin-request-search').value.trim().toLowerCase();
+  const filtered=adminRequestsCache.filter(r=>!q||`${r.title} ${r.key}`.toLowerCase().includes(q));
+  $('#admin-request-count').textContent=`${filtered.length} / ${adminRequestsCache.length}件`;
+  const list=$('#admin-request-list');list.replaceChildren();
+  for(const r of filtered){
+    const b=document.createElement('button');b.type='button';b.className='secondary small admin-topic-button';
+    b.textContent=`${r.enabled?'':'［無効］'}${r.mode==='permanent'?'［常設］':''}★${r.difficulty} ${r.title}`;
+    if(r.key===adminRequestSelected?.key)b.classList.add('admin-selected');
+    b.onclick=()=>{adminRequestSelected=structuredClone(r);adminRequestForm();adminRequestListRender();};list.append(b);
+  }
+};
+const adminRequestItems=()=>{
+  const list=$('#admin-request-items');list.replaceChildren();
+  adminRequestSelected.items.forEach((item,i)=>{
+    const div=document.createElement('div');div.className='admin-request-item-row';
+    const sel=document.createElement('select');sel.innerHTML=makeSelectOptions(ADMIN_MATERIALS,item.id);sel.value=item.id;
+    sel.onchange=()=>{item.id=sel.value;};
+    const qty=document.createElement('input');qty.type='number';qty.min='1';qty.max='30';qty.value=item.needed;
+    qty.onchange=()=>{item.needed=Number(qty.value);};
+    const del=document.createElement('button');del.type='button';del.className='secondary small';del.textContent='削除';del.disabled=adminRequestSelected.items.length<=1;
+    del.onclick=()=>{adminRequestSelected.items.splice(i,1);adminRequestItems();};
+    div.append(sel,qty,del);list.append(div);
+  });
+};
+const adminRequestForm=()=>{
+  const r=adminRequestSelected||blankAdminRequest();adminRequestSelected=r;
+  $('#admin-request-title').value=r.title;$('#admin-request-description').value=r.description;
+  $('#admin-request-accept').value=r.acceptText;$('#admin-request-complete').value=r.completeText;
+  $('#admin-request-difficulty').value=r.difficulty;$('#admin-request-section').value=r.minSection;
+  $('#admin-request-mode').value=r.mode;$('#admin-request-gift').value=r.giftKind;
+  $('#admin-request-enabled').checked=r.enabled;
+  $('#admin-request-id').textContent=r.key?`ID ${r.key} ／ 改訂 ${r.revision}`:'新しいお願い';
+  adminRequestItems();
+};
+const loadAdminRequestEditor=async()=>{
+  const result=await adminApi('/requests?npc=paper');adminRequestsCache=result.requests||[];
+  adminRequestSelected=structuredClone(adminRequestsCache.find(x=>x.key===adminRequestSelected?.key)||adminRequestsCache[0]||blankAdminRequest());
+  adminRequestForm();adminRequestListRender();
+};
+bind('#admin-show-request-editor',async()=>{
+  $('#admin-requests-panel').classList.remove('hidden');$('#admin-conversations-panel').classList.add('hidden');
+  await loadAdminRequestEditor();
+});
+bind('#admin-show-dialogue-editor',()=>{
+  $('#admin-requests-panel').classList.add('hidden');$('#admin-conversations-panel').classList.remove('hidden');
+});
+$('#admin-request-search').addEventListener('input',adminRequestListRender);
+bind('#admin-request-new',()=>{adminRequestSelected=blankAdminRequest();adminRequestForm();adminRequestListRender();});
+bind('#admin-request-refresh',loadAdminRequestEditor);
+bind('#admin-request-add-item',()=>{
+  if(adminRequestSelected.items.length>=6){toast('素材は6種類までです。');return;}
+  const used=new Set(adminRequestSelected.items.map(x=>x.id));
+  const found=ADMIN_MATERIALS.find(x=>!used.has(x[0]));
+  if(found){adminRequestSelected.items.push({id:found[0],needed:3});adminRequestItems();}
+});
+$('#admin-request-edit-form').addEventListener('submit',handler(async e=>{
+  e.preventDefault();const r=adminRequestSelected;
+  const payload={key:r.key||undefined,npcId:'paper',revision:r.revision,title:$('#admin-request-title').value,description:$('#admin-request-description').value,acceptText:$('#admin-request-accept').value,completeText:$('#admin-request-complete').value,difficulty:Number($('#admin-request-difficulty').value),minSection:Number($('#admin-request-section').value),mode:$('#admin-request-mode').value,giftKind:$('#admin-request-gift').value,enabled:$('#admin-request-enabled').checked,items:r.items.map(x=>({id:x.id,needed:x.needed}))};
+  const btn=$('#admin-request-save');btn.disabled=true;
+  try{const result=await adminApi('/requests/save','POST',payload);adminRequestSelected=result.request;await loadAdminRequestEditor();toast('お願いを保存しました。');}finally{btn.disabled=false;}
+}));
+bind('#admin-request-show-history',async()=>{
+  const {history}=await adminApi('/requests/audit');const list=$('#admin-request-history');list.replaceChildren();
+  if(!history.length){list.textContent='まだ編集履歴がありません。';return;}
+  history.forEach(x=>{const p=document.createElement('p');p.className='muted tiny';p.textContent=`${x.at} UTC ／ ${x.admin} ／ ${x.action} ／ ${x.title||x.key}`;list.append(p);});
 });
 
 (async()=>{if(token){try{await openHall();}catch(e){toast(e.message);show('auth');}}else show('auth');})();

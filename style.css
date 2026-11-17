@@ -154,3 +154,6 @@
 .admin-preview{white-space:pre-wrap;overflow-wrap:anywhere;margin:18px 0;padding:14px;background:#17192a;border-left:3px solid var(--accent);line-height:1.8}
 #admin-setup-form button{margin-top:18px}#admin-save-topic{width:100%}
 @media(max-width:800px){.admin-editor-layout{grid-template-columns:1fr}.admin-reply-row{grid-template-columns:1fr}.admin-editor-head{flex-wrap:wrap}.admin-top-nav{margin-right:8px}}
+
+/* v0.11.6 日替わり依頼と管理者編集 */
+.request-daily-status{font-weight:700;color:var(--accent);margin:4px 0 10px}.admin-editor-switch{display:flex;gap:12px;margin:0 0 24px;flex-wrap:wrap}.admin-request-item-row{display:grid;grid-template-columns:1fr 92px auto;gap:8px;margin:10px 0}.admin-request-item-row input,.admin-request-item-row select{min-width:0}.admin-request-save{width:100%;margin-top:22px}.admin-editor-main textarea{width:100%}@media(max-width:550px){.admin-request-item-row{grid-template-columns:1fr 78px auto}}

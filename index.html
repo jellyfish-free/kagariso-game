@@ -100,9 +100,10 @@
         <button class="back" id="npc-requests-back">← 黄色い獣のプロフィールへ</button>
         <div class="panel"><span class="eyebrow">THE YELLOW BEAST'S REQUESTS</span><h1>黄色い獣からのお願い</h1>
         <p class="muted">同時に3件まで。素材は少しずつ預けられます。途中で断れば、預けた素材はすべて返却されるよ。</p>
+        <p id="npc-request-daily-status" class="request-daily-status"></p><p id="npc-request-daily-note" class="muted tiny"></p>
         <div id="npc-requests-message" class="notice hidden" role="status" aria-live="polite"></div>
         <div class="section-top"><h2>引き受けたお願い</h2></div><div id="npc-requests-active" class="request-list"></div>
-        <div class="section-top"><h2>新しいお願い</h2></div><div id="npc-requests-available" class="request-list"></div>
+        <div class="section-top"><h2>今日のお願い・常設のお願い</h2></div><div id="npc-requests-available" class="request-list"></div>
         <details><summary>終わったお願いの履歴</summary><div id="npc-requests-history" class="request-list details-content"></div></details>
         </div>
       </section>
@@ -186,7 +187,8 @@
   <section id="admin-editor-page" class="page hidden">
     <button class="back" id="admin-editor-back" type="button">← ゲームへ戻る</button>
     <div class="panel"><div class="admin-editor-head"><div><span class="eyebrow">DIALOGUE EDITOR</span><h1>NPC会話エディター</h1><p class="muted">管理者：<span id="admin-logged-name"></span> ／ 現在のNPC：黄色い獣</p></div><button class="secondary small" id="admin-logout">管理者ログアウト</button></div>
-      <div class="admin-editor-layout"><aside class="admin-sidebar">
+      <div class="admin-editor-switch"><button id="admin-show-dialogue-editor" class="secondary small" type="button">会話エディター</button><button id="admin-show-request-editor" class="secondary small" type="button">お願いエディター</button></div>
+      <div id="admin-conversations-panel"><div class="admin-editor-layout"><aside class="admin-sidebar">
         <label for="admin-topic-search">話題を検索</label><input id="admin-topic-search" placeholder="質問・カテゴリで検索">
         <p id="admin-topic-count" class="muted tiny"></p>
         <div class="actions"><button class="secondary small" id="admin-topic-new" type="button">＋ 新しい話題</button><button class="secondary small" id="admin-topic-refresh" type="button">再読み込み</button></div>
@@ -204,11 +206,36 @@
           <div class="admin-preview" id="admin-topic-preview"></div><button id="admin-save-topic" type="submit" class="primary">変更を保存</button>
         </form>
         <details><summary id="admin-show-history">管理者の編集履歴（直近100件）</summary><div id="admin-edit-history" class="details-content"></div></details>
+      </div></div></div>
+    <div id="admin-requests-panel" class="hidden">
+      <div class="admin-editor-layout"><aside class="admin-sidebar">
+        <label for="admin-request-search">お願いを検索</label><input id="admin-request-search" placeholder="依頼名で検索">
+        <p id="admin-request-count" class="muted tiny"></p>
+        <div class="actions"><button type="button" class="secondary small" id="admin-request-new">＋ 新しいお願い</button><button type="button" class="secondary small" id="admin-request-refresh">再読み込み</button></div>
+        <div id="admin-request-list" class="admin-topic-list"></div>
+      </aside><div class="admin-editor-main">
+        <form id="admin-request-edit-form"><h2>お願いの編集</h2><p id="admin-request-id" class="muted tiny"></p>
+          <label for="admin-request-title">お願いの名前</label><input id="admin-request-title" maxlength="80" required>
+          <label for="admin-request-description">お願いの説明</label><textarea id="admin-request-description" maxlength="400" required rows="3"></textarea>
+          <label for="admin-request-accept">引き受けたときの台詞</label><textarea id="admin-request-accept" maxlength="320" required rows="2"></textarea>
+          <label for="admin-request-complete">達成したときの台詞</label><textarea id="admin-request-complete" maxlength="320" required rows="2"></textarea>
+          <div class="admin-fields-grid">
+          <div><label for="admin-request-difficulty">難易度</label><select id="admin-request-difficulty"><option value="1">★1 やさしい</option><option value="2">★2 ふつう</option><option value="3">★3 むずかしい</option><option value="4">★4 かなりむずかしい</option></select></div>
+          <div><label for="admin-request-section">必要な洞窟エリア</label><select id="admin-request-section"><option value="1">エリア1</option><option value="2">エリア2</option><option value="3">エリア3</option><option value="4">エリア4</option><option value="5">エリア5</option></select></div>
+          <div><label for="admin-request-mode">出現形式</label><select id="admin-request-mode"><option value="daily">日替わり抽選</option><option value="permanent">常設・一度きり</option></select></div>
+          <div><label for="admin-request-gift">お礼の種類</label><select id="admin-request-gift"><option value="food">お菓子系</option><option value="soft">ふわふわ系</option><option value="shiny">飾り系</option></select></div></div>
+          <label class="admin-enabled"><input id="admin-request-enabled" type="checkbox" checked> 抽選対象として有効</label>
+          <h3>必要素材（最大6種類）</h3><p class="muted tiny">受注中のお願いは、必要素材を変更できません。</p>
+          <div id="admin-request-items"></div><button class="secondary small" id="admin-request-add-item" type="button">＋ 素材を追加</button>
+          <button type="submit" class="primary admin-request-save" id="admin-request-save">お願いを保存</button>
+        </form>
+        <details><summary id="admin-request-show-history">お願い編集履歴（直近100件）</summary><div id="admin-request-history" class="details-content"></div></details>
       </div></div>
+    </div>
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.11.5</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.11.6</span></footer>
   </div>
 </body>
 </html>
