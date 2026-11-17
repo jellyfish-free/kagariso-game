@@ -20,7 +20,7 @@
   <div class="layout">
     <header class="topbar">
       <div class="brand"><span class="brand-mark">✦</span><div><span class="overline">KAGARISO</span><strong>神狩荘</strong></div></div>
-      <div id="user-bar" class="user-bar hidden"><span id="user-name"></span><button class="text-button" id="logout-btn">ログアウト</button></div>
+      <div class="admin-top-nav"><button type="button" class="text-button" id="open-admin-login">管理者ログイン</button></div><div id="user-bar" class="user-bar hidden"><span id="user-name"></span><button class="text-button" id="logout-btn">ログアウト</button></div>
     </header>
     <main>
       <section id="auth-page" class="page auth-page">
@@ -167,8 +167,48 @@
         </div>
       </section>
       <section id="history-page" class="page hidden narrow"><button class="back" data-back="npc">← プロフィールへ</button><div class="panel"><span class="eyebrow">MEMORIES</span><h1>黄色い獣との会話履歴</h1><div id="history-list"></div></div></section>
-    </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.11.3</span></footer>
+      <section id="admin-login-page" class="page hidden narrow">
+    <button class="back" id="admin-login-back" type="button">← ゲームへ戻る</button>
+    <div class="panel"><span class="eyebrow">STAFF ONLY</span><h1>管理者ログイン</h1>
+      <p class="muted">住人登録とは別の管理者アカウントでログインします。</p>
+      <form id="admin-login-form"><label for="admin-login-id">管理者ID</label><input id="admin-login-id" autocomplete="username" required maxlength="32">
+      <label for="admin-login-password">パスワード</label><input id="admin-login-password" type="password" autocomplete="current-password" required>
+      <button id="admin-login-submit" class="primary" type="submit">管理画面へログイン</button></form>
+      <details><summary>初回の管理者登録（製作者・初期設定担当者のみ）</summary>
+      <p class="muted tiny">Cloudflare Workersの Secret に ADMIN_SETUP_SECRET を設定した後、2名それぞれのアカウントを作成します。登録後はSecretを削除してください。</p>
+      <form id="admin-setup-form"><label for="admin-setup-key">初期設定キー（外部に共有しない）</label><input id="admin-setup-key" type="password" autocomplete="off" required>
+      <label for="admin-setup-id">管理者ID（半角英数字・_・-）</label><input id="admin-setup-id" required minlength="3" maxlength="32">
+      <label for="admin-setup-name">管理画面に表示する名前</label><input id="admin-setup-name" required maxlength="40">
+      <label for="admin-setup-password">各管理者のパスワード（12文字以上）</label><input id="admin-setup-password" type="password" autocomplete="new-password" required minlength="12">
+      <button class="secondary" type="submit">管理者を新規登録</button></form></details>
+    </div>
+  </section>
+  <section id="admin-editor-page" class="page hidden">
+    <button class="back" id="admin-editor-back" type="button">← ゲームへ戻る</button>
+    <div class="panel"><div class="admin-editor-head"><div><span class="eyebrow">DIALOGUE EDITOR</span><h1>NPC会話エディター</h1><p class="muted">管理者：<span id="admin-logged-name"></span> ／ 現在のNPC：黄色い獣</p></div><button class="secondary small" id="admin-logout">管理者ログアウト</button></div>
+      <div class="admin-editor-layout"><aside class="admin-sidebar">
+        <label for="admin-topic-search">話題を検索</label><input id="admin-topic-search" placeholder="質問・カテゴリで検索">
+        <p id="admin-topic-count" class="muted tiny"></p>
+        <div class="actions"><button class="secondary small" id="admin-topic-new" type="button">＋ 新しい話題</button><button class="secondary small" id="admin-topic-refresh" type="button">再読み込み</button></div>
+        <div id="admin-topic-list" class="admin-topic-list"></div>
+      </aside><div class="admin-editor-main">
+        <form id="admin-topic-edit-form"><h2>会話内容の編集</h2><p id="admin-topic-id" class="muted tiny"></p>
+          <label for="admin-topic-label">住人の選択肢</label><input id="admin-topic-label" maxlength="90" required>
+          <div class="admin-fields-grid"><div><label for="admin-topic-category">カテゴリ</label><select id="admin-topic-category"></select></div>
+          <div><label for="admin-topic-condition">話題の出現条件</label><select id="admin-topic-condition"></select></div>
+          <div><label for="admin-topic-affinity">必要な親密度（♡）</label><input id="admin-topic-affinity" type="number" min="1" max="10" value="1" required></div>
+          <div><label for="admin-topic-weight">抽選の重み（1〜10）</label><input id="admin-topic-weight" type="number" min="1" max="10" value="1" required></div></div>
+          <label class="admin-enabled"><input id="admin-topic-enabled" type="checkbox" checked> 抽選対象として有効にする</label>
+          <div class="section-top"><h3>黄色い獣の返答と条件</h3><p class="muted tiny">「条件なし」の返答を最低1つ用意してね。幼い話し方でひらがな中心に。</p></div>
+          <div id="admin-replies"></div><button type="button" id="admin-reply-add" class="secondary small">＋ 返答を追加</button>
+          <div class="admin-preview" id="admin-topic-preview"></div><button id="admin-save-topic" type="submit" class="primary">変更を保存</button>
+        </form>
+        <details><summary id="admin-show-history">管理者の編集履歴（直近100件）</summary><div id="admin-edit-history" class="details-content"></div></details>
+      </div></div>
+    </div>
+  </section>
+  </main>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.11.5</span></footer>
   </div>
 </body>
 </html>

@@ -137,3 +137,20 @@
 .feeding-item-info p { margin:3px 0 0; }
 .feeding-item button { flex-shrink:0; }
 @media (max-width:480px){.feeding-visual img {width:86px;height:100px}.feeding-item{gap:7px;padding:8px}.feeding-item .material-thumb{width:43px;height:43px}}
+
+/* v0.11.5 管理者専用の会話エディター */
+.admin-top-nav{margin-left:auto;margin-right:18px}.admin-top-nav button{font-size:12px}
+.admin-editor-head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px}
+.admin-editor-layout{display:grid;grid-template-columns:minmax(210px,290px) minmax(0,1fr);gap:26px;align-items:start}
+.admin-sidebar{background:#17192a;border:1px solid var(--line);border-radius:14px;padding:15px}
+.admin-topic-list{display:grid;gap:7px;max-height:650px;overflow-y:auto;padding:2px}
+.admin-topic-button{display:block;width:100%;text-align:left;white-space:normal;line-height:1.4}
+.admin-selected{border-color:var(--gold)!important;background:#483f4d!important}
+.admin-editor-main input,.admin-editor-main textarea,.admin-editor-main select,.admin-sidebar input{width:100%;background:#161827b0;border:1px solid #646477;border-radius:9px;padding:11px;color:var(--ink);font:inherit}
+.admin-fields-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.admin-reply-row{display:grid;grid-template-columns:minmax(120px,1fr) minmax(170px,2fr) auto;gap:8px;margin:10px 0;align-items:start}
+.admin-reply-row textarea{min-width:0;resize:vertical}
+.admin-enabled{display:flex!important;align-items:center;gap:10px}
+.admin-preview{white-space:pre-wrap;overflow-wrap:anywhere;margin:18px 0;padding:14px;background:#17192a;border-left:3px solid var(--accent);line-height:1.8}
+#admin-setup-form button{margin-top:18px}#admin-save-topic{width:100%}
+@media(max-width:800px){.admin-editor-layout{grid-template-columns:1fr}.admin-reply-row{grid-template-columns:1fr}.admin-editor-head{flex-wrap:wrap}.admin-top-nav{margin-right:8px}}

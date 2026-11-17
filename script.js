@@ -4,13 +4,16 @@
 const $=s=>document.querySelector(s);
 const API=(window.KAGARISO_API_BASE||'').replace(/\/$/,'');
 const SESSION_KEY='kagariso_starter_session_v1';
+const ADMIN_SESSION_KEY='kagariso_admin_session_v0115';
+let adminToken=sessionStorage.getItem(ADMIN_SESSION_KEY)||'';
+let adminTopicsCache=[],adminSelected=null;
 let token=localStorage.getItem(SESSION_KEY)||'';
 let resident=null, currentNpc=null, lastLocation=null, profileScene='', profileTimer=null;
 let pendingRecovery='';
 let inventoryReturn='hall';
 let gathering=false;
 let npcReturn='hall', mandatoryStory=false;
-const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-gifts','npc-words','npc-feeding'];
+const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-gifts','npc-words','npc-feeding','admin-login','admin-editor'];
 const show=(name)=>{
   pages.forEach(p=>$(`#${p}-page`).classList.toggle('hidden',p!==name));
   if(name!=='npc'&&profileTimer){clearInterval(profileTimer);profileTimer=null;}
@@ -313,23 +316,39 @@ function renderNpc(moved){const n=currentNpc;
   $('#npc-back').textContent=npcReturn==='cave'?'← 洞窟に戻る':'← ホールに戻る';
 }
 const openConversation=async()=>{
-  const {npc}=await api('/npcs/paper'); if(npc.state.activity==='sleeping') throw new Error('黄色い獣は眠っています。');
-  if(npc.state.location==='room'&&!npc.roomUnlocked)throw new Error('今は黄色い獣の自室に入れません。');
-  currentNpc=npc;
+  const {npc}=await api('/npcs/paper'); currentNpc=npc;
   visualImg('#conversation-background',npc.state.location==='cave'?bgVisual.cave:bgVisual.hall);
   paintPaper('#conversation-paper-image',npc);
   $('#conversation-scene').textContent=npc.scene;
-  $('#speech-line').textContent=Number(npc.state.hunger)>75?'「ひもじぃよぉ～……ボク、おなか ぺこぺこ……」':'「あっ！ キミだぁ！ ねえねえ、なに おはなしする？」';
+  $('#speech-line').textContent='「あっ、キミ！ なに おはなし する？」';
   $('#conversation-result').classList.add('hidden');
-  $('#conversation-choices').innerHTML='';
-  const options=[{id:'greet',label:'挨拶する'},{id:'food',label:'好きな食べ物について聞く'},{id:'cave',label:'洞窟について聞く'}];
-  for(const opt of options){const btn=document.createElement('button');btn.className='secondary';btn.textContent=opt.label;btn.addEventListener('click',handler(async()=>{
-    const data=await api('/npcs/paper/conversation','POST',{choice:opt.id});currentNpc=data.npc;paintPaper('#conversation-paper-image',data.npc);$('#speech-line').textContent=data.response;
-    $('#conversation-result').textContent=data.affinityChange?'黄色い獣と、すこしずつ親しくなっているようです。':'黄色い獣はあなたとの会話を楽しんでいるようです。';
-    $('#conversation-result').classList.remove('hidden');
-  }));$('#conversation-choices').append(btn);}
+  const menu=await api('/npcs/paper/conversation/options');
+  renderConversationChoices(menu.choices);
   show('conversation');
 };
+function renderConversationChoices(options){
+  const box=$('#conversation-choices');box.replaceChildren();
+  options.forEach(opt=>{
+    const button=document.createElement('button');button.type='button';button.className='secondary';
+    button.textContent=opt.disabled?'挨拶する（この時間帯は挨拶済み）':opt.label;
+    button.disabled=!!opt.disabled;
+    button.addEventListener('click',handler(async()=>{
+      [...box.querySelectorAll('button')].forEach(b=>b.disabled=true);
+      try{
+        const data=await api('/npcs/paper/conversation','POST',{choice:opt.id});
+        currentNpc=data.npc;paintPaper('#conversation-paper-image',data.npc);
+        $('#speech-line').textContent=data.response;
+        $('#conversation-result').textContent=data.affinityChange?'黄色い獣と、すこしずつ親しくなっているようです。':'黄色い獣はあなたとの会話を楽しんでいるようです。';
+        $('#conversation-result').classList.remove('hidden');
+        renderConversationChoices(data.choices);
+      }catch(err){
+        try{const menu=await api('/npcs/paper/conversation/options');renderConversationChoices(menu.choices);}catch{}
+        throw err;
+      }
+    }));box.append(button);
+  });
+}
+
 
 // v0.11.3: 手渡した食べ物の判定・消費・空腹度更新はWorker/D1側で行う。
 let feedingBusy=false;
@@ -606,5 +625,127 @@ bind('#room-talk',openConversation);
 bind('#conversation-close',()=>openNpc(npcReturn));
 bind('#history-btn',async()=>{const {history}=await api('/npcs/paper/history');const list=$('#history-list');list.innerHTML=history.length?history.map(h=>`<article class="history-entry"><time>${safe(h.created_at)} UTC</time><p>${safe(h.response)}</p><span class="muted">${h.affinity_change?'少し親しくなった':''}</span></article>`).join(''):'<p class="muted">まだ会話の記録がありません。</p>';show('history');});
 document.querySelectorAll('[data-back]').forEach(el=>el.addEventListener('click',handler(async()=>{const page=el.dataset.back;if(page==='hall'){if(el.id==='npc-back'&&npcReturn==='cave')await openCave(selectedCaveSection);else await openHall();}else if(page==='npc')await openNpc(npcReturn);})));
+
+// 管理者セッションは住人セッションと混在させない。
+const adminApi=async(path,method='GET',body,overrideToken=null)=>{
+  const auth=overrideToken===null?adminToken:overrideToken;
+  const response=await fetch(`${API}/api/admin${path}`,{method,headers:{...(auth?{'Authorization':`Bearer ${auth}`} : {}),...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
+  const data=await response.json().catch(()=>({error:'応答を読み取れませんでした。'}));
+  if(!response.ok){
+    if(response.status===401&&path!=='/login'){adminToken='';sessionStorage.removeItem(ADMIN_SESSION_KEY);show('admin-login');}
+    throw new Error(data.error||'管理者の操作に失敗しました。');
+  }
+  return data;
+};
+const adminReturn=async()=>{if(token)await openHall();else show('auth');};
+bind('#open-admin-login',async()=>{
+  if(adminToken){try{await adminApi('/me');await openAdminEditor();return;}catch{}}
+  show('admin-login');
+});
+bind('#admin-login-back',adminReturn);
+bind('#admin-editor-back',adminReturn);
+$('#admin-login-form').addEventListener('submit',handler(async e=>{
+  e.preventDefault();const btn=$('#admin-login-submit');btn.disabled=true;
+  try{
+    const result=await adminApi('/login','POST',{loginId:$('#admin-login-id').value,password:$('#admin-login-password').value},'');
+    adminToken=result.token;sessionStorage.setItem(ADMIN_SESSION_KEY,adminToken);
+    $('#admin-login-form').reset();await openAdminEditor();
+  }finally{btn.disabled=false;}
+}));
+$('#admin-setup-form').addEventListener('submit',handler(async e=>{
+  e.preventDefault();const result=await adminApi('/bootstrap','POST',{
+    setupKey:$('#admin-setup-key').value,loginId:$('#admin-setup-id').value,
+    displayName:$('#admin-setup-name').value,password:$('#admin-setup-password').value
+  },'');$('#admin-setup-form').reset();toast(result.message);
+}));
+bind('#admin-logout',async()=>{
+  try{await adminApi('/logout','POST',{});}finally{adminToken='';sessionStorage.removeItem(ADMIN_SESSION_KEY);show('admin-login');}
+});
+const adminConditionOptions=[['any','条件なし'],['hungry','空腹'],['not_hungry','空腹でない'],['full','満腹'],['sleepy','眠そう'],['resting','休憩中'],['awake','活動中'],['happy','ご機嫌'],['angry','不機嫌'],['sad','悲しい'],['hall','ホール'],['cave','洞窟'],['morning','朝'],['day','昼'],['night','夜'],['affinity3','♡3以上'],['affinity5','♡5以上'],['weather_verified','天気連動（未対応）']];
+const adminCategoryOptions=[['daily','日常'],['food','食べ物'],['explore','探索'],['social','住人との交流'],['health','体調'],['weather','天気'],['chat','雑談'],['special','感情・特別'],['play','遊び'],['memory','思い出'],['personality','NPC固有'],['language','言葉'],['sleep','睡眠'],['mood','気分'],['location','場所'],['relationship','関係性']];
+const makeSelectOptions=(entries,selected)=>entries.map(([value,label])=>`<option value="${safe(value)}" ${value===selected?'selected':''}>${safe(label)}</option>`).join('');
+const blankAdminTopic=()=>({id:null,npcId:'paper',category:'daily',label:'',condition:'any',minAffinity:1,weight:1,enabled:true,revision:0,replies:[{when:'any',text:''}]});
+const adminList=()=>{
+  const q=$('#admin-topic-search').value.trim().toLowerCase();
+  const filtered=adminTopicsCache.filter(t=>!q||`${t.label} ${t.category} ${t.id}`.toLowerCase().includes(q));
+  $('#admin-topic-count').textContent=`${filtered.length}件 / 全${adminTopicsCache.length}件`;
+  const box=$('#admin-topic-list');box.replaceChildren();
+  for(const topic of filtered){
+    const btn=document.createElement('button');btn.type='button';btn.className='secondary small admin-topic-button';
+    btn.textContent=`${topic.enabled?'':'［無効］'}${topic.label}`;
+    if(topic.id===adminSelected?.id)btn.classList.add('admin-selected');
+    btn.addEventListener('click',()=>{adminSelected=structuredClone(topic);adminEditForm();adminList();});
+    box.append(btn);
+  }
+};
+const adminReplies=()=>{
+  const list=$('#admin-replies');list.replaceChildren();
+  adminSelected.replies.forEach((reply,index)=>{
+    const item=document.createElement('div');item.className='admin-reply-row';
+    const condition=document.createElement('select');condition.innerHTML=makeSelectOptions(adminConditionOptions,reply.when);
+    condition.value=reply.when;condition.addEventListener('change',()=>{reply.when=condition.value;adminPreview();});
+    const field=document.createElement('textarea');field.rows=2;field.maxLength=260;field.value=reply.text;
+    field.addEventListener('input',()=>{reply.text=field.value;adminPreview();});
+    const del=document.createElement('button');del.className='secondary small';del.type='button';del.textContent='この返答を削除';
+    del.disabled=adminSelected.replies.length===1;
+    del.addEventListener('click',()=>{adminSelected.replies.splice(index,1);adminReplies();adminPreview();});
+    item.append(condition,field,del);list.append(item);
+  });
+};
+const adminPreview=()=>{
+  $('#admin-topic-preview').textContent=`住人：「${adminSelected.label||'（質問）'}」\n黄色い獣：「${adminSelected.replies[0]?.text||'（返答）'}」`;
+};
+const adminEditForm=()=>{
+  const t=adminSelected||blankAdminTopic();adminSelected=t;
+  $('#admin-topic-label').value=t.label;
+  $('#admin-topic-category').value=t.category;
+  $('#admin-topic-condition').value=t.condition;
+  $('#admin-topic-affinity').value=t.minAffinity;
+  $('#admin-topic-weight').value=t.weight;
+  $('#admin-topic-enabled').checked=t.enabled;
+  $('#admin-topic-id').textContent=t.id?`ID: ${t.id} ／ 改訂 ${t.revision}`:'新しい会話';
+  adminReplies();adminPreview();
+};
+const openAdminEditor=async()=>{
+  const me=await adminApi('/me');
+  $('#admin-logged-name').textContent=me.admin.displayName;
+  const data=await adminApi('/topics?npc=paper');adminTopicsCache=data.topics||[];
+  adminSelected=structuredClone(adminTopicsCache.find(t=>t.id===adminSelected?.id)||adminTopicsCache[0]||blankAdminTopic());
+  adminEditForm();adminList();show('admin-editor');
+};
+$('#admin-topic-search').addEventListener('input',adminList);
+bind('#admin-topic-new',()=>{adminSelected=blankAdminTopic();adminEditForm();adminList();});
+bind('#admin-topic-refresh',openAdminEditor);
+bind('#admin-reply-add',()=>{
+  if(adminSelected.replies.length>=8)throw new Error('返答は8種類までです。');
+  adminSelected.replies.push({when:'any',text:''});adminReplies();adminPreview();
+});
+$('#admin-topic-edit-form').addEventListener('submit',handler(async e=>{
+  e.preventDefault();const t=adminSelected;
+  const payload={id:t.id||undefined,npcId:'paper',revision:t.revision,
+    label:$('#admin-topic-label').value,category:$('#admin-topic-category').value,
+    condition:$('#admin-topic-condition').value,minAffinity:Number($('#admin-topic-affinity').value),
+    weight:Number($('#admin-topic-weight').value),enabled:$('#admin-topic-enabled').checked,
+    replies:t.replies.map(x=>({when:x.when,text:x.text}))};
+  const btn=$('#admin-save-topic');btn.disabled=true;
+  try{
+    const result=await adminApi('/topics/save','POST',payload);
+    adminSelected=result.topic;
+    const i=adminTopicsCache.findIndex(x=>x.id===result.topic.id);
+    if(i>=0)adminTopicsCache[i]=result.topic;else adminTopicsCache.push(result.topic);
+    adminTopicsCache.sort((a,b)=>a.id.localeCompare(b.id));
+    adminEditForm();adminList();toast('会話を保存しました。');
+  }finally{btn.disabled=false;}
+}));
+bind('#admin-show-history',async()=>{
+  const {history}=await adminApi('/audit');
+  const list=$('#admin-edit-history');list.replaceChildren();
+  if(!history.length){list.textContent='まだ編集履歴がありません。';return;}
+  history.forEach(x=>{
+    const p=document.createElement('p');p.className='muted tiny';
+    p.textContent=`${x.at} UTC ／ ${x.admin} ／ ${x.action} ／ ${x.label||x.id}`;list.append(p);
+  });
+});
+
 (async()=>{if(token){try{await openHall();}catch(e){toast(e.message);show('auth');}}else show('auth');})();
 })();
