@@ -45,7 +45,12 @@ bind('#logout-btn',async()=>{try{await api('/logout','POST');}finally{token='';r
 const VISUALS=window.KAGARISO_VISUALS||{};
 const paperVisual=VISUALS.npcs?.paper;
 const bgVisual=VISUALS.backgrounds||{};
-const paperImage=(expression='normal')=>paperVisual?.base+(paperVisual.expressions?.[expression]||paperVisual.expressions?.normal||'normal.png');
+const paperImage=(expression='normal')=>{
+  // v0.11.2 hotfix: visuals.js が未配置・未読込でもログインを止めない。
+  if (!paperVisual || !paperVisual.base || !paperVisual.expressions) return '';
+  const file=paperVisual.expressions[expression] || paperVisual.expressions.normal || 'normal.png';
+  return paperVisual.base+file;
+};
 const paperExpression=(npc)=>{
   const s=npc?.state||{};
   const activity=String(s.activity||'').toLowerCase(),mood=String(s.moodLabel||'');
@@ -71,7 +76,7 @@ async function openHall(){const data=await api('/hall');resident=data.resident;$
   const paperHere=data.npcs.find(n=>n.id==='paper'&&n.state.location==='hall');
   $('#hall-paper-actor').classList.toggle('hidden',!paperHere);
   if(paperHere){paintPaper('#hall-paper-image',paperHere);$('#hall-paper-label').textContent=paperHere.state.activity==='sleeping'?'黄色い獣はおやすみ中':'黄色い獣に会う';}
-  $('#npc-list').innerHTML=data.npcs.map(n=>`<article class="npc-card">${n.id==='paper'?`<img class="npc-list-portrait" src="${safe(encodeURI(paperImage(paperExpression(n))))}" alt="">`:'<div class="avatar" aria-hidden="true">✦</div>'}<div><strong>${safe(n.name)}</strong><div class="muted">${safe(stateText(n))} · ${safe(n.state.activityLabel)}</div></div><button class="secondary small" data-npc="${safe(n.id)}">詳細を見る</button></article>`).join('');
+  $('#npc-list').innerHTML=data.npcs.map(n=>`<article class="npc-card">${n.id==='paper'&&paperVisual?`<img class="npc-list-portrait" src="${safe(encodeURI(paperImage(paperExpression(n))))}" alt="">`:'<div class="avatar" aria-hidden="true">✦</div>'}<div><strong>${safe(n.name)}</strong><div class="muted">${safe(stateText(n))} · ${safe(n.state.activityLabel)}</div></div><button class="secondary small" data-npc="${safe(n.id)}">詳細を見る</button></article>`).join('');
   $('#doors').innerHTML=data.hall.doors.map(d=>`<article class="door-card"><span class="door-glyph">◇</span><div><strong>${safe(d.name)}</strong><div class="muted">${d.status==='available'?'入口の採取ができます':'探索機能は次の開発段階で実装'}</div></div>${d.status==='available'?'<button class="secondary small" data-door="cave">探索する</button>':'<span class="tag">準備中</span>'}</article>`).join('');
   $('#doors').querySelector('[data-door="cave"]')?.addEventListener('click',handler(openCave));
   $('#npc-list').querySelectorAll('[data-npc]').forEach(b=>b.addEventListener('click',handler(()=>openNpc('hall'))));
