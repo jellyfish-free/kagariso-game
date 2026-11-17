@@ -348,7 +348,7 @@ const renderFeeding=(data,message='')=>{
       const thumb=document.createElement('div');thumb.innerHTML=matIcon(item.id);card.append(thumb);
       const info=document.createElement('div');info.className='feeding-item-info';
       const name=document.createElement('strong');name.textContent=item.name;info.append(name);
-      const qty=document.createElement('p');qty.className='muted tiny';qty.textContent=`所持数 ×${item.quantity}`;info.append(qty);card.append(info);
+      const qty=document.createElement('p');qty.className='muted tiny';qty.textContent=`所持数 ×${item.quantity} ・ 満腹度 +${item.restore}`;info.append(qty);card.append(info);
       const button=document.createElement('button');button.type='button';button.className='secondary small';button.textContent='1個あげる';
       button.disabled=feedingBusy||!data.canFeed;
       button.addEventListener('click',handler(async()=>{
