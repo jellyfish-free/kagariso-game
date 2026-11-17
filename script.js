@@ -41,9 +41,37 @@ bind('#copy-recovery',async()=>{await navigator.clipboard.writeText(pendingRecov
 $('#confirmed-recovery').addEventListener('change',e=>{$('#enter-after-recovery').disabled=!e.target.checked;});
 bind('#enter-after-recovery',async()=>{pendingRecovery='';await openHall();});
 bind('#logout-btn',async()=>{try{await api('/logout','POST');}finally{token='';resident=null;localStorage.removeItem(SESSION_KEY);$('#user-bar').classList.add('hidden');show('auth');}});
+// v0.11.2: ビジュアルはD1のNPC状態を表示するだけ。更新や判定は従来APIに委ねる。
+const VISUALS=window.KAGARISO_VISUALS||{};
+const paperVisual=VISUALS.npcs?.paper;
+const bgVisual=VISUALS.backgrounds||{};
+const paperImage=(expression='normal')=>paperVisual?.base+(paperVisual.expressions?.[expression]||paperVisual.expressions?.normal||'normal.png');
+const paperExpression=(npc)=>{
+  const s=npc?.state||{};
+  const activity=String(s.activity||'').toLowerCase(),mood=String(s.moodLabel||'');
+  if(activity==='sleeping')return 'sleeping';
+  if(activity==='resting'||activity==='sleepy'||String(s.energyLabel||'').includes('眠'))return 'sleepy';
+  if(mood.includes('不機嫌')||mood.includes('怒'))return 'angry';
+  if(mood.includes('落ち')||mood.includes('悲'))return 'sad';
+  if(mood.includes('ご機嫌')||mood.includes('嬉')||mood.includes('上機嫌'))return 'happy';
+  if(String(s.hungerLabel||'').includes('満腹'))return 'full';
+  return 'normal';
+};
+const visualImg=(id,src)=>{
+  const img=$(id); if(!img||!src)return;
+  // srcは固定の公開画像パスからのみ設定。データ未登録のときは既存UIで続行。
+  img.src=encodeURI(src);
+  img.onerror=()=>{img.classList.add('visual-error');};
+  img.onload=()=>{img.classList.remove('visual-error');};
+};
+const paintPaper=(id,npc,override)=>visualImg(id,paperImage(override||paperExpression(npc)));
 const stateText=(npc)=>npc.state.locationLabel;
 async function openHall(){const data=await api('/hall');resident=data.resident;$('#user-name').textContent=resident.name;$('#user-bar').classList.remove('hidden');
-  $('#npc-list').innerHTML=data.npcs.map(n=>`<article class="npc-card"><div class="avatar" aria-hidden="true">✦<span class="avatar-ears">⌃⌃</span></div><div><strong>${safe(n.name)}</strong><div class="muted">${safe(stateText(n))} · ${safe(n.state.activityLabel)}</div></div><button class="secondary small" data-npc="${safe(n.id)}">詳細を見る</button></article>`).join('');
+  visualImg('#hall-background',bgVisual.hall);
+  const paperHere=data.npcs.find(n=>n.id==='paper'&&n.state.location==='hall');
+  $('#hall-paper-actor').classList.toggle('hidden',!paperHere);
+  if(paperHere){paintPaper('#hall-paper-image',paperHere);$('#hall-paper-label').textContent=paperHere.state.activity==='sleeping'?'黄色い獣はおやすみ中':'黄色い獣に会う';}
+  $('#npc-list').innerHTML=data.npcs.map(n=>`<article class="npc-card">${n.id==='paper'?`<img class="npc-list-portrait" src="${safe(encodeURI(paperImage(paperExpression(n))))}" alt="">`:'<div class="avatar" aria-hidden="true">✦</div>'}<div><strong>${safe(n.name)}</strong><div class="muted">${safe(stateText(n))} · ${safe(n.state.activityLabel)}</div></div><button class="secondary small" data-npc="${safe(n.id)}">詳細を見る</button></article>`).join('');
   $('#doors').innerHTML=data.hall.doors.map(d=>`<article class="door-card"><span class="door-glyph">◇</span><div><strong>${safe(d.name)}</strong><div class="muted">${d.status==='available'?'入口の採取ができます':'探索機能は次の開発段階で実装'}</div></div>${d.status==='available'?'<button class="secondary small" data-door="cave">探索する</button>':'<span class="tag">準備中</span>'}</article>`).join('');
   $('#doors').querySelector('[data-door="cave"]')?.addEventListener('click',handler(openCave));
   $('#npc-list').querySelectorAll('[data-npc]').forEach(b=>b.addEventListener('click',handler(()=>openNpc('hall'))));
@@ -117,6 +145,7 @@ async function openCave(sectionId=null){
     btn.disabled=!!cave.requiredStory;btn.addEventListener('click',handler(()=>openStory('rescue',seen)));history.append(btn);
   }
   const entry=await api('/cave/section?id='+sectionId);
+  visualImg('#cave-section-background',bgVisual.sections?.[sectionId]||bgVisual.cave);
   $('#cave-section-name').textContent=entry.section.name;
   $('#cave-description').textContent=entry.section.description;
   const list=$('#cave-spots');list.replaceChildren();
@@ -142,6 +171,8 @@ async function openStory(storyId,replay){
   const {story,seen,originalChoice}=await api('/cave/story?id='+encodeURIComponent(storyId));
   if(replay&&!seen)throw new Error('まだ体験していない物語です。');
   activeCaveStory=storyId;caveStoryReplay=replay;
+  visualImg('#cave-story-background',bgVisual.cave);
+  paintPaper('#cave-story-paper-image',currentNpc,'normal');
   $('#cave-story-title').textContent=story.title;
   const scene=$('#cave-story-scene'),speech=$('#cave-story-speech');
   const choices=$('#cave-story-choices'),result=$('#cave-story-result'),done=$('#cave-story-done');
@@ -257,6 +288,7 @@ function renderNpc(moved){const n=currentNpc;
   $('#rest-btn').disabled=n.state.activity!=='awake';
   $('#wake-btn').disabled=n.state.activity!=='sleeping'||n.affinity<3;
   $('#npc-live-state').innerHTML=`<div class="state-item"><span>現在地</span><strong>${safe(n.state.locationLabel)}</strong></div><div class="state-item"><span>活動状態</span><strong>${safe(n.state.activityLabel)}</strong></div>`;
+  paintPaper('#npc-profile-image',n);
   $('#npc-scene').textContent=profileScene;
   $('#npc-bio').textContent=n.description;$('#npc-personality').textContent=n.personality;
   if(moved){$('#npc-move-notice').textContent=`黄色い獣は${n.state.locationLabel}へ移動しました。描写はプロフィールを開き直すと更新されます。` ;$('#npc-move-notice').classList.remove('hidden');}
@@ -274,13 +306,15 @@ const openConversation=async()=>{
   const {npc}=await api('/npcs/paper'); if(npc.state.activity==='sleeping') throw new Error('黄色い獣は眠っています。');
   if(npc.state.location==='room'&&!npc.roomUnlocked)throw new Error('今は黄色い獣の自室に入れません。');
   currentNpc=npc;
+  visualImg('#conversation-background',npc.state.location==='cave'?bgVisual.cave:bgVisual.hall);
+  paintPaper('#conversation-paper-image',npc);
   $('#conversation-scene').textContent=npc.scene;
   $('#speech-line').textContent='「あっ、来てくれたんだ！ 何のお話する？」';
   $('#conversation-result').classList.add('hidden');
   $('#conversation-choices').innerHTML='';
   const options=[{id:'greet',label:'挨拶する'},{id:'food',label:'好きな食べ物について聞く'},{id:'cave',label:'洞窟について聞く'}];
   for(const opt of options){const btn=document.createElement('button');btn.className='secondary';btn.textContent=opt.label;btn.addEventListener('click',handler(async()=>{
-    const data=await api('/npcs/paper/conversation','POST',{choice:opt.id});currentNpc=data.npc;$('#speech-line').textContent=data.response;
+    const data=await api('/npcs/paper/conversation','POST',{choice:opt.id});currentNpc=data.npc;paintPaper('#conversation-paper-image',data.npc);$('#speech-line').textContent=data.response;
     $('#conversation-result').textContent=data.affinityChange?'黄色い獣と、すこしずつ親しくなっているようです。':'黄色い獣はあなたとの会話を楽しんでいるようです。';
     $('#conversation-result').classList.remove('hidden');
   }));$('#conversation-choices').append(btn);}
@@ -504,6 +538,7 @@ $('#teach-word-form').addEventListener('submit',handler(async event=>{
 bind('#open-npc-requests',()=>openNpcRequests());
 bind('#npc-requests-back',()=>openNpc(npcReturn));
 
+bind('#hall-paper-actor',()=>openNpc('hall'));
 bind('#refresh-hall',openHall);
 bind('#open-inventory',()=>openInventory('hall'));
 bind('#open-material-catalog',openMaterialCatalog);
