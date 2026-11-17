@@ -76,3 +76,53 @@
 /* 旧CSSの !important 指定に依存せず、ゲーム独自の非表示指定を守る */
 .game-backdrop .hidden,.npc-actor.hidden{display:none!important}
 @media(max-width:560px){.hall-visual{height:340px}.npc-actor{width:48%;height:76%}.npc-actor img{max-height:86%}.profile-portrait{width:90px;height:105px}.story-paper-image,.conversation-paper-image{max-width:82%}}
+
+/* ==========================================================
+ * v0.11.2 ホールNPCの小型化（最大5か所の表示位置を予約）
+ * 対象はホールだけ。NPCプロフィール・会話画像の寸法は変更しない。
+ * ========================================================== */
+.hall-visual .npc-actor {
+  width: clamp(64px, 12.5%, 112px);
+  height: 35%;
+  bottom: 6%;
+  left: 50%;
+  min-width: 0;
+  z-index: 2;
+  transform: translateX(-50%);
+}
+.hall-visual .npc-actor img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  max-height: calc(100% - 25px);
+  object-fit: contain;
+  object-position: center bottom;
+}
+.hall-visual .npc-actor span {
+  max-width: 155%;
+  padding: 5px 8px;
+  font-size: 10px;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hall-visual .npc-actor:hover,
+.hall-visual .npc-actor:focus-visible {
+  transform: translateX(-50%) scale(1.07);
+}
+/* 将来複数NPCを表示するときに使用する5つの立ち位置 */
+.hall-visual .npc-actor[data-hall-slot="1"] { left: 14%; }
+.hall-visual .npc-actor[data-hall-slot="2"] { left: 32%; }
+.hall-visual .npc-actor[data-hall-slot="3"] { left: 50%; }
+.hall-visual .npc-actor[data-hall-slot="4"] { left: 68%; }
+.hall-visual .npc-actor[data-hall-slot="5"] { left: 86%; }
+@media (max-width: 560px) {
+  .hall-visual .npc-actor {
+    width: clamp(48px, 15%, 75px);
+    height: 31%;
+    bottom: 5%;
+  }
+  .hall-visual .npc-actor span { font-size: 9px; padding: 4px 6px; }
+}
