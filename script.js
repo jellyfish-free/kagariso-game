@@ -55,7 +55,7 @@ const paperExpression=(npc)=>{
   const s=npc?.state||{};
   const activity=String(s.activity||'').toLowerCase(),mood=String(s.moodLabel||'');
   if(activity==='sleeping')return 'sleeping';
-  if(Number(s.hunger)<=15)return 'full';
+  if(s.fullExpression||Number(s.hunger)<=15)return 'full';
   if(activity==='resting'||activity==='sleepy'||String(s.energyLabel||'').includes('眠'))return 'sleepy';
   if(mood.includes('不機嫌')||mood.includes('怒'))return 'angry';
   if(mood.includes('落ち')||mood.includes('悲'))return 'sad';
@@ -319,7 +319,7 @@ const openConversation=async()=>{
   visualImg('#conversation-background',npc.state.location==='cave'?bgVisual.cave:bgVisual.hall);
   paintPaper('#conversation-paper-image',npc);
   $('#conversation-scene').textContent=npc.scene;
-  $('#speech-line').textContent='「あっ！ キミだぁ！ ねえねえ、なに おはなしする？」';
+  $('#speech-line').textContent=Number(npc.state.hunger)>75?'「ひもじぃよぉ～……ボク、おなか ぺこぺこ……」':'「あっ！ キミだぁ！ ねえねえ、なに おはなしする？」';
   $('#conversation-result').classList.add('hidden');
   $('#conversation-choices').innerHTML='';
   const options=[{id:'greet',label:'挨拶する'},{id:'food',label:'好きな食べ物について聞く'},{id:'cave',label:'洞窟について聞く'}];
