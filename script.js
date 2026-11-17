@@ -9,6 +9,7 @@ let resident=null, currentNpc=null, lastLocation=null, profileScene='', profileT
 let pendingRecovery='';
 let inventoryReturn='hall';
 let gathering=false;
+let npcReturn='hall', mandatoryStory=false;
 const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-gifts'];
 const show=(name)=>{
   pages.forEach(p=>$(`#${p}-page`).classList.toggle('hidden',p!==name));
@@ -45,8 +46,10 @@ async function openHall(){const data=await api('/hall');resident=data.resident;$
   $('#npc-list').innerHTML=data.npcs.map(n=>`<article class="npc-card"><div class="avatar" aria-hidden="true">✦<span class="avatar-ears">⌃⌃</span></div><div><strong>${safe(n.name)}</strong><div class="muted">${safe(stateText(n))} · ${safe(n.state.activityLabel)}</div></div><button class="secondary small" data-npc="${safe(n.id)}">詳細を見る</button></article>`).join('');
   $('#doors').innerHTML=data.hall.doors.map(d=>`<article class="door-card"><span class="door-glyph">◇</span><div><strong>${safe(d.name)}</strong><div class="muted">${d.status==='available'?'入口の採取ができます':'探索機能は次の開発段階で実装'}</div></div>${d.status==='available'?'<button class="secondary small" data-door="cave">探索する</button>':'<span class="tag">準備中</span>'}</article>`).join('');
   $('#doors').querySelector('[data-door="cave"]')?.addEventListener('click',handler(openCave));
-  $('#npc-list').querySelectorAll('[data-npc]').forEach(b=>b.addEventListener('click',handler(openNpc)));
+  $('#npc-list').querySelectorAll('[data-npc]').forEach(b=>b.addEventListener('click',handler(()=>openNpc('hall'))));
+  if(!data.npcs.length)$('#npc-list').innerHTML='<p class="muted">黄色い獣の姿はまだここにない。洞窟の扉を調べてみよう。</p>';
   show('hall');
+  if(data.requiredStory){toast('先に洞窟での大切な物語を体験しよう。');await openCave(1);return;}
   try{const gifts=await api('/gifts');const badge=$('#gift-ready-badge');badge.textContent=gifts.readyCount?`(${gifts.readyCount})`:'';badge.classList.toggle('hidden',!gifts.readyCount);}catch(e){console.warn('受信箱の更新に失敗:',e);}
 }
 let selectedCaveSection=1,activeCaveStory=null,caveStoryReplay=false;
@@ -56,6 +59,9 @@ async function openCave(sectionId=null){
   if(!cave.sections.length)throw new Error('洞窟のデータがまだありません。');
   if(sectionId===null||!cave.sections.some(s=>s.id===sectionId))sectionId=cave.currentSection;
   selectedCaveSection=sectionId;
+  mandatoryStory=!!cave.requiredStory;
+  $('#cave-npc-section').classList.toggle('hidden',!cave.npcInCave||!!cave.requiredStory);
+  $('#cave-npc-note').textContent=cave.npcInCave?'黄色い獣はまだ洞窟の入口で過ごしている。会いに行こう。':'';
   const navigation=$('#cave-sections');navigation.replaceChildren();
   for(const sec of cave.sections){
     const btn=document.createElement('button');btn.type='button';btn.className='secondary small'+(sec.id===sectionId?' selected':'');
@@ -63,7 +69,7 @@ async function openCave(sectionId=null){
   }
   $('#cave-construction').classList.toggle('hidden',cave.rescued);
   $('#cave-rescue-status').classList.toggle('hidden',!cave.rescued);
-  if(cave.rescued)$('#cave-rescue-status').textContent='洞窟の出口が開かれました。すべての開放済み区画で、引き続き採取できます。';
+  if(cave.rescued)$('#cave-rescue-status').textContent=cave.worldRescued?'黄色い獣はホールへ連れ帰られました。洞窟は引き続き探索できます。':'洞窟の出口が開かれました。黄色い獣を連れ帰る物語が待っています。';
   if(!cave.rescued){
     $('#cave-gate-title').textContent=cave.gateLabel;
     const total=cave.requirements.reduce((s,r)=>s+r.needed,0),done=cave.requirements.reduce((s,r)=>s+r.donated,0);
@@ -95,12 +101,21 @@ async function openCave(sectionId=null){
       try{const result=await api('/cave/excavate','POST',{sectionId:cave.currentSection});toast(result.message);await openCave();if(result.cave.rescued)await openStory('rescue',false);}finally{btn.disabled=false;}
     });
   }
+  // 解放済みの章は未体験でも開ける。初回選択は個人に保存し、再読では変更しない。
   const history=$('#cave-history');history.replaceChildren();
-  for(const event of cave.stories){const btn=document.createElement('button');btn.className='secondary';btn.textContent=event.title+'（読み返す）';btn.addEventListener('click',handler(()=>openStory(event.id,true)));history.append(btn);}
-  if(cave.rescued&&!cave.stories.some(s=>s.id==='rescue')){
-    const btn=document.createElement('button');btn.className='secondary';btn.textContent='黄色い獣の救出を体験する';btn.addEventListener('click',handler(()=>openStory('rescue',false)));history.prepend(btn);
+  for(const sec of cave.sections){
+    const id=`section-${sec.id}`, seen=cave.stories.some(x=>x.id===id);
+    const btn=document.createElement('button');btn.className='secondary';
+    btn.textContent=`${sec.name}の物語${seen?'（読み返す）':'（初めて読む）'}`;
+    btn.disabled=!!cave.requiredStory;
+    btn.addEventListener('click',handler(()=>openStory(id,seen)));history.append(btn);
   }
-  if(!history.children.length){const p=document.createElement('p');p.className='muted';p.textContent='まだ思い出がありません。';history.append(p);}
+  if(cave.rescued){
+    const seen=cave.stories.some(x=>x.id==='rescue');
+    const btn=document.createElement('button');btn.className='secondary';
+    btn.textContent=seen?'黄色い獣を連れ帰った物語（読み返す）':'黄色い獣の救出を体験する';
+    btn.disabled=!!cave.requiredStory;btn.addEventListener('click',handler(()=>openStory('rescue',seen)));history.append(btn);
+  }
   const entry=await api('/cave/section?id='+sectionId);
   $('#cave-section-name').textContent=entry.section.name;
   $('#cave-description').textContent=entry.section.description;
@@ -120,7 +135,8 @@ async function openCave(sectionId=null){
     }));list.append(btn);
   }
   $('#cave-result').classList.add('hidden');$('#cave-section-content').classList.remove('hidden');show('cave');
-  if(entry.story)await openStory(entry.story.id,false);
+  if(cave.requiredStory)await openStory(cave.requiredStory,false);
+  else if(entry.story)await openStory(entry.story.id,false);
 }
 async function openStory(storyId,replay){
   const {story,seen,originalChoice}=await api('/cave/story?id='+encodeURIComponent(storyId));
@@ -174,6 +190,8 @@ async function openStory(storyId,replay){
     render();
   };
   render();show('cave-story');
+  $('#cave-story-back').classList.toggle('hidden',mandatoryStory&&!replay);
+  $('#cave-story-done').textContent=mandatoryStory&&!replay?'次へ進む →':'洞窟へ戻る →';
 }
 // v0.9.2 図鑑: 素材は45枠を常時公開し、イベント品・プレゼントは取得後のみ追加。
 // ジャンル／発見状態／入手場所を独立して絞り込める。
@@ -230,25 +248,27 @@ async function openInventory(from='hall'){
   $('#inventory-list').innerHTML=items.length?items.map(i=>`<article class="inventory-item">${matIcon(i.id)}<div><strong>${safe(i.name)}</strong><div class="muted tiny">${safe(i.category)} · ${'★'.repeat(Math.max(1,Math.min(5,i.rarity)))}</div></div><strong>×${Number(i.quantity)}</strong></article>`).join(''):'<p class="muted">まだ素材を持っていません。洞窟で採取してみよう。</p>';
   show('inventory');
 }
-async function openNpc(){const {npc}=await api('/npcs/paper');currentNpc=npc;lastLocation=npc.state.location;profileScene=npc.scene;$('#life-action-result').classList.add('hidden');$('#npc-move-notice').classList.add('hidden');renderNpc(false);show('npc');profileTimer=setInterval(async()=>{if(document.hidden)return;try{const {npc:updated}=await api('/npcs/paper');const old=lastLocation;currentNpc=updated;lastLocation=updated.state.location;renderNpc(old!==updated.state.location);}catch{}},15000);}
+async function openNpc(from='hall'){npcReturn=from;const {npc}=await api('/npcs/paper');currentNpc=npc;lastLocation=npc.state.location;profileScene=npc.scene;$('#life-action-result').classList.add('hidden');$('#npc-move-notice').classList.add('hidden');renderNpc(false);show('npc');profileTimer=setInterval(async()=>{if(document.hidden)return;try{const {npc:updated}=await api('/npcs/paper');const old=lastLocation;currentNpc=updated;lastLocation=updated.state.location;renderNpc(old!==updated.state.location);}catch{}},15000);}
 function renderNpc(moved){const n=currentNpc;
   $('#npc-affinity').textContent='♥'.repeat(n.affinity)+'♡'.repeat(10-n.affinity);
   $('#npc-relationship').textContent=`あなたとの関係：${n.relationship}`;
   $('#npc-relationship-detail').textContent=`${n.relationship}（好感度 ${n.affinity}/10）`;
   $('#npc-life-status').innerHTML=['energy','hunger','mood'].map((k)=>{const labels={energy:'元気',hunger:'空腹',mood:'気分'};const descriptions={energy:n.state.energyLabel,hunger:n.state.hungerLabel,mood:n.state.moodLabel};return `<div class="life-item"><span>${labels[k]}</span><strong>${safe(descriptions[k])}</strong></div>`;}).join('');
   $('#rest-btn').disabled=n.state.activity!=='awake';
-  $('#wake-btn').disabled=n.state.activity!=='sleeping'||!n.roomUnlocked;
+  $('#wake-btn').disabled=n.state.activity!=='sleeping'||n.affinity<3;
   $('#npc-live-state').innerHTML=`<div class="state-item"><span>現在地</span><strong>${safe(n.state.locationLabel)}</strong></div><div class="state-item"><span>活動状態</span><strong>${safe(n.state.activityLabel)}</strong></div>`;
   $('#npc-scene').textContent=profileScene;
   $('#npc-bio').textContent=n.description;$('#npc-personality').textContent=n.personality;
   if(moved){$('#npc-move-notice').textContent=`黄色い獣は${n.state.locationLabel}へ移動しました。描写はプロフィールを開き直すと更新されます。` ;$('#npc-move-notice').classList.remove('hidden');}
   else if($('#npc-move-notice').classList.contains('hidden')) {} // 移動通知は開き直すまで残す
-  $('#talk-btn').disabled=n.state.activity==='sleeping'||(n.state.location==='room'&&!n.roomUnlocked);
+  $('#talk-btn').disabled=n.state.activity==='sleeping';
   $('#talk-btn').title=n.state.activity==='sleeping'?'黄色い獣は眠っています。':'';
-  $('#visit-btn').textContent=n.state.location==='hall'?'ホールで会う':'自室へ会いに行く';
-  $('#visit-btn').disabled=n.state.location==='room'&&!n.roomUnlocked;
+  $('#visit-btn').textContent=n.state.location==='cave'?'洞窟で会う':'ホールで会う';
+  $('#visit-btn').disabled=false;
   $('#room-btn').disabled=!n.roomUnlocked||n.state.location!=='room'||n.state.activity==='sleeping';
-  $('#room-btn').title=n.roomUnlocked?'':'仲良くなると訪問できます。';
+  $('#room-btn').classList.toggle('hidden',!n.roomUnlocked);
+  $('#room-btn').title=n.roomUnlocked?'':'自室はまだありません。';
+  $('#npc-back').textContent=npcReturn==='cave'?'← 洞窟に戻る':'← ホールに戻る';
 }
 const openConversation=async()=>{
   const {npc}=await api('/npcs/paper'); if(npc.state.activity==='sleeping') throw new Error('黄色い獣は眠っています。');
@@ -376,7 +396,7 @@ async function openNpcGifts(from='hall',message=''){
 }
 bind('#open-gifts',()=>openNpcGifts('hall'));
 bind('#open-npc-gifts',()=>openNpcGifts('npc'));
-bind('#npc-gifts-back',async()=>{if(giftReturn==='npc')await openNpc();else await openHall();});
+bind('#npc-gifts-back',async()=>{if(giftReturn==='npc')await openNpc(npcReturn);else await openHall();});
 // v0.6 黄色い獣のお願い。表示情報はすべてサーバーから取得する。
 let requestBusy=false;
 const showRequestsMessage=(text)=>{const el=$('#npc-requests-message');el.textContent=text;el.classList.remove('hidden');};
@@ -440,7 +460,7 @@ async function openNpcRequests(message=''){
   show('npc-requests');
 }
 bind('#open-npc-requests',()=>openNpcRequests());
-bind('#npc-requests-back',openNpc);
+bind('#npc-requests-back',()=>openNpc(npcReturn));
 
 bind('#refresh-hall',openHall);
 bind('#open-inventory',()=>openInventory('hall'));
@@ -448,17 +468,18 @@ bind('#open-material-catalog',openMaterialCatalog);
 bind('#material-catalog-back',openHall);
 bind('#cave-inventory-btn',()=>openInventory('cave'));
 bind('#cave-refresh',()=>openCave(selectedCaveSection));
-bind('#cave-story-back',()=>openCave(selectedCaveSection));
+bind('#cave-npc-visit',()=>openNpc('cave'));
+bind('#cave-story-back',async()=>{if(mandatoryStory)throw new Error('最初の物語を最後まで読んでね。');await openCave(selectedCaveSection);});
 bind('#cave-story-done',()=>openCave(selectedCaveSection));
 bind('#inventory-back',async()=>{if(inventoryReturn==='cave')await openCave(selectedCaveSection);else await openHall();});
 for(const [selector,action] of [['#rest-btn','rest'],['#wake-btn','wake']]){bind(selector,async()=>{const data=await api('/npcs/paper/life/action','POST',{action});currentNpc=data.npc;const last=lastLocation;lastLocation=data.npc.state.location;renderNpc(last!==lastLocation);$('#life-action-result').textContent=data.message;$('#life-action-result').classList.remove('hidden');});}
 bind('#talk-btn',openConversation);
-bind('#visit-btn',async()=>{if(currentNpc.state.location==='hall'){toast('黄色い獣はホールにいます。');return;}await enterRoom();});
+bind('#visit-btn',async()=>{toast(currentNpc.state.location==='cave'?'黄色い獣は洞窟の入口にいます。':'黄色い獣はホールにいます。');});
 bind('#room-btn',enterRoom);
 async function enterRoom(){const data=await api('/npcs/paper/room/enter','POST',{});$('#room-message').textContent=data.message;show('room');}
 bind('#room-talk',openConversation);
-bind('#conversation-close',openNpc);
+bind('#conversation-close',()=>openNpc(npcReturn));
 bind('#history-btn',async()=>{const {history}=await api('/npcs/paper/history');const list=$('#history-list');list.innerHTML=history.length?history.map(h=>`<article class="history-entry"><time>${safe(h.created_at)} UTC</time><p>${safe(h.response)}</p><span class="muted">${h.affinity_change?'♥ 好感度が上昇':''}</span></article>`).join(''):'<p class="muted">まだ会話の記録がありません。</p>';show('history');});
-document.querySelectorAll('[data-back]').forEach(el=>el.addEventListener('click',handler(async()=>{const page=el.dataset.back;if(page==='hall')await openHall();else if(page==='npc')await openNpc();})));
+document.querySelectorAll('[data-back]').forEach(el=>el.addEventListener('click',handler(async()=>{const page=el.dataset.back;if(page==='hall'){if(el.id==='npc-back'&&npcReturn==='cave')await openCave(selectedCaveSection);else await openHall();}else if(page==='npc')await openNpc(npcReturn);})));
 (async()=>{if(token){try{await openHall();}catch(e){toast(e.message);show('auth');}}else show('auth');})();
 })();
