@@ -187,7 +187,7 @@
   <section id="admin-editor-page" class="page hidden">
     <button class="back" id="admin-editor-back" type="button">← ゲームへ戻る</button>
     <div class="panel"><div class="admin-editor-head"><div><span class="eyebrow">DIALOGUE EDITOR</span><h1>NPC会話エディター</h1><p class="muted">管理者：<span id="admin-logged-name"></span> ／ 現在のNPC：黄色い獣</p></div><button class="secondary small" id="admin-logout">管理者ログアウト</button></div>
-      <div class="admin-editor-switch"><button id="admin-show-dialogue-editor" class="secondary small" type="button">会話エディター</button><button id="admin-show-request-editor" class="secondary small" type="button">お願いエディター</button></div>
+      <div class="admin-editor-switch"><button id="admin-show-dialogue-editor" class="secondary small" type="button">会話エディター</button><button id="admin-show-request-editor" class="secondary small" type="button">お願いエディター</button><button id="admin-show-gift-editor" class="secondary small" type="button">返礼品エディター</button></div>
       <div id="admin-conversations-panel"><div class="admin-editor-layout"><aside class="admin-sidebar">
         <label for="admin-topic-search">話題を検索</label><input id="admin-topic-search" placeholder="質問・カテゴリで検索">
         <p id="admin-topic-count" class="muted tiny"></p>
@@ -232,10 +232,32 @@
         <details><summary id="admin-request-show-history">お願い編集履歴（直近100件）</summary><div id="admin-request-history" class="details-content"></div></details>
       </div></div>
     </div>
+    <div id="admin-gifts-panel" class="hidden">
+      <div class="admin-editor-layout"><aside class="admin-sidebar">
+        <label for="admin-gift-search">返礼品を検索</label><input id="admin-gift-search" placeholder="名前・返礼品IDで検索">
+        <p id="admin-gift-count" class="muted tiny"></p>
+        <div class="actions"><button type="button" class="secondary small" id="admin-gift-new">＋ 新しい返礼品</button><button type="button" class="secondary small" id="admin-gift-refresh">再読み込み</button></div>
+        <div id="admin-gift-list" class="admin-topic-list"></div>
+      </aside><div class="admin-editor-main">
+        <form id="admin-gift-form"><h2>返礼品の編集</h2><p id="admin-gift-revision" class="muted tiny"></p>
+          <label for="admin-gift-id">返礼品ID（新規登録後は変更不可）</label><input id="admin-gift-id" placeholder="GIFT_NEW_ITEM" pattern="GIFT_[A-Z0-9_]+" required maxlength="75">
+          <label for="admin-gift-name">返礼品の名前</label><input id="admin-gift-name" maxlength="90" required>
+          <label for="admin-gift-description">説明文</label><textarea id="admin-gift-description" maxlength="500" rows="3" required></textarea>
+          <label for="admin-gift-image">画像のパス（GitHubに先に配置）</label><input id="admin-gift-image" placeholder="images/gifts/paper/GIFT_NEW_ITEM.png" maxlength="160">
+          <p class="muted tiny">画像は images/gifts/paper/ にPNGで配置してね。管理画面から画像ファイル自体のアップロードは行いません。</p>
+          <div class="admin-gift-preview"><img id="admin-gift-preview-img" class="hidden" alt="画像プレビュー"><strong id="admin-gift-preview-title">返礼品名</strong></div>
+          <div class="admin-fields-grid"><div><label for="admin-gift-kind">お礼の系統</label><select id="admin-gift-kind"><option value="food">お菓子系</option><option value="soft">ふわふわ系</option><option value="shiny">飾り系</option></select></div>
+          <div><label for="admin-gift-weight">抽選の重み（1〜100）</label><input type="number" id="admin-gift-weight" min="1" max="100" value="1" required></div></div>
+          <label class="admin-enabled"><input id="admin-gift-enabled" type="checkbox" checked> 今後のお礼抽選に使用する</label>
+          <button id="admin-gift-save" type="submit" class="primary admin-request-save">返礼品を保存</button>
+        </form>
+        <details><summary id="admin-gift-show-history">返礼品編集履歴（直近100件）</summary><div id="admin-gift-history" class="details-content"></div></details>
+      </div></div>
+    </div>
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.11.6</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.11.7</span></footer>
   </div>
 </body>
 </html>

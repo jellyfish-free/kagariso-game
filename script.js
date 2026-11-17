@@ -256,7 +256,7 @@ async function openMaterialCatalog(){
  const gifts=(giftData.inventory||[]).filter(g=>Number(g.quantity)>0).map(g=>{
    const def=giftDefs.get(g.itemId)||{};
    return {id:g.itemId,name:g.name||def.name,description:g.description||def.description,
-     image:def.image||'',kind:'gift',source:'NPC',found:true};
+     image:g.image||def.image||'',kind:'gift',source:'NPC',found:true};
  });
  // 作製物の所持記録は未実装。今後の調合・工作システム追加時にここへ統合する。
  const entries=[...materials,...events,...gifts];
@@ -422,6 +422,7 @@ async function openNpcGifts(from='hall',message=''){
  const data=await api(onlyPaper?'/npcs/paper/gifts':'/gifts');
  const npc=onlyPaper?data:data.npc;
  const inbox=$('#npc-gifts-inbox'),inventory=$('#npc-gifts-inventory'),history=$('#npc-gifts-history');
+ const addGiftImage=(container,gift)=>{if(!gift.image)return;const img=document.createElement('img');img.className='npc-gift-image';img.alt=gift.name||'返礼品';img.loading='lazy';img.src=encodeURI(gift.image);img.onerror=()=>img.remove();container.insertBefore(img,container.firstChild);};
  const common=$('#gifts-common-sections');common.classList.toggle('hidden',onlyPaper);
  $('#resident-gifts-history-wrap').classList.toggle('hidden',onlyPaper);
  $('#gifts-heading').textContent=onlyPaper?'受けとったプレゼント':'受信箱';
@@ -432,6 +433,7 @@ async function openNpcGifts(from='hall',message=''){
  for(const gift of npc.inbox){
   const card=giftCard(gift.ready?gift.name:'黄色い獣がお礼を準備中',gift.ready?'贈り主：黄色い獣　・　受け取りできます':`贈り主：黄色い獣　・　完成予定：${giftDate(gift.readyAt)}（日本時間）`);
   if(gift.ready){
+   addGiftImage(card,gift);
    const desc=document.createElement('p');desc.textContent=gift.description;card.append(desc);
    const msg=document.createElement('p');msg.textContent=`黄色い獣「${gift.message}」`;card.append(msg);
    const sel=document.createElement('select');sel.className='gift-reply';sel.setAttribute('aria-label','黄色い獣への返答');
@@ -445,7 +447,7 @@ async function openNpcGifts(from='hall',message=''){
   inbox.append(card);
  }
  giftEmpty(inbox,'届いている贈り物はありません。');
- for(const item of npc.inventory){inventory.append(giftCard(`${item.name} ×${item.quantity}`,item.description));}
+ for(const item of npc.inventory){const card=giftCard(`${item.name} ×${item.quantity}`,item.description);addGiftImage(card,item);inventory.append(card);}
  giftEmpty(inventory,'まだ記念品を受け取っていません。');
  for(const gift of npc.history){
   const detail=document.createElement('details');detail.className='gift-history-entry';const title=document.createElement('summary');title.textContent=`${gift.name}｜${giftDate(gift.receivedAt)}`;detail.append(title);
@@ -799,11 +801,11 @@ const loadAdminRequestEditor=async()=>{
   adminRequestForm();adminRequestListRender();
 };
 bind('#admin-show-request-editor',async()=>{
-  $('#admin-requests-panel').classList.remove('hidden');$('#admin-conversations-panel').classList.add('hidden');
+  $('#admin-gifts-panel').classList.add('hidden');$('#admin-requests-panel').classList.remove('hidden');$('#admin-conversations-panel').classList.add('hidden');
   await loadAdminRequestEditor();
 });
 bind('#admin-show-dialogue-editor',()=>{
-  $('#admin-requests-panel').classList.add('hidden');$('#admin-conversations-panel').classList.remove('hidden');
+  $('#admin-gifts-panel').classList.add('hidden');$('#admin-requests-panel').classList.add('hidden');$('#admin-conversations-panel').classList.remove('hidden');
 });
 $('#admin-request-search').addEventListener('input',adminRequestListRender);
 bind('#admin-request-new',()=>{adminRequestSelected=blankAdminRequest();adminRequestForm();adminRequestListRender();});
@@ -824,6 +826,55 @@ bind('#admin-request-show-history',async()=>{
   const {history}=await adminApi('/requests/audit');const list=$('#admin-request-history');list.replaceChildren();
   if(!history.length){list.textContent='まだ編集履歴がありません。';return;}
   history.forEach(x=>{const p=document.createElement('p');p.className='muted tiny';p.textContent=`${x.at} UTC ／ ${x.admin} ／ ${x.action} ／ ${x.title||x.key}`;list.append(p);});
+});
+
+// v0.11.7: 返礼品エディター。画像ファイルは公開GitHubに置き、登録された相対パスを表示。
+let adminGiftCache=[],adminGiftSelected=null;
+const newAdminGift=()=>({itemId:'',npcId:'paper',name:'',description:'',image:'',giftKind:'food',weight:1,enabled:true,revision:0});
+const adminGiftListRender=()=>{
+ const q=$('#admin-gift-search').value.trim().toLowerCase(),list=$('#admin-gift-list');list.replaceChildren();
+ const rows=adminGiftCache.filter(g=>!q||`${g.itemId} ${g.name}`.toLowerCase().includes(q));
+ $('#admin-gift-count').textContent=`${rows.length} / ${adminGiftCache.length}件`;
+ rows.forEach(g=>{const b=document.createElement('button');b.type='button';b.className='admin-topic-option';b.textContent=`${g.enabled?'':'［無効］'}${g.name} (${g.itemId})`;if(g.itemId===adminGiftSelected?.itemId)b.classList.add('admin-selected');b.onclick=()=>{adminGiftSelected=structuredClone(g);adminGiftForm();adminGiftListRender();};list.append(b);});
+};
+const adminGiftPreview=()=>{
+ const path=$('#admin-gift-image').value.trim(),img=$('#admin-gift-preview-img');
+ img.classList.toggle('hidden',!path);if(path){img.src=encodeURI(path);img.onerror=()=>img.classList.add('hidden');}
+ $('#admin-gift-preview-title').textContent=$('#admin-gift-name').value||'返礼品名';
+};
+const adminGiftForm=()=>{
+ const g=adminGiftSelected||newAdminGift();adminGiftSelected=g;
+ $('#admin-gift-id').value=g.itemId;$('#admin-gift-id').readOnly=!!g.revision;
+ $('#admin-gift-name').value=g.name;$('#admin-gift-description').value=g.description;
+ $('#admin-gift-image').value=g.image;$('#admin-gift-kind').value=g.giftKind;
+ $('#admin-gift-weight').value=g.weight;$('#admin-gift-enabled').checked=g.enabled;
+ $('#admin-gift-revision').textContent=g.revision?`改訂 ${g.revision}`:'新しい返礼品';adminGiftPreview();
+};
+const loadAdminGiftEditor=async()=>{
+ const result=await adminApi('/gifts?npc=paper');adminGiftCache=result.gifts||[];
+ adminGiftSelected=structuredClone(adminGiftCache.find(g=>g.itemId===adminGiftSelected?.itemId)||adminGiftCache[0]||newAdminGift());
+ adminGiftForm();adminGiftListRender();
+};
+bind('#admin-show-gift-editor',async()=>{
+ $('#admin-conversations-panel').classList.add('hidden');$('#admin-requests-panel').classList.add('hidden');$('#admin-gifts-panel').classList.remove('hidden');
+ await loadAdminGiftEditor();
+});
+$('#admin-gift-search').addEventListener('input',adminGiftListRender);
+for(const field of ['#admin-gift-image','#admin-gift-name'])$(field).addEventListener('input',adminGiftPreview);
+bind('#admin-gift-new',()=>{adminGiftSelected=newAdminGift();adminGiftForm();adminGiftListRender();});
+bind('#admin-gift-refresh',loadAdminGiftEditor);
+$('#admin-gift-form').addEventListener('submit',handler(async e=>{
+ e.preventDefault();const g=adminGiftSelected;
+ const payload={npcId:'paper',itemId:$('#admin-gift-id').value.trim(),revision:g.revision,name:$('#admin-gift-name').value,
+ description:$('#admin-gift-description').value,image:$('#admin-gift-image').value.trim(),giftKind:$('#admin-gift-kind').value,
+ weight:Number($('#admin-gift-weight').value),enabled:$('#admin-gift-enabled').checked};
+ const b=$('#admin-gift-save');b.disabled=true;
+ try{const r=await adminApi('/gifts/save','POST',payload);adminGiftSelected=r.gift;await loadAdminGiftEditor();toast('返礼品を保存しました。');}finally{b.disabled=false;}
+}));
+bind('#admin-gift-show-history',async()=>{
+ const {history}=await adminApi('/gifts/audit'),list=$('#admin-gift-history');list.replaceChildren();
+ if(!history.length){list.textContent='まだ編集履歴がありません。';return;}
+ history.forEach(x=>{const p=document.createElement('p');p.className='muted tiny';p.textContent=`${x.at} UTC ／ ${x.admin} ／ ${x.action} ／ ${x.name||x.itemId}`;list.append(p);});
 });
 
 (async()=>{if(token){try{await openHall();}catch(e){toast(e.message);show('auth');}}else show('auth');})();
