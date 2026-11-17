@@ -281,7 +281,7 @@ const openConversation=async()=>{
   const options=[{id:'greet',label:'挨拶する'},{id:'food',label:'好きな食べ物について聞く'},{id:'cave',label:'洞窟について聞く'}];
   for(const opt of options){const btn=document.createElement('button');btn.className='secondary';btn.textContent=opt.label;btn.addEventListener('click',handler(async()=>{
     const data=await api('/npcs/paper/conversation','POST',{choice:opt.id});currentNpc=data.npc;$('#speech-line').textContent=data.response;
-    $('#conversation-result').textContent=data.affinityChange?'黄色い獣と少し仲良くなりました！':'黄色い獣はあなたとの会話を楽しんでいるようです。';
+    $('#conversation-result').textContent=data.affinityChange?'黄色い獣と、すこしずつ親しくなっているようです。':'黄色い獣はあなたとの会話を楽しんでいるようです。';
     $('#conversation-result').classList.remove('hidden');
   }));$('#conversation-choices').append(btn);}
   show('conversation');
@@ -521,7 +521,7 @@ bind('#room-btn',enterRoom);
 async function enterRoom(){const data=await api('/npcs/paper/room/enter','POST',{});$('#room-message').textContent=data.message;show('room');}
 bind('#room-talk',openConversation);
 bind('#conversation-close',()=>openNpc(npcReturn));
-bind('#history-btn',async()=>{const {history}=await api('/npcs/paper/history');const list=$('#history-list');list.innerHTML=history.length?history.map(h=>`<article class="history-entry"><time>${safe(h.created_at)} UTC</time><p>${safe(h.response)}</p><span class="muted">${h.affinity_change?'♥ 好感度が上昇':''}</span></article>`).join(''):'<p class="muted">まだ会話の記録がありません。</p>';show('history');});
+bind('#history-btn',async()=>{const {history}=await api('/npcs/paper/history');const list=$('#history-list');list.innerHTML=history.length?history.map(h=>`<article class="history-entry"><time>${safe(h.created_at)} UTC</time><p>${safe(h.response)}</p><span class="muted">${h.affinity_change?'少し親しくなった':''}</span></article>`).join(''):'<p class="muted">まだ会話の記録がありません。</p>';show('history');});
 document.querySelectorAll('[data-back]').forEach(el=>el.addEventListener('click',handler(async()=>{const page=el.dataset.back;if(page==='hall'){if(el.id==='npc-back'&&npcReturn==='cave')await openCave(selectedCaveSection);else await openHall();}else if(page==='npc')await openNpc(npcReturn);})));
 (async()=>{if(token){try{await openHall();}catch(e){toast(e.message);show('auth');}}else show('auth');})();
 })();
