@@ -126,3 +126,14 @@
   }
   .hall-visual .npc-actor span { font-size: 9px; padding: 4px 6px; }
 }
+
+/* v0.11.3 食事・おやつ。ホール・プロフィールの既存の大きさは変更しない。 */
+.feeding-visual { display:flex; align-items:center; gap:16px; padding:14px; border:1px solid var(--line, #4b4960); border-radius:16px; background:rgba(15,15,29,.2); }
+.feeding-visual img { display:block; width:104px; height:118px; object-fit:contain; object-position:center bottom; }
+.feeding-list { display:grid; gap:10px; }
+.feeding-item { display:flex; align-items:center; gap:12px; min-width:0; padding:12px; border:1px solid var(--line, #49465d); border-radius:12px; }
+.feeding-item .material-thumb { width:54px; height:54px; object-fit:contain; border-radius:8px; }
+.feeding-item-info { flex:1; min-width:0; }
+.feeding-item-info p { margin:3px 0 0; }
+.feeding-item button { flex-shrink:0; }
+@media (max-width:480px){.feeding-visual img {width:86px;height:100px}.feeding-item{gap:7px;padding:8px}.feeding-item .material-thumb{width:43px;height:43px}}

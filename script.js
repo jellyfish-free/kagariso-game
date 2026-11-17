@@ -10,7 +10,7 @@ let pendingRecovery='';
 let inventoryReturn='hall';
 let gathering=false;
 let npcReturn='hall', mandatoryStory=false;
-const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-gifts','npc-words'];
+const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-gifts','npc-words','npc-feeding'];
 const show=(name)=>{
   pages.forEach(p=>$(`#${p}-page`).classList.toggle('hidden',p!==name));
   if(name!=='npc'&&profileTimer){clearInterval(profileTimer);profileTimer=null;}
@@ -55,6 +55,7 @@ const paperExpression=(npc)=>{
   const s=npc?.state||{};
   const activity=String(s.activity||'').toLowerCase(),mood=String(s.moodLabel||'');
   if(activity==='sleeping')return 'sleeping';
+  if(Number(s.hunger)<=15)return 'full';
   if(activity==='resting'||activity==='sleepy'||String(s.energyLabel||'').includes('眠'))return 'sleepy';
   if(mood.includes('不機嫌')||mood.includes('怒'))return 'angry';
   if(mood.includes('落ち')||mood.includes('悲'))return 'sad';
@@ -318,7 +319,7 @@ const openConversation=async()=>{
   visualImg('#conversation-background',npc.state.location==='cave'?bgVisual.cave:bgVisual.hall);
   paintPaper('#conversation-paper-image',npc);
   $('#conversation-scene').textContent=npc.scene;
-  $('#speech-line').textContent='「あっ、来てくれたんだ！ 何のお話する？」';
+  $('#speech-line').textContent='「あっ！ キミだぁ！ ねえねえ、なに おはなしする？」';
   $('#conversation-result').classList.add('hidden');
   $('#conversation-choices').innerHTML='';
   const options=[{id:'greet',label:'挨拶する'},{id:'food',label:'好きな食べ物について聞く'},{id:'cave',label:'洞窟について聞く'}];
@@ -329,6 +330,42 @@ const openConversation=async()=>{
   }));$('#conversation-choices').append(btn);}
   show('conversation');
 };
+
+// v0.11.3: 手渡した食べ物の判定・消費・空腹度更新はWorker/D1側で行う。
+let feedingBusy=false;
+const renderFeeding=(data,message='')=>{
+  const npc=data.npc;
+  $('#npc-feeding-hunger').textContent=npc.state.hungerLabel;
+  $('#npc-feeding-location').textContent=`いまいる場所：${npc.state.locationLabel}・${npc.state.activityLabel}`;
+  paintPaper('#npc-feeding-image',npc,data.expression);
+  const result=$('#npc-feeding-result');result.classList.toggle('hidden',!message);result.textContent=message;
+  for(const [kind,selector] of [['meal','#npc-feeding-meals'],['snack','#npc-feeding-snacks']]){
+    const list=$(selector);list.replaceChildren();
+    const items=data.items.filter(x=>x.kind===kind);
+    if(!items.length){const p=document.createElement('p');p.className='muted';p.textContent=kind==='meal'?'あげられるごはんをまだ持っていません。':'あげられるおやつをまだ持っていません。';list.append(p);continue;}
+    for(const item of items){
+      const card=document.createElement('div');card.className='feeding-item';
+      const thumb=document.createElement('div');thumb.innerHTML=matIcon(item.id);card.append(thumb);
+      const info=document.createElement('div');info.className='feeding-item-info';
+      const name=document.createElement('strong');name.textContent=item.name;info.append(name);
+      const qty=document.createElement('p');qty.className='muted tiny';qty.textContent=`所持数 ×${item.quantity}`;info.append(qty);card.append(info);
+      const button=document.createElement('button');button.type='button';button.className='secondary small';button.textContent='1個あげる';
+      button.disabled=feedingBusy||!data.canFeed;
+      button.addEventListener('click',handler(async()=>{
+        if(feedingBusy)return;feedingBusy=true;
+        $('#npc-feeding-meals').querySelectorAll('button').forEach(b=>b.disabled=true);
+        $('#npc-feeding-snacks').querySelectorAll('button').forEach(b=>b.disabled=true);
+        try{
+          const outcome=await api('/npcs/paper/feeding','POST',{itemId:item.id});
+          feedingBusy=false;
+          currentNpc=outcome.npc;
+          renderFeeding({...outcome,canFeed:outcome.npc.state.activity!=='sleeping'&&outcome.npc.state.hunger>15},outcome.message);
+        }catch(error){feedingBusy=false;const refreshed=await api('/npcs/paper/feeding');renderFeeding(refreshed);throw error;}
+      }));card.append(button);list.append(card);
+    }
+  }
+};
+async function openNpcFeeding(){const data=await api('/npcs/paper/feeding');renderFeeding(data);show('npc-feeding');}
 
 // v0.8: 共通受信箱。ホールからは全員分、プロフィールからは黄色い獣分を表示。
 let giftBusy=false,giftReturn='hall',giftInventory=[];
@@ -544,6 +581,8 @@ $('#teach-word-form').addEventListener('submit',handler(async event=>{
   }finally{teachingWord=false;btn.disabled=false;}
 }));
 
+bind('#open-npc-feeding',openNpcFeeding);
+bind('#npc-feeding-back',()=>openNpc(npcReturn));
 bind('#open-npc-requests',()=>openNpcRequests());
 bind('#npc-requests-back',()=>openNpc(npcReturn));
 
