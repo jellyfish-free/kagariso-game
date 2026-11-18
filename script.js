@@ -14,7 +14,7 @@ let pendingRecovery='';
 let inventoryReturn='hall';
 let gathering=false;
 let npcReturn='hall', mandatoryStory=false;
-const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-gifts','npc-words','npc-feeding','admin-login','admin-editor'];
+const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-gifts','gift-history','npc-words','npc-feeding','admin-login','admin-editor'];
 const show=(name)=>{
   pages.forEach(p=>$(`#${p}-page`).classList.toggle('hidden',p!==name));
   if(name!=='npc'&&profileTimer){clearInterval(profileTimer);profileTimer=null;}
@@ -584,34 +584,47 @@ async function openNpcGifts(from='hall',message=''){
 }
 bind('#open-gifts',()=>openNpcGifts('hall'));
 bind('#open-npc-gifts',()=>openNpcGifts('npc'));
-// v0.11.8.2: 履歴全件は別ウィンドウで取得。セッショントークンをURLに載せない。
-async function openGiftHistoryWindow(kind){
+// v0.11.8.3: 通信箱の履歴詳細を同一タブ内の専用ページに表示。
+// 認証トークンをURLに含めず、既存APIで全件をページ単位で取得する。
+let giftHistoryLoadId=0;
+async function openGiftHistoryPage(kind){
  const names={npc:'贈り物の受け取り履歴',outgoing:'送った贈り物・取引履歴',incoming:'住人からの受け取り履歴'};
  if(!names[kind])return;
- const popup=window.open('','_blank');
- if(!popup){toast('ポップアップを許可してから、もう一度お試しください。');return;}
- popup.document.write('<!doctype html><html lang="ja"><head><meta charset="UTF-8"><title>神狩荘・履歴</title><style>body{font-family:system-ui,sans-serif;color:#f7f1fa;background:#19192d;max-width:850px;margin:24px auto;padding:16px;line-height:1.8}h1{color:#f2d4a1;font-size:24px}.entry{padding:16px;border:1px solid #77708b;border-radius:12px;margin:12px 0;background:#25263d}p{margin:6px 0;overflow-wrap:anywhere}.muted{color:#bab7c8;font-size:13px}button{background:#e9c18d;color:#171827;border:0;border-radius:8px;padding:8px 14px;cursor:pointer}@media print{body{color:#000;background:#fff}.entry{background:#fff;border-color:#888}}</style></head><body><h1>履歴を読み込み中…</h1><p class="muted">すべての記録を取得しています。</p></body></html>');
- popup.document.close();
+ const loadId=++giftHistoryLoadId;
+ $('#gift-history-heading').textContent=names[kind];
+ $('#gift-history-count').textContent='履歴を読み込み中…';
+ const list=$('#gift-history-list');list.replaceChildren();
+ show('gift-history');
  try{
   const records=[];let offset=0;
   while(true){
    const page=await api(`/gifts/history?type=${encodeURIComponent(kind)}&offset=${offset}`);
-   records.push(...(page.items||[]));
-   if(!page.hasMore)break;
-   if(!page.items?.length)break;
-   offset+=page.items.length;
+   if(loadId!==giftHistoryLoadId)return; // 別の画面へ戻った後は描画しない
+   const batch=page.items||[];
+   records.push(...batch);
+   if(!page.hasMore||!batch.length)break;
+   offset+=batch.length;
   }
-  const lines=records.map((g)=>{
-   if(kind==='npc')return `<article class="entry"><strong>${safe(g.name)}</strong><p class="muted">${safe(giftDate(g.receivedAt))} ｜ ${safe(g.sender||'黄色い獣')}</p><p>${safe(g.description||'')}</p><p>${safe(g.message||'')}</p></article>`;
+  if(loadId!==giftHistoryLoadId)return;
+  $('#gift-history-count').textContent=`${records.length}件の履歴`;
+  if(!records.length){list.textContent='まだ履歴はありません。';return;}
+  list.innerHTML=records.map((g)=>{
+   if(kind==='npc')return `<article class="gift-history-full-entry"><strong>${safe(g.name)}</strong><p class="muted tiny">${safe(giftDate(g.receivedAt))} ｜ ${safe(g.sender||'黄色い獣')}</p><p>${safe(g.description||'')}</p><p>${safe(g.message||'')}</p></article>`;
    const text=(g.items||[]).map(i=>`${safe(i.name)} ×${Number(i.quantity)||0}`).join('、');
    const other=kind==='outgoing'?`相手：${safe(g.receiver)}`:`贈り主：${safe(g.sender)}`;
    const status={pending:'受取待ち',accepted:'受取済み',declined:'辞退されました',cancelled:'取り消し'}[g.status]||g.status;
-   return `<article class="entry"><strong>${text||'贈り物'}｜${safe(status)}</strong><p class="muted">${other} ｜ ${safe(giftDate(g.resolvedAt||g.createdAt))}</p><p>${safe(g.message||'')}</p></article>`;
+   return `<article class="gift-history-full-entry"><strong>${text||'贈り物'}｜${safe(status)}</strong><p class="muted tiny">${other} ｜ ${safe(giftDate(g.resolvedAt||g.createdAt))}</p><p>${safe(g.message||'')}</p></article>`;
   }).join('');
-  popup.document.body.innerHTML=`<h1>${safe(names[kind])}</h1><p>${records.length}件の履歴</p>${lines||'<p>まだ履歴はありません。</p>'}`;
- }catch(e){popup.document.body.innerHTML=`<h1>履歴を読み込めませんでした</h1><p>${safe(e.message)}</p>`;}
+ }catch(e){
+  if(loadId!==giftHistoryLoadId)return;
+  $('#gift-history-count').textContent='履歴を読み込めませんでした';
+  list.textContent=e.message||'エラーが発生しました。';
+ }
 }
-document.querySelectorAll('.history-all-link').forEach(btn=>btn.addEventListener('click',()=>openGiftHistoryWindow(btn.dataset.history)));
+const backFromGiftHistory=()=>{giftHistoryLoadId++;show('npc-gifts');};
+bind('#gift-history-back',backFromGiftHistory);
+bind('#gift-history-bottom-back',backFromGiftHistory);
+document.querySelectorAll('.history-all-link').forEach(btn=>btn.addEventListener('click',handler(()=>openGiftHistoryPage(btn.dataset.history))));
 bind('#npc-gifts-back',async()=>{if(giftReturn==='npc')await openNpc(npcReturn);else await openHall();});
 // v0.6 黄色い獣のお願い。表示情報はすべてサーバーから取得する。
 let requestBusy=false;

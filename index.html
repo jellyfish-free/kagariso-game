@@ -135,6 +135,17 @@
           </div>
         </div>
       </section>
+      <!-- v0.11.8.3: 通信箱の履歴詳細は別タブを開かず同じ画面内に表示 -->
+      <section id="gift-history-page" class="page hidden narrow">
+        <button type="button" id="gift-history-back" class="back">← 通信箱に戻る</button>
+        <div class="panel">
+          <span class="eyebrow">MAILBOX ARCHIVE</span>
+          <h1 id="gift-history-heading">履歴一覧</h1>
+          <p class="muted" id="gift-history-count" role="status" aria-live="polite">履歴を読み込み中…</p>
+          <div id="gift-history-list" class="gift-history-list" aria-live="polite"></div>
+          <button type="button" id="gift-history-bottom-back" class="secondary gift-history-bottom-back">← 通信箱に戻る</button>
+        </div>
+      </section>
       <section id="room-page" class="page hidden narrow"><button class="back" data-back="npc">← プロフィールへ</button><div class="panel story"><div class="big-icon">⌂</div><span class="eyebrow">THE YELLOW BEAST'S ROOM</span><h1>黄色い獣の部屋</h1><div id="room-message" class="scene"></div><p class="muted">小さな部屋には、ふかふかの寝床や、黄色い獣のお気に入りのものが置かれている。</p><button class="primary" id="room-talk">黄色い獣と話す</button></div></section>
 
       <section id="npc-feeding-page" class="page hidden narrow">

@@ -170,3 +170,10 @@
 .history-all-link:hover{color:#fff3d4}
 .gift-collapsible{margin:12px 0}
 .inventory-item strong{overflow-wrap:anywhere}
+
+/* v0.11.8.3: 通信箱内の履歴一覧（同一タブ表示） */
+.gift-history-list{display:grid;gap:12px;margin-top:20px}
+.gift-history-full-entry{padding:16px;border:1px solid var(--line);border-radius:12px;background:#1c1e30;overflow-wrap:anywhere}
+.gift-history-full-entry strong{display:block;line-height:1.7}
+.gift-history-full-entry p{margin:7px 0 0;line-height:1.75}
+.gift-history-bottom-back{width:100%;margin-top:24px}
