@@ -434,7 +434,7 @@ const openConversation=async()=>{
   const menu=await api('/npcs/paper/conversation/options');
   renderConversationChoices(menu.choices);
   show('conversation');
-  refreshAiStatus().catch(()=>{ $('#npc-ai-remaining').textContent='AI会話を確認できませんでした。'; });
+  refreshAiStatus().catch(()=>{ $('#npc-ai-remaining').textContent='自由に話しかける（確認できませんでした）'; });
 };
 function renderConversationChoices(options){
   const box=$('#conversation-choices');box.replaceChildren();
@@ -463,7 +463,10 @@ function renderConversationChoices(options){
 // v0.12: AI自由会話は選択式会話と別枠。本文は本人だけの履歴として記録する。
 let aiSending=false;
 const showAiUsage=usage=>{
-  $('#npc-ai-remaining').textContent=`今日のAI自由会話：${usage.used}/${usage.limit}回（残り${usage.remaining}回）`+(usage.globalRemaining<=0?' ／ 今日の全体上限に達しました':'');
+  $('#npc-ai-remaining').textContent=`自由に話しかける（${usage.used}/${usage.limit}回）`;
+  const notice=$('#npc-ai-limit-notice');
+  notice.textContent=usage.globalRemaining<=0?'今日の全体上限に達しました。': '';
+  notice.classList.toggle('hidden',usage.globalRemaining>0);
   const blocked=usage.remaining<=0||usage.globalRemaining<=0||currentNpc?.state?.activity==='sleeping';
   $('#npc-ai-send').disabled=aiSending||blocked;
 };
@@ -499,14 +502,14 @@ const renderAiHistory=async()=>{
   try{
     const {history}=await api('/npcs/paper/ai/history');
     if(!history.length){list.textContent='まだ自由会話の記録はありません。';return;}
-    for(const entry of [...history].reverse()){
+    for(const entry of [...history].reverse().slice(0,20)){
       const block=document.createElement('article');block.className='history-entry';
       const t=document.createElement('time');t.textContent=`${entry.createdAt} UTC`;
       const q=document.createElement('p');q.textContent=`あなた：${entry.message}`;
       const a=document.createElement('p');a.textContent=`黄色い獣：${entry.response}`;
       block.append(t,q,a);list.append(block);
     }
-  }catch(error){list.textContent='AI会話の履歴を読み込めませんでした。';}
+  }catch(error){list.textContent='AI会話の履歴を読み込めませんでした。'; console.warn('AI history request failed',error.message);}
 };
 
 // v0.11.3: 手渡した食べ物の判定・消費・空腹度更新はWorker/D1側で行う。
@@ -850,8 +853,30 @@ bind('#room-btn',enterRoom);
 async function enterRoom(){const data=await api('/npcs/paper/room/enter','POST',{});$('#room-message').textContent=data.message;show('room');}
 bind('#room-talk',openConversation);
 bind('#conversation-close',()=>openNpc(npcReturn));
-bind('#npc-ai-history-open',async()=>$('#history-btn').click());
-bind('#history-btn',async()=>{const {history}=await api('/npcs/paper/history');const list=$('#history-list');list.innerHTML=history.length?history.map(h=>`<article class="history-entry"><time>${safe(h.created_at)} UTC</time><p>${safe(h.response)}</p><span class="muted">${h.affinity_change?'少し親しくなった':''}</span></article>`).join(''):'<p class="muted">まだ会話の記録がありません。</p>';await renderAiHistory();show('history');});
+let conversationHistoryReturn='npc';
+const openConversationHistory=async(origin)=>{
+  conversationHistoryReturn=origin;
+  $('#conversation-history-back').textContent=origin==='conversation'?'← お話に戻る':'← プロフィールへ';
+  $('#ai-history-fold').open=true;
+  $('#choice-history-fold').open=false;
+  const list=$('#history-list');
+  list.textContent='読み込み中…';
+  $('#ai-history-list').textContent='読み込み中…';
+  show('history');
+  await Promise.all([
+    renderAiHistory(),
+    (async()=>{try{
+      const {history}=await api('/npcs/paper/history');
+      list.innerHTML=history.length?history.slice(0,20).map(h=>`<article class="history-entry"><time>${safe(h.created_at)} UTC</time><p>${safe(h.response)}</p><span class="muted">${h.affinity_change?'少し親しくなった':''}</span></article>`).join(''):'<p class="muted">まだ会話の記録がありません。</p>';
+    }catch(error){list.textContent='選択式の履歴を読み込めませんでした。';}})()
+  ]);
+};
+bind('#npc-ai-history-open',()=>openConversationHistory('conversation'));
+bind('#history-btn',()=>openConversationHistory('npc'));
+bind('#conversation-history-back',async()=>{
+  if(conversationHistoryReturn==='conversation'){show('conversation');await refreshAiStatus();}
+  else await openNpc(npcReturn);
+});
 document.querySelectorAll('[data-back]').forEach(el=>el.addEventListener('click',handler(async()=>{const page=el.dataset.back;if(page==='hall'){if(el.id==='npc-back'&&npcReturn==='cave')await openCave(selectedCaveSection);else await openHall();}else if(page==='npc')await openNpc(npcReturn);})));
 
 // 管理者セッションは住人セッションと混在させない。
