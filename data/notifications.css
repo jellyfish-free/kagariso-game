@@ -1,0 +1,9 @@
+#game-notifications{position:fixed;z-index:1000;top:12px;right:12px;width:min(340px,calc(100vw - 24px));display:grid;gap:8px;pointer-events:none}
+.game-notification{pointer-events:auto;background:#29283e;color:#f4e9da;border:1px solid #a58a62;border-radius:12px;box-shadow:0 6px 24px #0005;padding:12px;font-size:13px;line-height:1.6;overflow-wrap:anywhere}
+.game-notification .actions{margin-top:8px;display:flex;gap:8px;justify-content:flex-end}
+.notification-settings{color:#f1ebea;background:#28293e;border:1px solid #77778b;border-radius:14px;width:min(420px,calc(100% - 32px));padding:22px;box-sizing:border-box}
+.notification-settings::backdrop{background:#111321aa}
+.notification-settings label{display:flex;align-items:center;gap:10px;margin:16px 0;font-size:14px}
+.notification-settings input[type=checkbox]{width:18px;height:18px;accent-color:#d8ae79;margin:0;flex:none}
+.notification-settings h2{margin-top:0}
+#cave-unlock-banner{margin:12px 0}
