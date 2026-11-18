@@ -1,0 +1,12 @@
+.cave-map{position:relative;width:100%;overflow:hidden;border-radius:12px;margin:18px 0;isolation:isolate}
+.cave-map.hidden{display:none}
+.cave-map>img{display:block;width:100%;height:auto}
+.cave-map>button{position:absolute;display:flex;align-items:flex-end;justify-content:center;background:transparent;border:0;border-radius:18%;padding:5px;color:#fff4dc;cursor:pointer;font-size:clamp(10px,2.1vw,14px);font-weight:600;text-shadow:0 1px 4px #000,0 1px 5px #000,0 0 8px #000;box-shadow:none;min-width:0;min-height:0;line-height:1.3;transition:background .2s,box-shadow .2s}
+.cave-map>button:hover,.cave-map>button:focus-visible{background:rgba(255,221,150,.13);box-shadow:inset 0 0 0 2px rgba(255,221,150,.8)}
+.cave-map>button:disabled{visibility:hidden}
+.cave-map>[data-cave-area="1"]{left:3%;top:53%;width:29%;height:40%}
+.cave-map>[data-cave-area="2"]{left:3%;top:4%;width:43%;height:39%}
+.cave-map>[data-cave-area="3"]{left:51%;top:4%;width:45%;height:37%}
+.cave-map>[data-cave-area="4"]{left:35%;top:47%;width:40%;height:46%}
+.cave-map>[data-cave-area="5"]{left:76%;top:43%;width:21%;height:32%}
+#cave-map-return{margin:8px 0 12px}
