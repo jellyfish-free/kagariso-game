@@ -1,0 +1,16 @@
+/* v0.12.1.3: scoped form styles; leave existing game styles intact. */
+#teach-word-form textarea, #ai-profile-form textarea, #ai-profile-test-form textarea {
+  display:block; width:100%; max-width:100%; min-width:0; box-sizing:border-box;
+  padding:12px 14px; border:1px solid #68677c; border-radius:9px;
+  color:#eeeaf4; background:#1c1d2d; font:inherit; font-size:14px; line-height:1.6;
+  resize:vertical; min-height:80px; margin:6px 0 16px;
+}
+#teach-word-form textarea:focus, #ai-profile-form textarea:focus, #ai-profile-test-form textarea:focus { outline:2px solid #d9b380; outline-offset:1px; }
+#ai-profile-form textarea[rows="1"] { min-height:46px; }
+#ai-profile-examples { min-height:340px; white-space:pre-wrap; tab-size:4; }
+#ai-profile-form, #ai-profile-test-form { display:block; width:100%; }
+#ai-profile-form label, #ai-profile-test-form label { display:block; margin-top:10px; }
+#ai-profile-test-form button { margin-bottom:12px; }
+.conversation-back-links { display:flex; flex-wrap:wrap; gap:8px 20px; }
+.conversation-word-action { margin:16px 0; }
+.conversation-word-action button { width:100%; }
