@@ -33,7 +33,7 @@
         </div>
       </section>
       <section id="recovery-page" class="page hidden narrow"><div class="panel recovery-panel"><div class="big-icon">✉</div><span class="eyebrow">IMPORTANT</span><h1>復旧コードを保存してね</h1><p>このコードは<strong>今回だけ</strong>表示されます。端末やブラウザを変更したとき、住人データを復旧するために必要です。</p><div class="secret-code" id="recovery-output"></div><button id="copy-recovery" class="secondary">コードをコピー</button><label class="confirm"><input id="confirmed-recovery" type="checkbox"> 安全な場所に保存しました</label><button id="enter-after-recovery" class="primary" disabled>ホールへ進む →</button></div></section>
-      <section id="hall-page" class="page hidden"><div class="hall-head"><div><span class="eyebrow">THE HALL OF DOORS</span><h1>塀の扉の向こう側</h1><p>静かな大理石のホール。いくつもの扉のうち、開くのはまだほんの一部。</p></div><div class="actions hall-utilities"><button id="open-inventory" class="secondary small">持ち物</button><button id="open-material-catalog" class="secondary small">図鑑</button><button id="open-gifts" class="secondary small">受信箱 <span id="gift-ready-badge" class="hidden"></span></button><button id="refresh-hall" class="secondary small">↻ 更新</button></div></div><div class="game-backdrop hall-visual" id="hall-visual" role="group" aria-label="ホールの風景">
+      <section id="hall-page" class="page hidden"><div class="hall-head"><div><span class="eyebrow">THE HALL OF DOORS</span><h1>塀の扉の向こう側</h1><p>静かな大理石のホール。いくつもの扉のうち、開くのはまだほんの一部。</p></div><div class="actions hall-utilities"><button id="open-inventory" class="secondary small">持ち物</button><button id="open-material-catalog" class="secondary small">図鑑</button><button id="open-gifts" class="secondary small">通信箱 <span id="gift-ready-badge" class="hidden"></span></button><button id="refresh-hall" class="secondary small">↻ 更新</button></div></div><div class="game-backdrop hall-visual" id="hall-visual" role="group" aria-label="ホールの風景">
             <img class="scene-background" id="hall-background" alt="大理石のホール" loading="eager">
             <button type="button" id="hall-paper-actor" class="npc-actor hidden" aria-label="黄色い獣のプロフィールを見る">
               <img id="hall-paper-image" alt="黄色い獣" loading="eager"><span id="hall-paper-label">黄色い獣に会う</span>
@@ -43,7 +43,7 @@
         <button class="back" data-back="hall">← ホールに戻る</button>
         <div class="panel">
           <span class="eyebrow">THE FIRST CAVE</span><h1>洞窟探索</h1>
-          <p class="muted">一度開いた場所へは、いつでも戻れます。素材は住人それぞれの持ち物に入ります。</p>
+          
           <div id="cave-sections" class="cave-section-nav" aria-label="開放済みの区画"></div>
           <div id="cave-section-content" class="hidden">
             <div class="game-backdrop cave-section-visual"><img class="scene-background" id="cave-section-background" alt="洞窟の風景" loading="lazy"></div>
@@ -61,9 +61,9 @@
             <button id="cave-excavate" class="primary hidden">開拓する</button>
             <p id="cave-excavate-note" class="muted tiny"></p>
           </section>
-          <div id="cave-rescue-status" class="notice hidden"></div>
+          
           <section id="cave-npc-section" class="panel hidden"><h2>洞窟で暮らす黄色い獣</h2><p id="cave-npc-note" class="muted"></p><button id="cave-npc-visit" class="primary">黄色い獣に会いに行く</button></section>
-          <div class="section-top"><h2>自分の思い出</h2><p class="muted tiny">体験した物語だけを読み返せます。</p></div>
+          <div class="section-top"><h2>思い出を読み返す</h2></div>
           <div id="cave-history" class="choice-list"></div>
           <div class="actions"><button id="cave-inventory-btn" class="secondary">自分の持ち物を見る</button><button id="cave-refresh" class="secondary">↻ 開拓状況を更新</button></div>
         </div>
@@ -87,16 +87,16 @@
           <div class="catalog-controls">
             <div><label for="catalog-filter">発見状態</label><select id="catalog-filter"><option value="all">すべて</option><option value="found">発見済み</option><option value="missing">未発見</option></select></div>
             <div><label for="catalog-kind">ジャンル</label><select id="catalog-kind"><option value="all">すべて</option><option value="material">素材</option><option value="event">イベントアイテム</option><option value="gift">プレゼント</option><option value="crafted">作製物</option></select></div>
-            <div><label for="catalog-source">入手場所・入手方法</label><select id="catalog-source"><option value="all">すべて</option><option value="洞窟">洞窟</option><option value="海">海</option><option value="森">森</option><option value="NPC">NPC</option><option value="その他">その他</option></select></div>
+            <div><label for="catalog-source">入手場所・入手方法</label><select id="catalog-source"><option value="all">すべて</option><option value="洞窟">洞窟</option><option value="海">海</option><option value="森">森</option><option value="黄色い獣">黄色い獣</option><option value="その他">その他</option></select></div>
           </div>
           <p id="catalog-results" class="muted tiny" aria-live="polite"></p>
           <div id="material-catalog-grid" class="material-catalog-grid"></div>
         </div>
       </section>
       <section id="inventory-page" class="page hidden narrow"><button class="back" id="inventory-back">← 戻る</button><div class="panel"><span class="eyebrow">MY BELONGINGS</span><h1>自分の持ち物</h1>
-          <div class="catalog-controls"><div><label for="inventory-sort">並び替え</label><select id="inventory-sort"><option value="default">標準順</option><option value="name-asc">名前順（あいうえお順）</option><option value="count-desc">所持数が多い順</option><option value="count-asc">所持数が少ない順</option><option value="rarity-desc">レア度が高い順</option><option value="rarity-asc">レア度が低い順</option><option value="category">ジャンル順</option></select></div></div>
+          <div class="catalog-controls"><div><label for="inventory-sort">並び替え</label><select id="inventory-sort"><option value="default">標準順</option><option value="name-asc">名前順（あいうえお順）</option><option value="count-desc">所持数が多い順</option><option value="count-asc">所持数が少ない順</option><option value="rarity-desc">レア度が高い順</option><option value="rarity-asc">レア度が低い順</option><option value="category">ジャンル順</option><option value="source">入手場所順</option></select></div><div><label for="inventory-source">入手場所</label><select id="inventory-source"><option value="all">すべて</option><option value="洞窟">洞窟</option><option value="黄色い獣">黄色い獣</option><option value="その他">その他</option></select></div></div>
           <div id="inventory-list" class="inventory-list"></div></div></section>
-      <section id="npc-page" class="page hidden narrow"><button class="back" id="npc-back" data-back="hall">← ホールに戻る</button><div class="panel npc-profile"><div class="npc-heading"><div class="profile-portrait"><img id="npc-profile-image" alt="黄色い獣"></div><div><h1>黄色い獣</h1><div id="npc-affinity" class="hearts"></div><div id="npc-relationship" class="muted"></div></div></div><div id="npc-live-state" class="state-grid"></div><div id="npc-move-notice" class="notice hidden"></div><div class="life-status" id="npc-life-status" aria-label="黄色い獣の生活状態"></div><div class="section-top compact"><h2>現在の様子</h2><span class="muted tiny">プロフィールを開いたときの描写</span></div><p id="npc-scene" class="scene"></p><div class="actions"><button class="primary" id="talk-btn">話しかける</button><button class="secondary" id="room-btn">自室を訪ねる</button></div><section class="life-actions"><h3>黄色い獣の生活</h3><p class="muted tiny">NPCの意思で休息・睡眠します。状態の変化は住人全員で共有されます。</p><div class="actions"><button class="secondary" id="rest-btn">休憩をすすめる</button><button class="secondary" id="wake-btn">そっと声をかけて起こす</button></div><div id="life-action-result" class="notice hidden"></div></section><div class="section-top compact"><h2>黄色い獣からのお願い</h2><p class="muted tiny">住人ごとのお願いです。素材を集めたら本人に報告しよう。</p></div><button class="secondary" id="open-npc-requests">お願いを見る</button><div class="section-top compact"><h2>受けとったプレゼント</h2><p class="muted tiny">お願いのお礼は完成すると受信箱に届くよ。</p></div><button class="secondary" id="open-npc-gifts">黄色い獣のプレゼントを見る</button><div class="section-top compact"><h2>おぼえた言葉</h2><p class="muted tiny">言葉はみんなで教えられるよ。黄色い獣の性格は変わりません。</p></div><button class="secondary" id="open-npc-words">言葉を教える・言葉帳を見る</button><div class="section-top compact"><h2>ごはんとおやつ</h2><p class="muted tiny">持っている食べ物を1つ手渡せます。お腹がいっぱいなら無理に食べません。</p></div><button class="secondary" id="open-npc-feeding">ごはん・おやつをあげる</button><details id="profile-more"><summary>詳細を見る</summary><div class="details-content"><h3>この子について</h3><p id="npc-bio"></p><h3>性格</h3><p id="npc-personality"></p><h3>趣味・特技</h3><p>食べることが大好き。料理はまだ練習中。</p><h3>あなたとの関係</h3><p id="npc-relationship-detail"></p><h3>思い出</h3><button class="secondary small" id="history-btn">会話履歴を見る</button><p class="note">特別なイベント、成長履歴、記念品は次の開発段階で追加予定。</p></div></details></div></section>
+      <section id="npc-page" class="page hidden narrow"><button class="back" id="npc-back" data-back="hall">← ホールに戻る</button><div class="panel npc-profile"><div class="npc-heading"><div class="profile-portrait"><img id="npc-profile-image" alt="黄色い獣"></div><div><h1>黄色い獣</h1><div id="npc-affinity" class="hearts"></div><div id="npc-relationship" class="muted"></div></div></div><div id="npc-live-state" class="state-grid"></div><div id="npc-move-notice" class="notice hidden"></div><div class="life-status" id="npc-life-status" aria-label="黄色い獣の生活状態"></div><div class="section-top compact"><h2>現在の様子</h2><span class="muted tiny">プロフィールを開いたときの描写</span></div><p id="npc-scene" class="scene"></p><div class="actions"><button class="primary" id="talk-btn">話しかける</button><button class="secondary" id="room-btn">自室を訪ねる</button></div><section class="life-actions"><h3>黄色い獣の生活</h3><p class="muted tiny">NPCの意思で休息・睡眠します。状態の変化は住人全員で共有されます。</p><div class="actions"><button class="secondary" id="rest-btn">休憩をすすめる</button><button class="secondary" id="wake-btn">そっと声をかけて起こす</button></div><div id="life-action-result" class="notice hidden"></div></section><div class="section-top compact"><h2>黄色い獣からのお願い</h2><p class="muted tiny">住人ごとのお願いです。素材を集めたら本人に報告しよう。</p></div><button class="secondary" id="open-npc-requests">お願いを見る</button><div class="section-top compact"><h2>受けとったプレゼント</h2><p class="muted tiny">お願いのお礼は完成すると通信箱に届くよ。</p></div><button class="secondary" id="open-npc-gifts">黄色い獣のプレゼントを見る</button><div class="section-top compact"><h2>おぼえた言葉</h2><p class="muted tiny">言葉はみんなで教えられるよ。黄色い獣の性格は変わりません。</p></div><button class="secondary" id="open-npc-words">言葉を教える・言葉帳を見る</button><div class="section-top compact"><h2>ごはんとおやつ</h2><p class="muted tiny">持っている食べ物を1つ手渡せます。お腹がいっぱいなら無理に食べません。</p></div><button class="secondary" id="open-npc-feeding">ごはん・おやつをあげる</button><details id="profile-more"><summary>詳細を見る</summary><div class="details-content"><h3>この子について</h3><p id="npc-bio"></p><h3>性格</h3><p id="npc-personality"></p><h3>趣味・特技</h3><p>食べることが大好き。料理はまだ練習中。</p><h3>あなたとの関係</h3><p id="npc-relationship-detail"></p><h3>思い出</h3><button class="secondary small" id="history-btn">会話履歴を見る</button><p class="note">特別なイベント、成長履歴、記念品は次の開発段階で追加予定。</p></div></details></div></section>
       <section id="conversation-page" class="page hidden narrow"><button class="back" data-back="npc">← プロフィールへ</button><div class="panel story"><span class="eyebrow">A MOMENT WITH THE YELLOW BEAST</span><h1>黄色い獣とのお話</h1><div class="game-backdrop conversation-visual"><img class="scene-background" id="conversation-background" alt="黄色い獣と話す場所"><img id="conversation-paper-image" class="conversation-paper-image" alt="黄色い獣"></div><div id="conversation-scene" class="scene"></div><div class="speech"><span class="speaker">黄色い獣</span><p id="speech-line">「ねえねえ！ なにかお話する？」</p></div><div id="conversation-choices" class="choice-list"></div><div id="conversation-result" class="notice hidden"></div><button id="conversation-close" class="secondary">お話を終える</button></div></section>
       <section id="npc-requests-page" class="page hidden narrow">
         <button class="back" id="npc-requests-back">← 黄色い獣のプロフィールへ</button>
@@ -111,9 +111,13 @@
       </section>
       <section id="npc-gifts-page" class="page hidden narrow">
         <button id="npc-gifts-back" class="back">← 戻る</button>
-        <div class="panel"><span class="eyebrow" id="gifts-eyebrow">YOUR MAILBOX</span><h1 id="gifts-heading">受信箱</h1>
+        <div class="panel"><span class="eyebrow" id="gifts-eyebrow">YOUR MAILBOX</span><h1 id="gifts-heading">通信箱</h1>
           <p class="muted">準備中の贈り物は完成まで保管されます。受取期限はありません。</p>
           <div id="npc-gifts-message" class="notice hidden" role="status" aria-live="polite"></div>
+          <div class="section-top"><h2 id="npc-gift-section-heading">贈り物</h2></div>
+          <div id="npc-gifts-inbox" class="request-list"></div>
+          <details class="gift-collapsible"><summary>もらった記念品</summary><div id="npc-gifts-inventory" class="request-list details-content"></div></details>
+          <details class="gift-collapsible"><summary>受け取り履歴（最新5件）</summary><div id="npc-gifts-history" class="request-list details-content"></div><button type="button" class="history-all-link" data-history="npc">さらに詳細を確認する</button></details>
           <div id="gifts-common-sections">
             <div class="section-top"><h2>住人からの贈り物</h2><p class="muted tiny">受け取るまでは贈り主の素材をお預かりします。</p></div>
             <div id="resident-gifts-inbox" class="request-list"></div>
@@ -125,12 +129,10 @@
               <textarea id="gift-send-message" maxlength="200" rows="3" placeholder="メッセージを添える（省略可）"></textarea>
               <button id="gift-send" type="button" class="primary">この内容で贈る</button>
             </div></details>
-            <details><summary>送った贈り物・取引履歴</summary><div id="resident-gifts-outgoing" class="request-list details-content"></div></details>
+            <details class="gift-collapsible"><summary>送信中の贈り物</summary><div id="resident-gifts-pending" class="request-list details-content"></div></details>
+            <details class="gift-collapsible"><summary>送った贈り物・取引履歴（最新5件）</summary><div id="resident-gifts-outgoing" class="request-list details-content"></div><button type="button" class="history-all-link" data-history="outgoing">さらに詳細を確認する</button></details>
+            <details class="gift-collapsible"><summary>住人からの受け取り履歴（最新5件）</summary><div id="resident-gifts-history" class="request-list details-content"></div><button type="button" class="history-all-link" data-history="incoming">さらに詳細を確認する</button></details>
           </div>
-          <div class="section-top"><h2 id="npc-gift-section-heading">NPCから届いた贈り物</h2></div><div id="npc-gifts-inbox" class="request-list"></div>
-          <div class="section-top"><h2>もらった記念品</h2></div><div id="npc-gifts-inventory" class="request-list"></div>
-          <details><summary>受け取り履歴</summary><div id="npc-gifts-history" class="request-list details-content"></div></details>
-          <div id="resident-gifts-history-wrap"><details><summary>住人からの受け取り履歴</summary><div id="resident-gifts-history" class="request-list details-content"></div></details></div>
         </div>
       </section>
       <section id="room-page" class="page hidden narrow"><button class="back" data-back="npc">← プロフィールへ</button><div class="panel story"><div class="big-icon">⌂</div><span class="eyebrow">THE YELLOW BEAST'S ROOM</span><h1>黄色い獣の部屋</h1><div id="room-message" class="scene"></div><p class="muted">小さな部屋には、ふかふかの寝床や、黄色い獣のお気に入りのものが置かれている。</p><button class="primary" id="room-talk">黄色い獣と話す</button></div></section>

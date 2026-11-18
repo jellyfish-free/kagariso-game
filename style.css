@@ -164,3 +164,9 @@
 .admin-gift-preview {display:flex;align-items:center;gap:20px;margin:12px 0 18px;padding:15px;border:1px solid var(--line);border-radius:12px;background:#18192c;min-height:100px}
 .admin-gift-preview img {width:110px;height:110px;object-fit:contain;border-radius:9px}
 .admin-gift-preview .hidden{display:none}
+
+/* v0.11.8.2: 通信箱の履歴と長い品名 */
+.history-all-link{display:inline-block;background:none;border:0;color:#f2d4a1;text-decoration:underline;font-size:13px;cursor:pointer;margin:8px 0 14px;padding:5px 2px}
+.history-all-link:hover{color:#fff3d4}
+.gift-collapsible{margin:12px 0}
+.inventory-item strong{overflow-wrap:anywhere}

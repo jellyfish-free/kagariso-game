@@ -149,7 +149,7 @@ async function openHall(){const data=await api('/hall');resident=data.resident;$
   if(!data.npcs.length)$('#npc-list').innerHTML='<p class="muted">黄色い獣の姿はまだここにない。洞窟の扉を調べてみよう。</p>';
   show('hall');
   if(data.requiredStory){toast('先に洞窟での大切な物語を体験しよう。');await openCave(1);return;}
-  try{const gifts=await api('/gifts');const badge=$('#gift-ready-badge');badge.textContent=gifts.readyCount?`(${gifts.readyCount})`:'';badge.classList.toggle('hidden',!gifts.readyCount);}catch(e){console.warn('受信箱の更新に失敗:',e);}
+  try{const gifts=await api('/gifts');const badge=$('#gift-ready-badge');badge.textContent=gifts.readyCount?`(${gifts.readyCount})`:'';badge.classList.toggle('hidden',!gifts.readyCount);}catch(e){console.warn('通信箱の更新に失敗:',e);}
 }
 let selectedCaveSection=1,activeCaveStory=null,caveStoryReplay=false;
 const caveQty=(n)=>Number(n)||0;
@@ -167,8 +167,6 @@ async function openCave(sectionId=null){
     btn.textContent=sec.name;btn.addEventListener('click',handler(()=>openCave(sec.id)));navigation.append(btn);
   }
   $('#cave-construction').classList.toggle('hidden',cave.rescued);
-  $('#cave-rescue-status').classList.toggle('hidden',!cave.rescued);
-  if(cave.rescued)$('#cave-rescue-status').textContent=cave.worldRescued?'黄色い獣はホールへ連れ帰られました。洞窟は引き続き探索できます。':'洞窟の出口が開かれました。黄色い獣を連れ帰る物語が待っています。';
   if(!cave.rescued){
     $('#cave-gate-title').textContent=cave.gateLabel;
     const total=cave.requirements.reduce((s,r)=>s+r.needed,0),done=cave.requirements.reduce((s,r)=>s+r.donated,0);
@@ -205,14 +203,14 @@ async function openCave(sectionId=null){
   for(const sec of cave.sections){
     const id=`section-${sec.id}`, seen=cave.stories.some(x=>x.id===id);
     const btn=document.createElement('button');btn.className='secondary';
-    btn.textContent=`${sec.name}の物語${seen?'（読み返す）':'（初めて読む）'}`;
+    btn.textContent=`${sec.name}の物語`;
     btn.disabled=!!cave.requiredStory;
     btn.addEventListener('click',handler(()=>openStory(id,seen)));history.append(btn);
   }
   if(cave.rescued){
     const seen=cave.stories.some(x=>x.id==='rescue');
     const btn=document.createElement('button');btn.className='secondary';
-    btn.textContent=seen?'黄色い獣を連れ帰った物語（読み返す）':'黄色い獣の救出を体験する';
+    btn.textContent='黄色い獣を連れ帰った物語';
     btn.disabled=!!cave.requiredStory;btn.addEventListener('click',handler(()=>openStory('rescue',seen)));history.append(btn);
   }
   const entry=await api('/cave/section?id='+sectionId);
@@ -298,10 +296,11 @@ async function openStory(storyId,replay){
 // v0.9.2 図鑑: 素材は45枠を常時公開し、イベント品・プレゼントは取得後のみ追加。
 // ジャンル／発見状態／入手場所を独立して絞り込める。
 async function openMaterialCatalog(){
- const [discovery,eventData,giftData]=await Promise.all([
+ const [discovery,eventData,giftData,giftStats]=await Promise.all([
    api('/materials/discovered'),
    api('/catalog/events'),
-   api('/npcs/paper/gifts')
+   api('/npcs/paper/gifts'),
+   api('/catalog/gifts')
  ]);
  const discovered=new Set(discovery.ids||[]);
  const materials=MATERIALS.map(m=>({id:m.id,name:m.name,image:m.image,rarity:m.rarity,
@@ -313,12 +312,16 @@ async function openMaterialCatalog(){
  const gifts=(giftData.inventory||[]).filter(g=>Number(g.quantity)>0).map(g=>{
    const def=giftDefs.get(g.itemId)||{};
    return {id:g.itemId,name:g.name||def.name,description:g.description||def.description,
-     image:g.image||def.image||'',kind:'gift',source:'NPC',found:true};
+     image:g.image||def.image||'',kind:'gift',source:g.npcName||'黄色い獣',found:true};
  });
  // 作製物の所持記録は未実装。今後の調合・工作システム追加時にここへ統合する。
- const entries=[...materials,...events,...gifts];
+ // 未発見の返礼品は名前・IDを公開せず、総数のみ図鑑に反映。
+ const giftTotal=Math.max(gifts.length,Number(giftStats.total)||0);
+ const foundByNpc=new Map();gifts.forEach(g=>foundByNpc.set(g.source,(foundByNpc.get(g.source)||0)+1));
+ const giftUnknown=(giftStats.byNpc||[{name:'黄色い獣',count:giftTotal}]).flatMap(({name,count})=>Array.from({length:Math.max(0,Number(count)-(foundByNpc.get(name)||0))},(_,n)=>({id:`gift-unknown-${name}-${n}`,name:'？？？？？',kind:'gift',source:name,found:false})));
+ const entries=[...materials,...events,...gifts,...giftUnknown];
  const progress=$('#catalog-progress');
- progress.textContent=`通常素材：${materials.filter(m=>m.found).length} / ${materials.length} 種類発見　｜　イベントアイテム：${events.length} 種類　｜　プレゼント：${gifts.length} 種類`;
+ progress.textContent=`素材：${materials.filter(m=>m.found).length} / ${materials.length} ｜ イベントアイテム：${events.length?events.length:"-"} ｜ プレゼント：${gifts.length}/${giftTotal}`;
  const kindLabels={material:'素材',event:'イベントアイテム',gift:'プレゼント',crafted:'作製物'};
  const render=()=>{
    const state=$('#catalog-filter').value;
@@ -336,10 +339,12 @@ async function openMaterialCatalog(){
        :'<div class="material-missing-icon" aria-hidden="true">？</div>';
      const subtitle=found
        ?`${safe(kindLabels[item.kind]||item.kind)} · ${safe(item.source)}${item.kind==='material'?' · '+safe(item.category)+' · '+'★'.repeat(item.rarity):''}`
-       :'未開放素材';
+       :item.kind==='gift'?'未入手のプレゼント':'未開放素材';
      return `<article class="material-catalog-card ${found?'':'undiscovered'}"><div class="material-catalog-image">${thumb}</div><strong>${found?safe(item.name):'？？？？？'}</strong><div class="muted tiny">${subtitle}</div>${found&&item.description?`<p class="muted tiny">${safe(item.description)}</p>`:''}</article>`;
    }).join('')||'<p class="muted catalog-empty">該当する品はまだありません。</p>';
  };
+ const sourceSelect=$('#catalog-source');
+ for(const source of new Set(entries.map(e=>e.source).filter(Boolean))){if(![...sourceSelect.options].some(o=>o.value===source)){const option=document.createElement('option');option.value=source;option.textContent=source;sourceSelect.append(option);}}
  for(const selector of ['#catalog-filter','#catalog-kind','#catalog-source'])$(selector).onchange=render;
  render();show('material-catalog');
 }
@@ -347,7 +352,8 @@ async function openMaterialCatalog(){
 let inventorySortItems=[];
 function renderInventoryItems(){
   const mode=$('#inventory-sort').value;
-  const items=[...inventorySortItems];
+  const sourceFilter=$('#inventory-source').value;
+  const items=inventorySortItems.filter(i=>sourceFilter==='all'||i.source===sourceFilter);
   const byName=(a,b)=>String(a.name||'').localeCompare(String(b.name||''),'ja');
   const rarity=i=>Number(i.rarity)||0;
   const count=i=>Number(i.quantity)||0;
@@ -357,12 +363,16 @@ function renderInventoryItems(){
   else if(mode==='rarity-desc') items.sort((a,b)=>rarity(b)-rarity(a)||byName(a,b));
   else if(mode==='rarity-asc') items.sort((a,b)=>rarity(a)-rarity(b)||byName(a,b));
   else if(mode==='category') items.sort((a,b)=>String(a.category||'').localeCompare(String(b.category||''),'ja')||byName(a,b));
-  $('#inventory-list').innerHTML=items.length?items.map(i=>`<article class="inventory-item">${matIcon(i.id)}<div><strong>${safe(i.name)}</strong><div class="muted tiny">${safe(i.category)} · ${'★'.repeat(Math.max(1,Math.min(5,i.rarity)))}</div></div><strong>×${Number(i.quantity)}</strong></article>`).join(''):'<p class="muted">まだ素材を持っていません。洞窟で採取してみよう。</p>';
+  else if(mode==='source') items.sort((a,b)=>String(a.source||'').localeCompare(String(b.source||''),'ja')||byName(a,b));
+  $('#inventory-list').innerHTML=items.length?items.map(i=>`<article class="inventory-item">${i.kind==='gift'&&i.image?`<img class="material-thumb" src="${safe(i.image)}" loading="lazy" alt="" onerror="this.replaceWith(document.createTextNode('✧'))">`:matIcon(i.id)}<div><strong>${safe(i.name)}</strong><div class="muted tiny">${safe(i.category)} · ${safe(i.source)}${i.kind==='gift'?'':` · ${'★'.repeat(Math.max(1,Math.min(5,i.rarity)))}`}</div></div><strong>×${Number(i.quantity)}</strong></article>`).join(''):'<p class="muted">該当する持ち物はありません。</p>';
 }
 async function openInventory(from='hall'){
   inventoryReturn=from;
-  const {items:serverItems}=await api('/inventory');
-  inventorySortItems=serverItems.filter(i=>materialById(i.id)); // 旧素材は表示しない
+  const {items:serverItems,gifts:ownedGifts=[]}=await api('/inventory');
+  inventorySortItems=[...serverItems.filter(i=>materialById(i.id)).map(i=>({...i,source:'洞窟',kind:'material'})),...ownedGifts.map(g=>({...g,id:g.itemId,category:'プレゼント',source:g.npcName||'黄色い獣',kind:'gift',rarity:0}))]; // 所持素材と受取済み返礼品を統合
+  const sourceSelect=$('#inventory-source');const selectedSource=sourceSelect.value;
+  for(const source of new Set(inventorySortItems.map(i=>i.source))){if(![...sourceSelect.options].some(o=>o.value===source)){const o=document.createElement('option');o.value=source;o.textContent=source;sourceSelect.append(o);}}
+  sourceSelect.value=[...sourceSelect.options].some(o=>o.value===selectedSource)?selectedSource:'all';
   renderInventoryItems();
   show('inventory');
 }
@@ -495,10 +505,9 @@ async function openNpcGifts(from='hall',message=''){
  const inbox=$('#npc-gifts-inbox'),inventory=$('#npc-gifts-inventory'),history=$('#npc-gifts-history');
  const addGiftImage=(container,gift)=>{if(!gift.image)return;const img=document.createElement('img');img.className='npc-gift-image';img.alt=gift.name||'返礼品';img.loading='lazy';img.src=encodeURI(gift.image);img.onerror=()=>img.remove();container.insertBefore(img,container.firstChild);};
  const common=$('#gifts-common-sections');common.classList.toggle('hidden',onlyPaper);
- $('#resident-gifts-history-wrap').classList.toggle('hidden',onlyPaper);
- $('#gifts-heading').textContent=onlyPaper?'受けとったプレゼント':'受信箱';
+ $('#gifts-heading').textContent=onlyPaper?'贈り物':'通信箱';
  $('#gifts-eyebrow').textContent=onlyPaper?'GIFTS FROM PAPER':'YOUR MAILBOX';
- $('#npc-gift-section-heading').textContent=onlyPaper?'黄色い獣からの贈り物':'NPCから届いた贈り物';
+ $('#npc-gift-section-heading').textContent='贈り物';
  inbox.replaceChildren();inventory.replaceChildren();history.replaceChildren();
  const notification=$('#npc-gifts-message');notification.classList.toggle('hidden',!message);notification.textContent=message;
  for(const gift of npc.inbox){
@@ -520,7 +529,7 @@ async function openNpcGifts(from='hall',message=''){
  giftEmpty(inbox,'届いている贈り物はありません。');
  for(const item of npc.inventory){const card=giftCard(`${item.name} ×${item.quantity}`,item.description);addGiftImage(card,item);inventory.append(card);}
  giftEmpty(inventory,'まだ記念品を受け取っていません。');
- for(const gift of npc.history){
+ for(const gift of [...npc.history].sort((a,b)=>String(b.receivedAt||'').localeCompare(String(a.receivedAt||''))).slice(0,5)){
   const detail=document.createElement('details');detail.className='gift-history-entry';const title=document.createElement('summary');title.textContent=`${gift.name}｜${giftDate(gift.receivedAt)}`;detail.append(title);
   for(const str of [`説明：${gift.description}`,`贈り主：${gift.sender}`,`受け取った日：${giftDate(gift.receivedAt)}`,`メッセージ：${gift.message}`,`あなたの返答：${gift.replyChoice==='effort'?'頑張って作ってくれたんだね':'ありがとう！ 嬉しいよ！'}`]){const p=document.createElement('p');p.className='muted tiny';p.textContent=str;detail.append(p);}
   history.append(detail);
@@ -528,8 +537,9 @@ async function openNpcGifts(from='hall',message=''){
  giftEmpty(history,'まだ受け取り履歴はありません。');
  if(!onlyPaper){
   const incoming=$('#resident-gifts-inbox'),outgoing=$('#resident-gifts-outgoing'),received=$('#resident-gifts-history');
-  incoming.replaceChildren();outgoing.replaceChildren();received.replaceChildren();
-  for(const g of data.transfers){
+  incoming.replaceChildren();outgoing.replaceChildren();received.replaceChildren();$('#resident-gifts-pending').replaceChildren();
+  let outCount=0,inCount=0;
+  for(const g of [...data.transfers].sort((a,b)=>String(b.resolvedAt||b.createdAt||'').localeCompare(String(a.resolvedAt||a.createdAt||'')))){
    const summary=g.items.map(i=>`${i.name} ×${i.quantity}`).join('、');
    if(g.incoming&&g.status==='pending'){
     const card=giftCard(`${g.sender}からの贈り物`,summary);
@@ -540,14 +550,18 @@ async function openNpcGifts(from='hall',message=''){
      btn.addEventListener('click',handler(async()=>{if(giftBusy)return;giftBusy=true;btn.disabled=true;try{const result=await api('/gifts/resolve','POST',{giftId:g.id,action});await openNpcGifts('hall',result.message);}finally{giftBusy=false;}}));actions.append(btn);
     }card.append(actions);incoming.append(card);
    }
-   if(!g.incoming){
+   if(!g.incoming&&g.status==='pending'){
+    const pendingCard=giftCard(`${g.receiver}へ送信中（受取待ち）`,summary);
+    if(g.message){const p=document.createElement('p');p.className='muted tiny';p.textContent=`添えたメッセージ：${g.message}`;pendingCard.append(p);}
+    const btn=document.createElement('button');btn.className='secondary small';btn.textContent='送信を取り消す';btn.addEventListener('click',handler(async()=>{if(giftBusy)return;giftBusy=true;btn.disabled=true;try{const result=await api('/gifts/resolve','POST',{giftId:g.id,action:'cancel'});await openNpcGifts('hall',result.message);}finally{giftBusy=false;}}));pendingCard.append(btn);$('#resident-gifts-pending').append(pendingCard);
+   }
+   if(!g.incoming&&g.status!=='pending'&&outCount++<5){
     const label={pending:'受取待ち',accepted:'受取済み',declined:'辞退されました',cancelled:'取り消し'}[g.status]||g.status;
     const card=giftCard(`${g.receiver}へ贈った素材｜${label}`,summary);
     if(g.message){const p=document.createElement('p');p.className='muted tiny';p.textContent=`添えたメッセージ：${g.message}`;card.append(p);}
-    if(g.status==='pending'){const btn=document.createElement('button');btn.className='secondary small';btn.textContent='送信を取り消す';btn.addEventListener('click',handler(async()=>{if(giftBusy)return;giftBusy=true;btn.disabled=true;try{const result=await api('/gifts/resolve','POST',{giftId:g.id,action:'cancel'});await openNpcGifts('hall',result.message);}finally{giftBusy=false;}}));card.append(btn);}
     outgoing.append(card);
    }
-   if(g.incoming&&g.status==='accepted'){
+   if(g.incoming&&g.status==='accepted'&&inCount++<5){
     const card=document.createElement('details');card.className='gift-history-entry';
     const title=document.createElement('summary');title.textContent=`${summary}｜${giftDate(g.resolvedAt)}`;card.append(title);
     for(const str of [`贈り主：${g.sender}`,`受け取った日：${giftDate(g.resolvedAt)}`,`メッセージ：${g.message||'なし'}`]){const p=document.createElement('p');p.className='muted tiny';p.textContent=str;card.append(p);}
@@ -555,6 +569,7 @@ async function openNpcGifts(from='hall',message=''){
    }
   }
   giftEmpty(incoming,'住人から届いている贈り物はありません。');
+  giftEmpty($('#resident-gifts-pending'),'送信中の贈り物はありません。');
   giftEmpty(outgoing,'送った贈り物はありません。');
   giftEmpty(received,'住人からの受け取り履歴はありません。');
   const recip=await api('/gifts/recipients');
@@ -569,6 +584,34 @@ async function openNpcGifts(from='hall',message=''){
 }
 bind('#open-gifts',()=>openNpcGifts('hall'));
 bind('#open-npc-gifts',()=>openNpcGifts('npc'));
+// v0.11.8.2: 履歴全件は別ウィンドウで取得。セッショントークンをURLに載せない。
+async function openGiftHistoryWindow(kind){
+ const names={npc:'贈り物の受け取り履歴',outgoing:'送った贈り物・取引履歴',incoming:'住人からの受け取り履歴'};
+ if(!names[kind])return;
+ const popup=window.open('','_blank');
+ if(!popup){toast('ポップアップを許可してから、もう一度お試しください。');return;}
+ popup.document.write('<!doctype html><html lang="ja"><head><meta charset="UTF-8"><title>神狩荘・履歴</title><style>body{font-family:system-ui,sans-serif;color:#f7f1fa;background:#19192d;max-width:850px;margin:24px auto;padding:16px;line-height:1.8}h1{color:#f2d4a1;font-size:24px}.entry{padding:16px;border:1px solid #77708b;border-radius:12px;margin:12px 0;background:#25263d}p{margin:6px 0;overflow-wrap:anywhere}.muted{color:#bab7c8;font-size:13px}button{background:#e9c18d;color:#171827;border:0;border-radius:8px;padding:8px 14px;cursor:pointer}@media print{body{color:#000;background:#fff}.entry{background:#fff;border-color:#888}}</style></head><body><h1>履歴を読み込み中…</h1><p class="muted">すべての記録を取得しています。</p></body></html>');
+ popup.document.close();
+ try{
+  const records=[];let offset=0;
+  while(true){
+   const page=await api(`/gifts/history?type=${encodeURIComponent(kind)}&offset=${offset}`);
+   records.push(...(page.items||[]));
+   if(!page.hasMore)break;
+   if(!page.items?.length)break;
+   offset+=page.items.length;
+  }
+  const lines=records.map((g)=>{
+   if(kind==='npc')return `<article class="entry"><strong>${safe(g.name)}</strong><p class="muted">${safe(giftDate(g.receivedAt))} ｜ ${safe(g.sender||'黄色い獣')}</p><p>${safe(g.description||'')}</p><p>${safe(g.message||'')}</p></article>`;
+   const text=(g.items||[]).map(i=>`${safe(i.name)} ×${Number(i.quantity)||0}`).join('、');
+   const other=kind==='outgoing'?`相手：${safe(g.receiver)}`:`贈り主：${safe(g.sender)}`;
+   const status={pending:'受取待ち',accepted:'受取済み',declined:'辞退されました',cancelled:'取り消し'}[g.status]||g.status;
+   return `<article class="entry"><strong>${text||'贈り物'}｜${safe(status)}</strong><p class="muted">${other} ｜ ${safe(giftDate(g.resolvedAt||g.createdAt))}</p><p>${safe(g.message||'')}</p></article>`;
+  }).join('');
+  popup.document.body.innerHTML=`<h1>${safe(names[kind])}</h1><p>${records.length}件の履歴</p>${lines||'<p>まだ履歴はありません。</p>'}`;
+ }catch(e){popup.document.body.innerHTML=`<h1>履歴を読み込めませんでした</h1><p>${safe(e.message)}</p>`;}
+}
+document.querySelectorAll('.history-all-link').forEach(btn=>btn.addEventListener('click',()=>openGiftHistoryWindow(btn.dataset.history)));
 bind('#npc-gifts-back',async()=>{if(giftReturn==='npc')await openNpc(npcReturn);else await openHall();});
 // v0.6 黄色い獣のお願い。表示情報はすべてサーバーから取得する。
 let requestBusy=false;
@@ -694,6 +737,7 @@ bind('#cave-story-back',async()=>{if(mandatoryStory)throw new Error('最初の�
 bind('#cave-story-done',()=>openCave(selectedCaveSection));
 bind('#inventory-back',async()=>{if(inventoryReturn==='cave')await openCave(selectedCaveSection);else await openHall();});
 $('#inventory-sort').addEventListener('change',renderInventoryItems);
+$('#inventory-source').addEventListener('change',renderInventoryItems);
 for(const [selector,action] of [['#rest-btn','rest'],['#wake-btn','wake']]){bind(selector,async()=>{const data=await api('/npcs/paper/life/action','POST',{action});currentNpc=data.npc;const last=lastLocation;lastLocation=data.npc.state.location;renderNpc(last!==lastLocation);$('#life-action-result').textContent=data.message;$('#life-action-result').classList.remove('hidden');});}
 bind('#talk-btn',openConversation);
 bind('#room-btn',enterRoom);
