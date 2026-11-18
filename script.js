@@ -14,7 +14,7 @@ let pendingRecovery='';
 let inventoryReturn='hall';
 let gathering=false;
 let npcReturn='hall', mandatoryStory=false;
-const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-gifts','gift-history','npc-words','npc-feeding','admin-login','admin-editor'];
+const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor'];
 const show=(name)=>{
   pages.forEach(p=>$(`#${p}-page`).classList.toggle('hidden',p!==name));
   if(name!=='npc'&&profileTimer){clearInterval(profileTimer);profileTimer=null;}
@@ -820,33 +820,41 @@ async function openNpcRequests(message=''){
 let teachingWord=false;
 const renderWordBook=(data)=>{
   $('#word-count').textContent=`（${data.total}こ）`;
-  const list=$('#npc-words-list');list.replaceChildren();
+  const list=$('#npc-words-list');list.replaceChildren();const olderList=$('#npc-words-list-older');olderList.replaceChildren();$('#word-learned-older').open=false;$('#word-learned-older').classList.toggle('hidden',data.words.length<=50);
   if(!data.words.length){const p=document.createElement('p');p.className='muted';p.textContent='まだおぼえた言葉はありません。最初の言葉を教えてみよう！';list.append(p);}
-  for(const w of data.words){
+  for(const [i,w] of data.words.slice(0,100).entries()){
     const card=document.createElement('article');card.className='request-card';
     const name=document.createElement('strong');name.textContent=w.word;card.append(name);
     for(const detail of [`意味：${w.meaning}`,`使うとき：${w.usage}`,`教わった回数：${w.lessons}回 ／ 教えてくれた住人：${w.teachers}人`,`理解度：${'★'.repeat(w.understanding)}${'☆'.repeat(3-w.understanding)}`]){
       const p=document.createElement('p');p.className='muted tiny';p.textContent=detail;card.append(p);
     }
     const b=document.createElement('button');b.className='secondary small';b.textContent='この言葉を教え直す';
-    b.addEventListener('click',()=>{$('#teach-word').value=w.word;$('#teach-meaning').value=w.meaning;$('#teach-usage').value=w.usage;$('#teach-meaning').focus();window.scrollTo({top:0,behavior:'smooth'});});
-    card.append(b);list.append(card);
+    b.addEventListener('click',()=>{$('#teach-word').value=w.word;$('#teach-meaning').value=w.meaning;$('#teach-usage').value=w.usage;show('npc-words');$('#teach-meaning').focus();window.scrollTo({top:0,behavior:'smooth'});});
+    card.append(b);(i<50?list:olderList).append(card);
   }
-  const hist=$('#npc-words-history');hist.replaceChildren();
+  const hist=$('#npc-words-history');hist.replaceChildren();const olderHist=$('#npc-words-history-older');olderHist.replaceChildren();$('#word-lessons-older').open=false;$('#word-lessons-older').classList.toggle('hidden',data.history.length<=50);
   if(!data.history.length){const p=document.createElement('p');p.className='muted';p.textContent='まだ学習履歴はありません。';hist.append(p);}
-  for(const entry of data.history){const card=document.createElement('article');card.className='request-card';
+  for(const [i,entry] of data.history.slice(0,100).entries()){const card=document.createElement('article');card.className='request-card';
     const title=document.createElement('strong');title.textContent=`${entry.word} ／ ${entry.teacher}`;card.append(title);
     for(const value of [`意味：${entry.meaning}`,`使い方：${entry.usage}`,`記録：${entry.createdAt} UTC`]){const p=document.createElement('p');p.className='muted tiny';p.textContent=value;card.append(p);}
-    hist.append(card);
+    (i<50?hist:olderHist).append(card);
   }
 };
 async function openNpcWords(message=''){
-  const data=await api('/npcs/paper/words');renderWordBook(data);
   const notice=$('#npc-words-message');notice.textContent=message;notice.classList.toggle('hidden',!message);
   show('npc-words');
 }
 bind('#open-npc-words',()=>openNpcWords());
-bind('#npc-words-back',()=>openNpc(npcReturn));
+bind('#npc-words-back',async()=>{show('conversation');await refreshAiStatus();});
+function switchWordTab(learned){
+  for(const [key,on] of [['learned',learned],['lessons',!learned]]){
+    $('#word-tab-'+key).classList.toggle('active',on);$('#word-tab-'+key).setAttribute('aria-pressed',String(on));$('#word-'+key+'-panel').classList.toggle('hidden',!on);
+  }
+}
+bind('#word-tab-learned',()=>switchWordTab(true));
+bind('#word-tab-lessons',()=>switchWordTab(false));
+bind('#open-word-history',async()=>{const data=await api('/npcs/paper/words');renderWordBook(data);switchWordTab(true);show('word-history');});
+bind('#word-history-back',()=>show('npc-words'));
 $('#teach-word-form').addEventListener('submit',handler(async event=>{
   event.preventDefault();if(teachingWord)return;teachingWord=true;
   const btn=$('#teach-word-submit');btn.disabled=true;
@@ -888,7 +896,7 @@ bind('#talk-btn',openConversation);
 bind('#room-btn',enterRoom);
 async function enterRoom(){const data=await api('/npcs/paper/room/enter','POST',{});$('#room-message').textContent=data.message;show('room');}
 bind('#room-talk',openConversation);
-bind('#conversation-close',()=>openNpc(npcReturn));
+bind('#conversation-close',()=>openHall());
 let conversationHistoryReturn='npc';
 const openConversationHistory=async(origin)=>{
   conversationHistoryReturn=origin;
