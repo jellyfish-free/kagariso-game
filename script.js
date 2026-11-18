@@ -31,7 +31,8 @@ const api=async(path,method='GET',payload)=>{
   return data;
 };
 const safe=(text)=>String(text??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const MATERIALS=window.KAGARISO_MATERIALS||[];
+// v0.15.3: 図鑑の表示もサーバーの新しいレア度に合わせる。
+const MATERIALS=(window.KAGARISO_MATERIALS||[]).map(m=>['S0039','S0040'].includes(m.id)?{...m,rarity:5}:m);
 const materialById=id=>MATERIALS.find(m=>m.id===id);
 const matIcon=(id)=>{const m=materialById(id);return m?`<img class="material-thumb" src="${safe(m.image)}" alt="" loading="lazy" onerror="this.style.display='none'">`:'';};
 
