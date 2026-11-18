@@ -100,6 +100,32 @@ const updateHallBackground=()=>{
   img.onload=()=>img.classList.remove('visual-error');
   img.src=encodeURI(files[0]);
 };
+// v0.11.8.4: 左端の茶色い扉を、背景画像の見かけの位置に追従させる。
+// 元画像に対する比率。晴天・曇天の7枚は同じ扉の構図を共有している。
+const HALL_CAVE_DOOR_AREA={x:0.009,y:0.16,width:0.108,height:0.59};
+const positionHallCaveDoor=()=>{
+  const image=$('#hall-background'),stage=$('#hall-visual'),door=$('#hall-cave-door');
+  if(!image||!stage||!door)return;
+  if(!image.naturalWidth||!image.naturalHeight){door.classList.add('hidden');return;}
+  // object-fit:cover、object-position:center の拡大率と中央クロップを再現。
+  const stageWidth=stage.clientWidth,stageHeight=stage.clientHeight;
+  if(!stageWidth||!stageHeight)return;
+  const scale=Math.max(stageWidth/image.naturalWidth,stageHeight/image.naturalHeight);
+  const drawnWidth=image.naturalWidth*scale,drawnHeight=image.naturalHeight*scale;
+  const offsetX=(stageWidth-drawnWidth)/2,offsetY=(stageHeight-drawnHeight)/2;
+  const area=HALL_CAVE_DOOR_AREA;
+  const left=offsetX+drawnWidth*area.x,top=offsetY+drawnHeight*area.y;
+  const width=drawnWidth*area.width,height=drawnHeight*area.height;
+  // 背景トリミングで扉が完全に見えない場合は反応させない。
+  const visible=left+width>0&&left<stageWidth&&top+height>0&&top<stageHeight;
+  door.classList.toggle('hidden',!visible);
+  if(!visible)return;
+  Object.assign(door.style,{left:`${left}px`,top:`${top}px`,width:`${width}px`,height:`${height}px`});
+};
+// 背景画像が日替わり・時間帯切り替えで読み込まれたときにも位置を更新。
+$('#hall-background')?.addEventListener('load',positionHallCaveDoor);
+window.addEventListener('resize',positionHallCaveDoor);
+
 // 時刻が境界を越えたら、ホールを開き直さなくても背景更新。
 setInterval(()=>{
   if(document.hidden||$('#hall-page')?.classList.contains('hidden'))return;
@@ -148,6 +174,7 @@ async function openHall(){const data=await api('/hall');resident=data.resident;$
   $('#npc-list').querySelectorAll('[data-npc]').forEach(b=>b.addEventListener('click',handler(()=>openNpc('hall'))));
   if(!data.npcs.length)$('#npc-list').innerHTML='<p class="muted">黄色い獣の姿はまだここにない。洞窟の扉を調べてみよう。</p>';
   show('hall');
+  positionHallCaveDoor();
   if(data.requiredStory){toast('先に洞窟での大切な物語を体験しよう。');await openCave(1);return;}
   try{const gifts=await api('/gifts');const badge=$('#gift-ready-badge');badge.textContent=gifts.readyCount?`(${gifts.readyCount})`:'';badge.classList.toggle('hidden',!gifts.readyCount);}catch(e){console.warn('通信箱の更新に失敗:',e);}
 }
@@ -739,6 +766,8 @@ bind('#open-npc-requests',()=>openNpcRequests());
 bind('#npc-requests-back',()=>openNpc(npcReturn));
 
 bind('#hall-paper-actor',()=>openNpc('hall'));
+// 左端の茶色い扉をクリック・タップして洞窟へ移動。
+bind('#hall-cave-door',()=>openCave());
 bind('#refresh-hall',openHall);
 bind('#open-inventory',()=>openInventory('hall'));
 bind('#open-material-catalog',openMaterialCatalog);

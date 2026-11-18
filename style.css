@@ -177,3 +177,30 @@
 .gift-history-full-entry strong{display:block;line-height:1.7}
 .gift-history-full-entry p{margin:7px 0 0;line-height:1.75}
 .gift-history-bottom-back{width:100%;margin-top:24px}
+
+/* v0.11.8.4: ホール左端の茶色い扉（洞窟へのホットスポット）。 */
+.hall-door-hotspot{
+  position:absolute;z-index:1;display:block;
+  padding:0;border:0;border-radius:5px 9px 8px 4px;
+  background:transparent;color:#fff;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  clip-path:polygon(12% 5%,91% 0%,97% 100%,0% 94%);
+}
+.hall-door-hotspot::before{
+  content:"";position:absolute;inset:0;
+  border:2px solid transparent;border-radius:8px;
+  background:transparent;transition:background .2s,border-color .2s;
+}
+.hall-door-hotspot:hover::before,.hall-door-hotspot:focus-visible::before{
+  background:rgba(237,198,141,.17);border-color:rgba(255,228,171,.85);
+}
+.hall-door-hotspot:focus-visible{outline:3px solid #ffe1a4;outline-offset:1px}
+.hall-door-hint{
+  position:absolute;left:50%;bottom:12%;transform:translateX(-50%);
+  font-size:11px;font-weight:700;white-space:nowrap;
+  border-radius:99px;padding:5px 9px;
+  background:rgba(23,23,39,.85);color:#ffe1a4;
+  opacity:0;transition:opacity .2s;pointer-events:none;
+}
+.hall-door-hotspot:hover .hall-door-hint,.hall-door-hotspot:focus-visible .hall-door-hint{opacity:1}
+@media(hover:none){.hall-door-hotspot:active::before{background:rgba(237,198,141,.3)}}
