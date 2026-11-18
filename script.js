@@ -49,6 +49,63 @@ bind('#logout-btn',async()=>{try{await api('/logout','POST');}finally{token='';r
 const VISUALS=window.KAGARISO_VISUALS||{};
 const paperVisual=VISUALS.npcs?.paper;
 const bgVisual=VISUALS.backgrounds||{};
+
+// v0.11.8: ホール背景の時間帯・ゲーム内天気切り替え。
+// 世界内の架空の天気を、日本時間の日付で全住人に共通化する。
+// ※現時点では実際の気象データ/APIとは連動しません。
+const HALL_SETTINGS=window.KAGARISO_HALL_SETTINGS||{};
+const HALL_BG_DIR=HALL_SETTINGS.basePath||'images/backgrounds/';
+const HALL_IMAGE_NAMES={
+  clear:{morning:'hall1',day:'hall2',evening:'hall3',night:'hall4'},
+  cloud:{morning:'hall2-cloud',day:'hall2-cloud',evening:'hall3-cloud',night:'hall4-cloud'}
+};
+const hallJstFormat=new Intl.DateTimeFormat('en-CA',{
+  timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23'
+});
+const hallJapanClock=()=>{
+  const p=Object.fromEntries(hallJstFormat.formatToParts(new Date()).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));
+  return {day:`${p.year}-${p.month}-${p.day}`,hour:Number(p.hour)};
+};
+const hallTimeBand=(hour)=>hour>=5&&hour<11?'morning':hour>=11&&hour<17?'day':hour>=17&&hour<19?'evening':'night';
+const hallDailyWeather=(day)=>{
+  // 同じ日付なら、ログイン端末や再読み込みに関係なく同じ天気。
+  let h=2166136261;
+  for(const c of `kagariso-hall:${day}`){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}
+  const cloudProbability=Math.max(0,Math.min(100,Number(HALL_SETTINGS.cloudProbability??30)));
+  return (h>>>0)%100<cloudProbability?'cloud':'clear';
+};
+const hallWeather=(day)=>{
+  const mode=HALL_SETTINGS.weatherMode;
+  return mode==='clear'||mode==='cloud'?mode:hallDailyWeather(day);
+};
+const hallBackgroundName=()=>{
+  const t=hallJapanClock();
+  return HALL_IMAGE_NAMES[hallWeather(t.day)][hallTimeBand(t.hour)];
+};
+const updateHallBackground=()=>{
+  const img=$('#hall-background');
+  if(!img)return;
+  const name=hallBackgroundName();
+  if(img.dataset.hallBackground===name)return;
+  img.dataset.hallBackground=name;
+  // WebPを優先、失敗時は同名PNG、その画像もなければ既存hall.png。
+  const fallback=bgVisual.hall||'images/backgrounds/hall.png';
+  const files=[`${HALL_BG_DIR}${name}.webp`,`${HALL_BG_DIR}${name}.png`,fallback];
+  let step=0;
+  img.onerror=()=>{
+    step+=1;
+    if(step<files.length){img.src=encodeURI(files[step]);}
+    else{img.classList.add('visual-error');}
+  };
+  img.onload=()=>img.classList.remove('visual-error');
+  img.src=encodeURI(files[0]);
+};
+// 時刻が境界を越えたら、ホールを開き直さなくても背景更新。
+setInterval(()=>{
+  if(document.hidden||$('#hall-page')?.classList.contains('hidden'))return;
+  updateHallBackground();
+},30000);
+
 const paperImage=(expression='normal')=>{
   // v0.11.2 hotfix: visuals.js が未配置・未読込でもログインを止めない。
   if (!paperVisual || !paperVisual.base || !paperVisual.expressions) return '';
@@ -77,7 +134,7 @@ const visualImg=(id,src)=>{
 const paintPaper=(id,npc,override)=>visualImg(id,paperImage(override||paperExpression(npc)));
 const stateText=(npc)=>npc.state.locationLabel;
 async function openHall(){const data=await api('/hall');resident=data.resident;$('#user-name').textContent=resident.name;$('#user-bar').classList.remove('hidden');
-  visualImg('#hall-background',bgVisual.hall);
+  updateHallBackground();
   const paperHere=data.npcs.find(n=>n.id==='paper'&&n.state.location==='hall');
   // ホール専用の表示位置。5体対応の予約枠はCSS側の data-hall-slot=1〜5。
   // 黄色い獣だけがいる現在は中央(3)へ。プロフィール・会話画面には影響しない。
