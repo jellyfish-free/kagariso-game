@@ -497,20 +497,56 @@ $('#npc-ai-form').addEventListener('submit',handler(async event=>{
     try{await refreshAiStatus();}catch{$('#npc-ai-send').disabled=false;}
   }
 }));
-const renderAiHistory=async()=>{
-  const list=$('#ai-history-list');list.replaceChildren();
-  try{
-    const {history}=await api('/npcs/paper/ai/history');
-    if(!history.length){list.textContent='まだ自由会話の記録はありません。';return;}
-    for(const entry of [...history].reverse().slice(0,20)){
-      const block=document.createElement('article');block.className='history-entry';
-      const t=document.createElement('time');t.textContent=`${entry.createdAt} UTC`;
-      const q=document.createElement('p');q.textContent=`あなた：${entry.message}`;
-      const a=document.createElement('p');a.textContent=`黄色い獣：${entry.response}`;
-      block.append(t,q,a);list.append(block);
-    }
-  }catch(error){list.textContent='AI会話の履歴を読み込めませんでした。'; console.warn('AI history request failed',error.message);}
+// 自由会話は最新20件を常時表示し、古い履歴のみ必要に応じて取得する。
+let aiHistoryCursor=null, aiOlderLoading=false, aiHistoryGeneration=0;
+const appendAiHistory=(list,entries)=>{
+  for(const entry of entries){
+    const block=document.createElement('article');block.className='history-entry';
+    const t=document.createElement('time');t.textContent=`${entry.createdAt} UTC`;
+    const q=document.createElement('p');q.textContent=`あなた：${entry.message}`;
+    const a=document.createElement('p');a.textContent=`黄色い獣：${entry.response}`;
+    block.append(t,q,a);list.append(block);
+  }
 };
+const renderAiHistory=async()=>{
+  const generation=++aiHistoryGeneration;
+  const list=$('#ai-history-list'), older=$('#ai-history-older');
+  list.textContent='読み込み中…';older.open=false;older.classList.add('hidden');
+  $('#ai-history-older-list').replaceChildren();$('#ai-history-more').classList.add('hidden');
+  aiHistoryCursor=null;aiOlderLoading=false;
+  try{
+    const data=await api('/npcs/paper/ai/history?page=1');
+    if(generation!==aiHistoryGeneration)return;
+    if(!Array.isArray(data.history)||!Object.hasOwn(data,'nextCursor'))throw new Error('Workerの履歴APIを更新してください。');
+    list.replaceChildren();
+    if(!data.history.length){list.textContent='まだ自由会話の記録はありません。';return;}
+    appendAiHistory(list,data.history);
+    aiHistoryCursor=data.nextCursor;older.classList.toggle('hidden',!aiHistoryCursor);
+    $('#ai-history-more').classList.toggle('hidden',!aiHistoryCursor);
+  }catch(error){if(generation===aiHistoryGeneration)list.textContent='AI会話の履歴を読み込めませんでした。 '+error.message;}
+};
+const loadOlderAiHistory=async()=>{
+  if(!aiHistoryCursor||aiOlderLoading)return;
+  const generation=aiHistoryGeneration, list=$('#ai-history-older-list'), button=$('#ai-history-more');
+  aiOlderLoading=true;button.disabled=true;button.textContent='読み込み中…';
+  try{
+    const data=await api('/npcs/paper/ai/history?page=1&before='+encodeURIComponent(aiHistoryCursor));
+    if(generation!==aiHistoryGeneration)return;
+    appendAiHistory(list,data.history);aiHistoryCursor=data.nextCursor;
+    button.classList.toggle('hidden',!aiHistoryCursor);
+  }catch(error){if(generation===aiHistoryGeneration)toast(error.message||'履歴を読み込めませんでした。');}
+  finally{if(generation===aiHistoryGeneration){aiOlderLoading=false;button.disabled=false;button.textContent='さらに過去の履歴を読み込む';}}
+};
+$('#ai-history-older').addEventListener('toggle',()=>{if($('#ai-history-older').open&&!$('#ai-history-older-list').children.length)void loadOlderAiHistory();});
+bind('#ai-history-more',loadOlderAiHistory);
+const switchHistoryTab=(ai)=>{
+  for(const [id,active] of [['ai',ai],['choice',!ai]]){
+    const button=$('#history-tab-'+id);button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));
+    $('#history-'+id+'-panel').classList.toggle('hidden',!active);
+  }
+};
+bind('#history-tab-ai',()=>switchHistoryTab(true));
+bind('#history-tab-choice',()=>switchHistoryTab(false));
 
 // v0.11.3: 手渡した食べ物の判定・消費・空腹度更新はWorker/D1側で行う。
 let feedingBusy=false;
@@ -857,8 +893,7 @@ let conversationHistoryReturn='npc';
 const openConversationHistory=async(origin)=>{
   conversationHistoryReturn=origin;
   $('#conversation-history-back').textContent=origin==='conversation'?'← お話に戻る':'← プロフィールへ';
-  $('#ai-history-fold').open=true;
-  $('#choice-history-fold').open=false;
+  switchHistoryTab(true);
   const list=$('#history-list');
   list.textContent='読み込み中…';
   $('#ai-history-list').textContent='読み込み中…';

@@ -13,7 +13,7 @@
   <script src="data/npcs.js" defer></script>
   <script src="data/visuals.js" defer></script>
   <script src="data/hall-backgrounds.js" defer></script>
-  <script src="script.js?v=0.12.1.1" defer></script>
+  <script src="script.js?v=0.12.1.2" defer></script>
 </head>
 <body>
   <div class="ambient ambient-a" aria-hidden="true"></div><div class="ambient ambient-b" aria-hidden="true"></div>
@@ -194,7 +194,13 @@
           <details><summary>みんなで教えた履歴</summary><div id="npc-words-history" class="request-list details-content"></div></details>
         </div>
       </section>
-      <section id="history-page" class="page hidden narrow"><button class="back" id="conversation-history-back">← 戻る</button><div class="panel"><span class="eyebrow">MEMORIES</span><h1>黄色い獣との会話履歴</h1><details id="ai-history-fold" open><summary>自由会話の履歴（最新20件）</summary><div id="ai-history-list" class="details-content"></div></details><details id="choice-history-fold"><summary>選択式の履歴（最新20件）</summary><div id="history-list" class="details-content"></div></details></div></section>
+      <section id="history-page" class="page hidden narrow"><button class="back" id="conversation-history-back">← 戻る</button><div class="panel"><span class="eyebrow">MEMORIES</span><h1>黄色い獣との会話履歴</h1><div class="tabs" role="group" aria-label="会話の種類">
+<button class="tab active" type="button" id="history-tab-ai" aria-pressed="true">自由会話</button>
+<button class="tab" type="button" id="history-tab-choice" aria-pressed="false">選択式会話</button>
+</div>
+<section id="history-ai-panel"><h2>自由会話の履歴（最新20件）</h2><div id="ai-history-list"></div>
+<details id="ai-history-older" class="hidden"><summary>21件目以降の履歴を見る</summary><div id="ai-history-older-list" class="details-content"></div><button type="button" class="secondary small hidden" id="ai-history-more">さらに過去の履歴を読み込む</button></details></section>
+<section id="history-choice-panel" class="hidden"><h2>選択式の履歴（最新20件）</h2><div id="history-list"></div></section></div></section>
       <section id="admin-login-page" class="page hidden narrow">
     <button class="back" id="admin-login-back" type="button">← ゲームへ戻る</button>
     <div class="panel"><span class="eyebrow">STAFF ONLY</span><h1>管理者ログイン</h1>
