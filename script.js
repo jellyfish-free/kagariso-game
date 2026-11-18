@@ -935,6 +935,10 @@ const adminEditForm=()=>{
   adminReplies();adminPreview();
 };
 const openAdminEditor=async()=>{
+ $('#admin-ai-panel').classList.add('hidden');
+ $('#admin-gifts-panel').classList.add('hidden');
+ $('#admin-requests-panel').classList.add('hidden');
+ $('#admin-conversations-panel').classList.remove('hidden');
   const me=await adminApi('/me');
   $('#admin-logged-name').textContent=me.admin.displayName;
   const data=await adminApi('/topics?npc=paper');adminTopicsCache=data.topics||[];
@@ -1023,10 +1027,12 @@ const loadAdminRequestEditor=async()=>{
   adminRequestForm();adminRequestListRender();
 };
 bind('#admin-show-request-editor',async()=>{
+ $('#admin-ai-panel').classList.add('hidden');
   $('#admin-gifts-panel').classList.add('hidden');$('#admin-requests-panel').classList.remove('hidden');$('#admin-conversations-panel').classList.add('hidden');
   await loadAdminRequestEditor();
 });
 bind('#admin-show-dialogue-editor',()=>{
+ $('#admin-ai-panel').classList.add('hidden');
   $('#admin-gifts-panel').classList.add('hidden');$('#admin-requests-panel').classList.add('hidden');$('#admin-conversations-panel').classList.remove('hidden');
 });
 $('#admin-request-search').addEventListener('input',adminRequestListRender);
@@ -1078,6 +1084,7 @@ const loadAdminGiftEditor=async()=>{
  adminGiftForm();adminGiftListRender();
 };
 bind('#admin-show-gift-editor',async()=>{
+ $('#admin-ai-panel').classList.add('hidden');
  $('#admin-conversations-panel').classList.add('hidden');$('#admin-requests-panel').classList.add('hidden');$('#admin-gifts-panel').classList.remove('hidden');
  await loadAdminGiftEditor();
 });
@@ -1100,4 +1107,31 @@ bind('#admin-gift-show-history',async()=>{
 });
 
 (async()=>{if(token){try{await openHall();}catch(e){toast(e.message);show('auth');}}else show('auth');})();
+
+// v0.12.1 AI人格管理・名前の明示登録
+let aiProfileRevision=0;
+const aiProfileFields=['personality','speech','firstPerson','secondPerson','likes','dislikes','avoid'];
+const loadAiProfile=async()=>{
+ const {profile}=await adminApi('/ai-profile');aiProfileRevision=profile.revision;
+ $('#ai-profile-revision').textContent=`改訂 ${profile.revision}`;
+ for(const k of aiProfileFields)$('#ai-profile-'+k).value=profile[k];
+ $('#ai-profile-examples').value=profile.examples.map(e=>e.user+'\t'+e.assistant).join('\n');
+};
+bind('#admin-show-ai-editor',async()=>{
+ for(const id of ['admin-conversations-panel','admin-requests-panel','admin-gifts-panel'])$('#'+id).classList.add('hidden');
+ $('#admin-ai-panel').classList.remove('hidden');await loadAiProfile();
+});
+bind('#ai-profile-reload',loadAiProfile);
+$('#ai-profile-form').addEventListener('submit',handler(async e=>{
+ e.preventDefault();const body={revision:aiProfileRevision};for(const k of aiProfileFields)body[k]=$('#ai-profile-'+k).value;
+ body.examples=$('#ai-profile-examples').value.split(/\r?\n/).filter(x=>x.trim()).map(line=>{const [user,...parts]=line.split('\t');return {user,assistant:parts.join('\t')};});
+ await adminApi('/ai-profile/save','POST',body);await loadAiProfile();toast('AI人格を保存しました。');
+}));
+$('#ai-profile-test-form').addEventListener('submit',handler(async e=>{
+ e.preventDefault();const b=e.currentTarget.querySelector('button');b.disabled=true;
+ try{const r=await adminApi('/ai-profile/test','POST',{message:$('#ai-profile-test-message').value});$('#ai-profile-test-result').textContent=r.response;}finally{b.disabled=false;}
+}));
+bind('#ai-profile-audit',async()=>{const {history}=await adminApi('/ai-profile/audit');const el=$('#ai-profile-audit-list');el.replaceChildren();for(const row of history){const p=document.createElement('p');p.textContent=`改訂 ${row.revision} ／ ${row.display_name} ／ ${row.created_at} UTC`;el.append(p);}});
+$('#npc-name-form').addEventListener('submit',handler(async e=>{e.preventDefault();const b=e.currentTarget.querySelector('button');b.disabled=true;try{const r=await api('/npcs/paper/ai/name','POST',{nickname:$('#npc-name-input').value});$('#speech-line').textContent=r.response;$('#npc-name-input').value='';toast('呼び名を教えました。');}finally{b.disabled=false;}}));
+
 })();

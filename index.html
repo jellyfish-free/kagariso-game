@@ -13,7 +13,7 @@
   <script src="data/npcs.js" defer></script>
   <script src="data/visuals.js" defer></script>
   <script src="data/hall-backgrounds.js" defer></script>
-  <script src="script.js" defer></script>
+  <script src="script.js?v=0.12.1" defer></script>
 </head>
 <body>
   <div class="ambient ambient-a" aria-hidden="true"></div><div class="ambient ambient-b" aria-hidden="true"></div>
@@ -109,7 +109,7 @@
     <textarea id="npc-ai-message" maxlength="240" rows="3" placeholder="ねえねえ、きょうは何してたの？"></textarea>
     <button type="submit" id="npc-ai-send" class="primary">自由に話しかける</button>
   </form>
-  <div id="npc-ai-result" class="notice hidden" role="status" aria-live="polite"></div>
+  <details><summary>名前・呼び名を教える</summary><form id="npc-name-form"><label for="npc-name-input">呼んでほしい名前（ひらがな推奨・20文字まで）</label><input id="npc-name-input" maxlength="20" required placeholder="にった"><button type="submit" class="secondary small">名前を教える</button></form></details><div id="npc-ai-result" class="notice hidden" role="status" aria-live="polite"></div>
   <button type="button" id="npc-ai-history-open" class="secondary small">自由会話の履歴を見る</button>
 </div><div class="conversation-feeding-action"><button type="button" class="secondary" id="open-npc-feeding">ごはん・おやつをあげる</button></div><div id="conversation-result" class="notice hidden"></div><button id="conversation-close" class="secondary">お話を終える</button></div></section>
       <section id="npc-requests-page" class="page hidden narrow">
@@ -214,7 +214,7 @@
   <section id="admin-editor-page" class="page hidden">
     <button class="back" id="admin-editor-back" type="button">← ゲームへ戻る</button>
     <div class="panel"><div class="admin-editor-head"><div><span class="eyebrow">DIALOGUE EDITOR</span><h1>NPC会話エディター</h1><p class="muted">管理者：<span id="admin-logged-name"></span> ／ 現在のNPC：黄色い獣</p></div><button class="secondary small" id="admin-logout">管理者ログアウト</button></div>
-      <div class="admin-editor-switch"><button id="admin-show-dialogue-editor" class="secondary small" type="button">会話エディター</button><button id="admin-show-request-editor" class="secondary small" type="button">お願いエディター</button><button id="admin-show-gift-editor" class="secondary small" type="button">返礼品エディター</button></div>
+      <div class="admin-editor-switch"><button id="admin-show-dialogue-editor" class="secondary small" type="button">会話エディター</button><button id="admin-show-request-editor" class="secondary small" type="button">お願いエディター</button><button id="admin-show-gift-editor" class="secondary small" type="button">返礼品エディター</button><button id="admin-show-ai-editor" class="secondary small" type="button">AI人格エディター</button></div>
       <div id="admin-conversations-panel"><div class="admin-editor-layout"><aside class="admin-sidebar">
         <label for="admin-topic-search">話題を検索</label><input id="admin-topic-search" placeholder="質問・カテゴリで検索">
         <p id="admin-topic-count" class="muted tiny"></p>
@@ -259,6 +259,7 @@
         <details><summary id="admin-request-show-history">お願い編集履歴（直近100件）</summary><div id="admin-request-history" class="details-content"></div></details>
       </div></div>
     </div>
+<div id="admin-ai-panel" class="hidden"><h2>AI人格エディター</h2><p>対象NPC：黄色い獣（paper）</p><p id="ai-profile-revision"></p><button id="ai-profile-reload" class="secondary small" type="button">再読み込み</button><form id="ai-profile-form"><label for="ai-profile-personality">基本人格</label><textarea id="ai-profile-personality" rows="3" required maxlength="600"></textarea><label for="ai-profile-speech">口調</label><textarea id="ai-profile-speech" rows="2" required maxlength="600"></textarea><label for="ai-profile-firstPerson">一人称</label><textarea id="ai-profile-firstPerson" rows="1" required maxlength="24"></textarea><label for="ai-profile-secondPerson">二人称</label><textarea id="ai-profile-secondPerson" rows="1" required maxlength="24"></textarea><label for="ai-profile-likes">好きなもの</label><textarea id="ai-profile-likes" rows="2" required maxlength="600"></textarea><label for="ai-profile-dislikes">苦手なもの</label><textarea id="ai-profile-dislikes" rows="2" required maxlength="600"></textarea><label for="ai-profile-avoid">避けたい言い回し</label><textarea id="ai-profile-avoid" rows="2" required maxlength="600"></textarea><h3>会話のお手本</h3><p class="muted tiny">1行につき1件。質問と返答はタブで区切ります。最大100件。</p><textarea id="ai-profile-examples" rows="16" required></textarea><button class="primary" type="submit">人格設定を保存</button></form><h3>保存済み人格のテスト</h3><p class="muted tiny">架空の状態でテストします。共有言葉帳・個別履歴は使用せず、全体のAI利用枠を消費します。</p><form id="ai-profile-test-form"><textarea id="ai-profile-test-message" rows="2" maxlength="240" required></textarea><button type="submit" class="secondary">テストする</button></form><p id="ai-profile-test-result" class="speech"></p><details><summary id="ai-profile-audit">編集履歴</summary><div id="ai-profile-audit-list"></div></details></div>
     <div id="admin-gifts-panel" class="hidden">
       <div class="admin-editor-layout"><aside class="admin-sidebar">
         <label for="admin-gift-search">返礼品を検索</label><input id="admin-gift-search" placeholder="名前・返礼品IDで検索">
@@ -284,7 +285,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.12.0</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.12.1</span></footer>
   </div>
 </body>
 </html>
