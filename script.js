@@ -82,15 +82,15 @@ const hallBackgroundName=()=>{
   const t=hallJapanClock();
   return HALL_IMAGE_NAMES[hallWeather(t.day)][hallTimeBand(t.hour)];
 };
-const updateHallBackground=()=>{
-  const img=$('#hall-background');
-  if(!img)return;
-  const name=hallBackgroundName();
-  if(img.dataset.hallBackground===name)return;
-  img.dataset.hallBackground=name;
-  // WebPを優先、失敗時は同名PNG、その画像もなければ既存hall.png。
+const hallBackgroundFiles=(name)=>{
   const fallback=bgVisual.hall||'images/backgrounds/hall.png';
-  const files=[`${HALL_BG_DIR}${name}.webp`,`${HALL_BG_DIR}${name}.png`,fallback];
+  return [`${HALL_BG_DIR}${name}.webp`,`${HALL_BG_DIR}${name}.png`,fallback];
+};
+const applyImageFallback=(img,files,datasetKey='visualSrc')=>{
+  if(!img||!files?.length)return;
+  const cacheKey=files.join('|');
+  if(img.dataset[datasetKey]===cacheKey)return;
+  img.dataset[datasetKey]=cacheKey;
   let step=0;
   img.onerror=()=>{
     step+=1;
@@ -99,6 +99,24 @@ const updateHallBackground=()=>{
   };
   img.onload=()=>img.classList.remove('visual-error');
   img.src=encodeURI(files[0]);
+};
+const updateHallBackground=()=>{
+  const img=$('#hall-background');
+  if(!img)return;
+  const name=hallBackgroundName();
+  img.dataset.hallBackground=name;
+  applyImageFallback(img,hallBackgroundFiles(name),'hallBackground');
+};
+const updateConversationBackground=()=>{
+  const img=$('#conversation-background');
+  if(!img||!currentNpc)return;
+  if(currentNpc.state.location==='cave'){
+    applyImageFallback(img,[bgVisual.cave||bgVisual.hall||'images/backgrounds/cave.png'],'conversationBackground');
+    return;
+  }
+  const name=hallBackgroundName();
+  img.dataset.hallBackground=name;
+  applyImageFallback(img,hallBackgroundFiles(name),'conversationBackground');
 };
 // v0.11.8.4: 左端の茶色い扉を、背景画像の見かけの位置に追従させる。
 // 元画像に対する比率。晴天・曇天の7枚は同じ扉の構図を共有している。
@@ -128,8 +146,9 @@ window.addEventListener('resize',positionHallCaveDoor);
 
 // 時刻が境界を越えたら、ホールを開き直さなくても背景更新。
 setInterval(()=>{
-  if(document.hidden||$('#hall-page')?.classList.contains('hidden'))return;
-  updateHallBackground();
+  if(document.hidden)return;
+  if(!$('#hall-page')?.classList.contains('hidden')) updateHallBackground();
+  if(!$('#conversation-page')?.classList.contains('hidden')) updateConversationBackground();
 },30000);
 
 const paperImage=(expression='normal')=>{
@@ -426,7 +445,7 @@ function renderNpc(moved){const n=currentNpc;
 }
 const openConversation=async()=>{
   const {npc}=await api('/npcs/paper'); currentNpc=npc;
-  visualImg('#conversation-background',npc.state.location==='cave'?bgVisual.cave:bgVisual.hall);
+  updateConversationBackground();
   paintPaper('#conversation-paper-image',npc);
   $('#conversation-scene').textContent=npc.scene;
   $('#speech-line').textContent='「あっ、キミ！ なに おはなし する？」';
@@ -446,7 +465,7 @@ function renderConversationChoices(options){
       [...box.querySelectorAll('button')].forEach(b=>b.disabled=true);
       try{
         const data=await api('/npcs/paper/conversation','POST',{choice:opt.id});
-        currentNpc=data.npc;paintPaper('#conversation-paper-image',data.npc);
+        currentNpc=data.npc;updateConversationBackground();paintPaper('#conversation-paper-image',data.npc);
         $('#speech-line').textContent=data.response;
         $('#conversation-result').textContent=data.affinityChange?'黄色い獣と、すこしずつ親しくなっているようです。':'黄色い獣はあなたとの会話を楽しんでいるようです。';
         $('#conversation-result').classList.remove('hidden');
