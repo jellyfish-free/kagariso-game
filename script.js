@@ -434,6 +434,7 @@ const openConversation=async()=>{
   const menu=await api('/npcs/paper/conversation/options');
   renderConversationChoices(menu.choices);
   show('conversation');
+  refreshAiStatus().catch(()=>{ $('#npc-ai-remaining').textContent='AI会話を確認できませんでした。'; });
 };
 function renderConversationChoices(options){
   const box=$('#conversation-choices');box.replaceChildren();
@@ -458,6 +459,55 @@ function renderConversationChoices(options){
   });
 }
 
+
+// v0.12: AI自由会話は選択式会話と別枠。本文は本人だけの履歴として記録する。
+let aiSending=false;
+const showAiUsage=usage=>{
+  $('#npc-ai-remaining').textContent=`今日のAI自由会話：${usage.used}/${usage.limit}回（残り${usage.remaining}回）`+(usage.globalRemaining<=0?' ／ 今日の全体上限に達しました':'');
+  const blocked=usage.remaining<=0||usage.globalRemaining<=0||currentNpc?.state?.activity==='sleeping';
+  $('#npc-ai-send').disabled=aiSending||blocked;
+};
+const refreshAiStatus=async()=>{
+  const data=await api('/npcs/paper/ai/status');showAiUsage(data.usage);
+};
+$('#npc-ai-form').addEventListener('submit',handler(async event=>{
+  event.preventDefault();
+  if(aiSending)return;
+  const message=$('#npc-ai-message').value.trim();
+  if(!message){toast('話しかけたいことを書いてね。');return;}
+  aiSending=true;$('#npc-ai-send').disabled=true;
+  $('#npc-ai-result').classList.remove('hidden');
+  $('#npc-ai-result').textContent='黄色い獣が おへんじを かんがえているよ…';
+  try{
+    const result=await api('/npcs/paper/ai/chat','POST',{message});
+    currentNpc=result.npc;
+    paintPaper('#conversation-paper-image',result.npc);
+    $('#speech-line').textContent=result.response;
+    $('#npc-ai-result').textContent='黄色い獣がお返事してくれたよ。';
+    $('#npc-ai-message').value='';
+    showAiUsage(result.usage);
+  }catch(error){
+    $('#npc-ai-result').textContent=error.message||'AIとの通信がうまくいかなかったようです。';
+    throw error;
+  }finally{
+    aiSending=false;
+    try{await refreshAiStatus();}catch{$('#npc-ai-send').disabled=false;}
+  }
+}));
+const renderAiHistory=async()=>{
+  const list=$('#ai-history-list');list.replaceChildren();
+  try{
+    const {history}=await api('/npcs/paper/ai/history');
+    if(!history.length){list.textContent='まだ自由会話の記録はありません。';return;}
+    for(const entry of [...history].reverse()){
+      const block=document.createElement('article');block.className='history-entry';
+      const t=document.createElement('time');t.textContent=`${entry.createdAt} UTC`;
+      const q=document.createElement('p');q.textContent=`あなた：${entry.message}`;
+      const a=document.createElement('p');a.textContent=`黄色い獣：${entry.response}`;
+      block.append(t,q,a);list.append(block);
+    }
+  }catch(error){list.textContent='AI会話の履歴を読み込めませんでした。';}
+};
 
 // v0.11.3: 手渡した食べ物の判定・消費・空腹度更新はWorker/D1側で行う。
 let feedingBusy=false;
@@ -800,7 +850,8 @@ bind('#room-btn',enterRoom);
 async function enterRoom(){const data=await api('/npcs/paper/room/enter','POST',{});$('#room-message').textContent=data.message;show('room');}
 bind('#room-talk',openConversation);
 bind('#conversation-close',()=>openNpc(npcReturn));
-bind('#history-btn',async()=>{const {history}=await api('/npcs/paper/history');const list=$('#history-list');list.innerHTML=history.length?history.map(h=>`<article class="history-entry"><time>${safe(h.created_at)} UTC</time><p>${safe(h.response)}</p><span class="muted">${h.affinity_change?'少し親しくなった':''}</span></article>`).join(''):'<p class="muted">まだ会話の記録がありません。</p>';show('history');});
+bind('#npc-ai-history-open',async()=>$('#history-btn').click());
+bind('#history-btn',async()=>{const {history}=await api('/npcs/paper/history');const list=$('#history-list');list.innerHTML=history.length?history.map(h=>`<article class="history-entry"><time>${safe(h.created_at)} UTC</time><p>${safe(h.response)}</p><span class="muted">${h.affinity_change?'少し親しくなった':''}</span></article>`).join(''):'<p class="muted">まだ会話の記録がありません。</p>';await renderAiHistory();show('history');});
 document.querySelectorAll('[data-back]').forEach(el=>el.addEventListener('click',handler(async()=>{const page=el.dataset.back;if(page==='hall'){if(el.id==='npc-back'&&npcReturn==='cave')await openCave(selectedCaveSection);else await openHall();}else if(page==='npc')await openNpc(npcReturn);})));
 
 // 管理者セッションは住人セッションと混在させない。

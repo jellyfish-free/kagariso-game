@@ -208,3 +208,11 @@
 /* v0.11.8.5: 会話選択肢の下に独立した食事アクション */
 .conversation-feeding-action{margin:8px 0 16px;padding-top:15px;border-top:1px solid var(--line)}
 .conversation-feeding-action button{width:100%;text-align:center}
+
+/* v0.12 AI自由会話 */
+.ai-chat-block{border-top:1px solid var(--line);margin:16px 0 12px;padding:14px 0 0}
+#npc-ai-form{display:grid;gap:10px;margin:12px 0}
+#npc-ai-message{width:100%;min-height:94px;box-sizing:border-box;resize:vertical;background:#191b2d;border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:12px;font:inherit;line-height:1.7}
+#npc-ai-send{width:100%}
+#npc-ai-history-open{width:100%;margin:8px 0 12px}
+#ai-history-list{display:grid;gap:12px}
