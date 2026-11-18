@@ -343,11 +343,27 @@ async function openMaterialCatalog(){
  for(const selector of ['#catalog-filter','#catalog-kind','#catalog-source'])$(selector).onchange=render;
  render();show('material-catalog');
 }
+// v0.11.8.1: 所持品のデータはサーバーのまま。並び替えは画面上だけで行う。
+let inventorySortItems=[];
+function renderInventoryItems(){
+  const mode=$('#inventory-sort').value;
+  const items=[...inventorySortItems];
+  const byName=(a,b)=>String(a.name||'').localeCompare(String(b.name||''),'ja');
+  const rarity=i=>Number(i.rarity)||0;
+  const count=i=>Number(i.quantity)||0;
+  if(mode==='name-asc') items.sort(byName);
+  else if(mode==='count-desc') items.sort((a,b)=>count(b)-count(a)||byName(a,b));
+  else if(mode==='count-asc') items.sort((a,b)=>count(a)-count(b)||byName(a,b));
+  else if(mode==='rarity-desc') items.sort((a,b)=>rarity(b)-rarity(a)||byName(a,b));
+  else if(mode==='rarity-asc') items.sort((a,b)=>rarity(a)-rarity(b)||byName(a,b));
+  else if(mode==='category') items.sort((a,b)=>String(a.category||'').localeCompare(String(b.category||''),'ja')||byName(a,b));
+  $('#inventory-list').innerHTML=items.length?items.map(i=>`<article class="inventory-item">${matIcon(i.id)}<div><strong>${safe(i.name)}</strong><div class="muted tiny">${safe(i.category)} · ${'★'.repeat(Math.max(1,Math.min(5,i.rarity)))}</div></div><strong>×${Number(i.quantity)}</strong></article>`).join(''):'<p class="muted">まだ素材を持っていません。洞窟で採取してみよう。</p>';
+}
 async function openInventory(from='hall'){
   inventoryReturn=from;
   const {items:serverItems}=await api('/inventory');
-  const items=serverItems.filter(i=>materialById(i.id)); // v0.9.1: 旧素材は画面にも表示しない
-  $('#inventory-list').innerHTML=items.length?items.map(i=>`<article class="inventory-item">${matIcon(i.id)}<div><strong>${safe(i.name)}</strong><div class="muted tiny">${safe(i.category)} · ${'★'.repeat(Math.max(1,Math.min(5,i.rarity)))}</div></div><strong>×${Number(i.quantity)}</strong></article>`).join(''):'<p class="muted">まだ素材を持っていません。洞窟で採取してみよう。</p>';
+  inventorySortItems=serverItems.filter(i=>materialById(i.id)); // 旧素材は表示しない
+  renderInventoryItems();
   show('inventory');
 }
 async function openNpc(from='hall'){npcReturn=from;const {npc}=await api('/npcs/paper');currentNpc=npc;lastLocation=npc.state.location;profileScene=npc.scene;$('#life-action-result').classList.add('hidden');$('#npc-move-notice').classList.add('hidden');renderNpc(false);show('npc');profileTimer=setInterval(async()=>{if(document.hidden)return;try{const {npc:updated}=await api('/npcs/paper');const old=lastLocation;currentNpc=updated;lastLocation=updated.state.location;renderNpc(old!==updated.state.location);}catch{}},15000);}
@@ -366,8 +382,6 @@ function renderNpc(moved){const n=currentNpc;
   else if($('#npc-move-notice').classList.contains('hidden')) {} // 移動通知は開き直すまで残す
   $('#talk-btn').disabled=n.state.activity==='sleeping';
   $('#talk-btn').title=n.state.activity==='sleeping'?'黄色い獣は眠っています。':'';
-  $('#visit-btn').textContent=n.state.location==='cave'?'洞窟で会う':'ホールで会う';
-  $('#visit-btn').disabled=false;
   $('#room-btn').disabled=!n.roomUnlocked||n.state.location!=='room'||n.state.activity==='sleeping';
   $('#room-btn').classList.toggle('hidden',!n.roomUnlocked);
   $('#room-btn').title=n.roomUnlocked?'':'自室はまだありません。';
@@ -679,9 +693,9 @@ bind('#cave-npc-visit',()=>openNpc('cave'));
 bind('#cave-story-back',async()=>{if(mandatoryStory)throw new Error('最初の物語を最後まで読んでね。');await openCave(selectedCaveSection);});
 bind('#cave-story-done',()=>openCave(selectedCaveSection));
 bind('#inventory-back',async()=>{if(inventoryReturn==='cave')await openCave(selectedCaveSection);else await openHall();});
+$('#inventory-sort').addEventListener('change',renderInventoryItems);
 for(const [selector,action] of [['#rest-btn','rest'],['#wake-btn','wake']]){bind(selector,async()=>{const data=await api('/npcs/paper/life/action','POST',{action});currentNpc=data.npc;const last=lastLocation;lastLocation=data.npc.state.location;renderNpc(last!==lastLocation);$('#life-action-result').textContent=data.message;$('#life-action-result').classList.remove('hidden');});}
 bind('#talk-btn',openConversation);
-bind('#visit-btn',async()=>{toast(currentNpc.state.location==='cave'?'黄色い獣は洞窟の入口にいます。':'黄色い獣はホールにいます。');});
 bind('#room-btn',enterRoom);
 async function enterRoom(){const data=await api('/npcs/paper/room/enter','POST',{});$('#room-message').textContent=data.message;show('room');}
 bind('#room-talk',openConversation);
