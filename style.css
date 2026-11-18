@@ -204,3 +204,7 @@
 }
 .hall-door-hotspot:hover .hall-door-hint,.hall-door-hotspot:focus-visible .hall-door-hint{opacity:1}
 @media(hover:none){.hall-door-hotspot:active::before{background:rgba(237,198,141,.3)}}
+
+/* v0.11.8.5: 会話選択肢の下に独立した食事アクション */
+.conversation-feeding-action{margin:8px 0 16px;padding-top:15px;border-top:1px solid var(--line)}
+.conversation-feeding-action button{width:100%;text-align:center}

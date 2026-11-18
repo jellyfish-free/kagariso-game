@@ -461,6 +461,8 @@ function renderConversationChoices(options){
 
 // v0.11.3: 手渡した食べ物の判定・消費・空腹度更新はWorker/D1側で行う。
 let feedingBusy=false;
+// 食事画面への遷移元を保持し、会話の選択肢を残したまま戻る。
+let feedingReturn='conversation';
 const renderFeeding=(data,message='')=>{
   const npc=data.npc;
   $('#npc-feeding-hunger').textContent=npc.state.hungerLabel;
@@ -493,7 +495,13 @@ const renderFeeding=(data,message='')=>{
     }
   }
 };
-async function openNpcFeeding(){const data=await api('/npcs/paper/feeding');renderFeeding(data);show('npc-feeding');}
+async function openNpcFeeding(){
+  feedingReturn=document.querySelector('#conversation-page:not(.hidden)')?'conversation':'npc';
+  const data=await api('/npcs/paper/feeding');
+  renderFeeding(data);
+  $('#npc-feeding-back').textContent=feedingReturn==='conversation'?'← お話に戻る':'← 黄色い獣のプロフィールへ';
+  show('npc-feeding');
+}
 
 // v0.8: 共通受信箱。ホールからは全員分、プロフィールからは黄色い獣分を表示。
 let giftBusy=false,giftReturn='hall',giftInventory=[];
@@ -761,7 +769,13 @@ $('#teach-word-form').addEventListener('submit',handler(async event=>{
 }));
 
 bind('#open-npc-feeding',openNpcFeeding);
-bind('#npc-feeding-back',()=>openNpc(npcReturn));
+bind('#npc-feeding-back',async()=>{
+  if(feedingReturn==='conversation'){
+    // 会話画面の選択肢と台詞を保持し、食後のNPC画像だけ更新する。
+    try{const {npc}=await api('/npcs/paper');currentNpc=npc;paintPaper('#conversation-paper-image',npc);}catch{}
+    show('conversation');
+  }else await openNpc(npcReturn);
+});
 bind('#open-npc-requests',()=>openNpcRequests());
 bind('#npc-requests-back',()=>openNpc(npcReturn));
 
