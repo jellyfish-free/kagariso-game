@@ -229,7 +229,7 @@ function renderCaveStatus(cave,items,sectionId){
         const form=document.createElement('form');form.className='donation-form';
         const input=document.createElement('input');input.type='number';input.min='1';input.step='1';input.max=String(Math.min(req.remaining,owned[req.id]||0));input.value=String(Math.min(req.remaining,owned[req.id]||0,10)||1);input.dataset.item=req.id;input.setAttribute('aria-label',req.name+'の納品数');if(draft.has(req.id)&&Number(input.max)>0)input.value=String(Math.max(1,Math.min(Number(input.max),Number(draft.get(req.id))||1)));
         const btn=document.createElement('button');btn.type='submit';btn.textContent='納品';btn.className='secondary small';btn.disabled=(owned[req.id]||0)===0;
-        form.append(input,btn);form.addEventListener('submit',handler(async e=>{
+        appendDonationControls(form,input,btn);form.addEventListener('submit',handler(async e=>{
           e.preventDefault();if(caveActionBusy||gathering)return;const quantity=Number(input.value);
           if(!Number.isSafeInteger(quantity)||quantity<1||quantity>req.remaining||quantity>(owned[req.id]||0))throw new Error('納品数を確認してください。');
           btn.disabled=true;
@@ -856,7 +856,7 @@ async function openNpcRequests(message=''){
         const form=document.createElement('form');form.className='request-donate-form';
         const input=document.createElement('input');input.type='number';input.min='1';input.max=String(Math.min(item.remaining,item.owned));input.step='1';input.value=String(Math.min(5,item.remaining,item.owned)||1);input.setAttribute('aria-label',item.name+'の納品個数');
         const button=document.createElement('button');button.type='submit';button.className='secondary small';button.textContent='預ける';button.disabled=item.owned<1;
-        form.append(input,button);
+        appendDonationControls(form,input,button);
         form.addEventListener('submit',handler(async e=>{
           e.preventDefault();const quantity=Number(input.value);
           if(!Number.isSafeInteger(quantity)||quantity<1||quantity>item.remaining||quantity>item.owned)throw new Error('素材の個数を確認してください。');
@@ -1104,7 +1104,12 @@ const adminEditForm=()=>{
   $('#admin-topic-id').textContent=t.id?`ID: ${t.id} ／ 改訂 ${t.revision}`:'新しい会話';
   adminReplies();adminPreview();
 };
+const appendDonationControls=(form,input,submit)=>{
+ form.classList.add('rate-donation');const make=(label,fn)=>{const b=document.createElement('button');b.type='button';b.className='secondary small';b.textContent=label;b.disabled=Number(input.max)<1;b.onclick=()=>{input.value=String(Math.max(1,Math.min(Number(input.max),fn(Number(input.value)||1))));input.dispatchEvent(new Event('input',{bubbles:true}));};return b;};
+ form.append(make('−10',v=>v-10),input,make('＋10',v=>v+10),make('最大',()=>Number(input.max)),submit);
+};
 const openAdminEditor=async()=>{
+ $('#admin-material-panel').classList.add('hidden');
  $('#admin-ai-panel').classList.add('hidden');
  $('#admin-gifts-panel').classList.add('hidden');
  $('#admin-requests-panel').classList.add('hidden');
@@ -1197,11 +1202,13 @@ const loadAdminRequestEditor=async()=>{
   adminRequestForm();adminRequestListRender();
 };
 bind('#admin-show-request-editor',async()=>{
+ $('#admin-material-panel').classList.add('hidden');
  $('#admin-ai-panel').classList.add('hidden');
   $('#admin-gifts-panel').classList.add('hidden');$('#admin-requests-panel').classList.remove('hidden');$('#admin-conversations-panel').classList.add('hidden');
   await loadAdminRequestEditor();
 });
 bind('#admin-show-dialogue-editor',()=>{
+ $('#admin-material-panel').classList.add('hidden');
  $('#admin-ai-panel').classList.add('hidden');
   $('#admin-gifts-panel').classList.add('hidden');$('#admin-requests-panel').classList.add('hidden');$('#admin-conversations-panel').classList.remove('hidden');
 });
@@ -1254,6 +1261,7 @@ const loadAdminGiftEditor=async()=>{
  adminGiftForm();adminGiftListRender();
 };
 bind('#admin-show-gift-editor',async()=>{
+ $('#admin-material-panel').classList.add('hidden');
  $('#admin-ai-panel').classList.add('hidden');
  $('#admin-conversations-panel').classList.add('hidden');$('#admin-requests-panel').classList.add('hidden');$('#admin-gifts-panel').classList.remove('hidden');
  await loadAdminGiftEditor();
@@ -1327,7 +1335,7 @@ const loadAiProfile=async()=>{
  $('#ai-profile-examples').value=profile.examples.map(e=>e.user+'\t'+e.assistant).join('\n');
 };
 bind('#admin-show-ai-editor',async()=>{
- for(const id of ['admin-conversations-panel','admin-requests-panel','admin-gifts-panel'])$('#'+id).classList.add('hidden');
+ for(const id of ['admin-conversations-panel','admin-requests-panel','admin-gifts-panel','admin-material-panel'])$('#'+id).classList.add('hidden');
  $('#admin-ai-panel').classList.remove('hidden');await loadAiProfile();
 });
 bind('#ai-profile-reload',loadAiProfile);
@@ -1343,4 +1351,22 @@ $('#ai-profile-test-form').addEventListener('submit',handler(async e=>{
 bind('#ai-profile-audit',async()=>{const {history}=await adminApi('/ai-profile/audit');const el=$('#ai-profile-audit-list');el.replaceChildren();for(const row of history){const p=document.createElement('p');p.textContent=`改訂 ${row.revision} ／ ${row.display_name} ／ ${row.created_at} UTC`;el.append(p);}});
 $('#npc-name-form').addEventListener('submit',handler(async e=>{e.preventDefault();const b=e.currentTarget.querySelector('button');b.disabled=true;try{const r=await api('/npcs/paper/ai/name','POST',{nickname:$('#npc-name-input').value});$('#speech-line').textContent=r.response;$('#npc-name-input').value='';toast('呼び名を教えました。');}finally{b.disabled=false;}}));
 
+let rateAreas=[],rateData=null,rateLoadVersion=0;
+const rateArea=()=>rateAreas.find(a=>a.id===Number($('#rates-area').value));
+const rateSpotOptions=()=>{$('#rates-spot').replaceChildren(...rateArea().spots.map(s=>new Option(s.name,s.id)));};
+const renderRates=()=>{
+ const list=$('#rates-list');list.replaceChildren();if(!rateData)return;
+ $('#rates-revision').textContent=`改訂 ${rateData.revision}（0は初期設定）`;
+ for(const [key,items] of Object.entries(rateData.groups)){
+ const section=document.createElement('section');section.className='rate-group';const h=document.createElement('h3');h.textContent={normal:'通常採取（重み）',rare:'★5（1回の採取あたりの独立確率）',chest:'宝箱（重み）'}[key];section.append(h);
+ const fields=[];for(const m of items){const row=document.createElement('div');row.className='rate-row';const label=document.createElement('label');label.textContent=m.name+' '+ '★'.repeat(m.rarity)+(key==='chest'?'（区画 '+m.sections.join('/')+'）':'');const input=document.createElement('input');input.type='number';input.min='0';input.max='100';input.step='0.01';input.required=true;input.value=m.value;label.append(input);const pct=document.createElement('span');row.append(label,pct);section.append(row);fields.push({m,input,pct});}
+ const recalc=()=>{const sum=fields.reduce((a,f)=>a+Number(f.input.value||0),0);for(const f of fields){const v=Number(f.input.value||0);f.pct.textContent=(key==='rare'?v:sum?100*v/sum:0).toFixed(2)+'%'+(key==='chest'?'（全候補時）':key==='normal'?'（通常枠内）':'');}};
+ for(const f of fields)f.input.addEventListener('input',()=>{f.m.value=Number(f.input.value);recalc();});recalc();list.append(section);
+ }
+};
+const loadRates=async()=>{const seq=++rateLoadVersion;rateData=null;renderRates();const data=await adminApi('/material-rates?section='+encodeURIComponent($('#rates-area').value)+'&spot='+encodeURIComponent($('#rates-spot').value));if(seq!==rateLoadVersion)return;rateData=data;renderRates();};
+bind('#admin-show-material-editor',async()=>{for(const id of ['admin-conversations-panel','admin-requests-panel','admin-gifts-panel','admin-ai-panel'])$('#'+id).classList.add('hidden');$('#admin-material-panel').classList.remove('hidden');rateAreas=(await adminApi('/material-rates/areas')).areas;$('#rates-area').replaceChildren(...rateAreas.map(a=>new Option(a.name,a.id)));rateSpotOptions();await loadRates();});
+$('#rates-area').addEventListener('change',handler(async()=>{rateSpotOptions();await loadRates();}));$('#rates-spot').addEventListener('change',handler(loadRates));bind('#rates-reload',loadRates);bind('#rates-reset',()=>{if(!rateData)return;for(const group of Object.values(rateData.groups))for(const m of group)m.value=m.defaultValue;renderRates();});
+$('#rates-form').addEventListener('submit',handler(async e=>{e.preventDefault();if(!rateData)return;const sectionId=Number($('#rates-area').value),spotId=$('#rates-spot').value;const b=e.currentTarget.querySelector('button[type=submit]');b.disabled=true;try{const rates=Object.fromEntries(Object.entries(rateData.groups).map(([k,items])=>[k,Object.fromEntries(items.map(m=>[m.id,m.value]))]));await adminApi('/material-rates/save','POST',{sectionId,spotId,revision:rateData.revision,rates});await loadRates();toast('出現頻度を保存しました。');}finally{b.disabled=false;}}));
+bind('#rates-audit',async()=>{const {history}=await adminApi('/material-rates/audit');$('#rates-audit-list').replaceChildren(...history.map(r=>{const p=document.createElement('p');p.textContent=`区画 ${r.section_id} / ${r.spot_id} / 改訂 ${r.revision} / ${r.display_name} / ${r.created_at} UTC`;return p;}));});
 })();
