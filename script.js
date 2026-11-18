@@ -14,7 +14,7 @@ let pendingRecovery='';
 let inventoryReturn='hall';
 let gathering=false;
 let npcReturn='hall', mandatoryStory=false;
-const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor'];
+const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-diary','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor'];
 const show=(name)=>{
   pages.forEach(p=>$(`#${p}-page`).classList.toggle('hidden',p!==name));
   if(name!=='npc'&&profileTimer){clearInterval(profileTimer);profileTimer=null;}
@@ -438,6 +438,7 @@ async function openInventory(from='hall'){
 }
 async function openNpc(from='hall'){npcReturn=from;const {npc}=await api('/npcs/paper');currentNpc=npc;lastLocation=npc.state.location;profileScene=npc.scene;$('#life-action-result').classList.add('hidden');$('#npc-move-notice').classList.add('hidden');renderNpc(false);show('npc');profileTimer=setInterval(async()=>{if(document.hidden)return;try{const {npc:updated}=await api('/npcs/paper');const old=lastLocation;currentNpc=updated;lastLocation=updated.state.location;renderNpc(old!==updated.state.location);}catch{}},15000);}
 function renderNpc(moved){const n=currentNpc;
+  $('#npc-diary-section').classList.toggle('hidden',!n.diaryUnlocked);
   $('#npc-affinity').textContent='♥'.repeat(n.affinity)+'♡'.repeat(10-n.affinity);
   $('#npc-relationship').textContent=`あなたとの関係：${n.relationship}`;
   $('#npc-relationship-detail').textContent=`${n.relationship}（好感度 ${n.affinity}/10）`;
@@ -906,6 +907,23 @@ bind('#npc-feeding-back',async()=>{
     show('conversation');
   }else await openNpc(npcReturn);
 });
+// v0.13: 全住人共通の日記。古いページは20件ずつ追加取得。
+let diaryEntries=[],diaryIndex=0,diaryMore=false,diaryBusy=false;
+function renderDiary(){
+ const entry=diaryEntries[diaryIndex];
+ $('#diary-empty').classList.toggle('hidden',!!entry);$('#diary-paper').classList.toggle('hidden',!entry);$('#diary-navigation').classList.toggle('hidden',!entry);
+ if(!entry)return;
+ const [year,month,day]=entry.day.split('-').map(Number),weekday='にち げつ か すい もく きん ど'.split(' ')[new Date(Date.UTC(year,month-1,day)).getUTCDay()];
+ $('#diary-date').textContent=`${year}ねん ${month}がつ${day}にち ${weekday}ようび`;
+ $('#diary-weather').textContent=entry.weather==='clear'?'☀ はれ':'☁ くもり';$('#diary-body').textContent=entry.body;
+ $('#diary-prev').disabled=diaryBusy||diaryIndex>=diaryEntries.length-1&&!diaryMore;
+ $('#diary-next').disabled=diaryIndex===0;$('#diary-latest').disabled=diaryIndex===0;
+}
+async function openDiary(){const result=await api('/npcs/paper/diary');diaryEntries=result.entries||[];diaryMore=!!result.hasMore;diaryIndex=0;diaryBusy=false;renderDiary();show('npc-diary');}
+bind('#open-npc-diary',openDiary);bind('#npc-diary-back',()=>openNpc(npcReturn));
+bind('#diary-latest',()=>{diaryIndex=0;renderDiary();});bind('#diary-next',()=>{diaryIndex=Math.max(0,diaryIndex-1);renderDiary();});
+bind('#diary-prev',async()=>{if(diaryBusy)return;if(diaryIndex===diaryEntries.length-1&&diaryMore){diaryBusy=true;renderDiary();try{const r=await api('/npcs/paper/diary?before='+encodeURIComponent(diaryEntries.at(-1).day));diaryEntries.push(...r.entries);diaryMore=!!r.hasMore;}finally{diaryBusy=false;renderDiary();}}if(diaryIndex<diaryEntries.length-1)diaryIndex++;renderDiary();});
+
 bind('#open-npc-requests',()=>openNpcRequests());
 bind('#npc-requests-back',()=>openNpc(npcReturn));
 
