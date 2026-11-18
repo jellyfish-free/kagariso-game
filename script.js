@@ -359,7 +359,7 @@ async function openMaterialCatalog(){
  const [discovery,eventData,giftData,giftStats]=await Promise.all([
    api('/materials/discovered'),
    api('/catalog/events'),
-   api('/npcs/paper/gifts'),
+   api('/inventory'),
    api('/catalog/gifts')
  ]);
  const discovered=new Set(discovery.ids||[]);
@@ -369,7 +369,7 @@ async function openMaterialCatalog(){
    kind:'event',source:e.source||'その他',found:true}));
  // 実際に「受け取った」プレゼントのみ。準備中や未受取は図鑑に出さない。
  const giftDefs=new Map((window.KAGARISO_GIFTS||[]).map(g=>[g.id,g]));
- const gifts=(giftData.inventory||[]).filter(g=>Number(g.quantity)>0).map(g=>{
+ const gifts=(giftData.gifts||[]).filter(g=>Number(g.quantity)>0).map(g=>{
    const def=giftDefs.get(g.itemId)||{};
    return {id:g.itemId,name:g.name||def.name,description:g.description||def.description,
      image:g.image||def.image||'',kind:'gift',source:g.npcName||'黄色い獣',found:true};
@@ -439,6 +439,8 @@ async function openInventory(from='hall'){
 async function openNpc(from='hall'){npcReturn=from;const {npc}=await api('/npcs/paper');currentNpc=npc;lastLocation=npc.state.location;profileScene=npc.scene;$('#life-action-result').classList.add('hidden');$('#npc-move-notice').classList.add('hidden');renderNpc(false);show('npc');profileTimer=setInterval(async()=>{if(document.hidden)return;try{const {npc:updated}=await api('/npcs/paper');const old=lastLocation;currentNpc=updated;lastLocation=updated.state.location;renderNpc(old!==updated.state.location);}catch{}},15000);}
 function renderNpc(moved){const n=currentNpc;
   $('#npc-diary-section').classList.toggle('hidden',!n.diaryUnlocked);
+  $('#npc-after-rescue').classList.toggle('hidden',!n.diaryUnlocked);
+  $('#npc-life-actions').classList.toggle('hidden',!n.diaryUnlocked);
   $('#npc-affinity').textContent='♥'.repeat(n.affinity)+'♡'.repeat(10-n.affinity);
   $('#npc-relationship').textContent=`あなたとの関係：${n.relationship}`;
   $('#npc-relationship-detail').textContent=`${n.relationship}（好感度 ${n.affinity}/10）`;
@@ -467,8 +469,9 @@ const openConversation=async()=>{
   $('#conversation-result').classList.add('hidden');
   const menu=await api('/npcs/paper/conversation/options');
   renderConversationChoices(menu.choices);
+  $('#conversation-after-rescue').classList.toggle('hidden',!npc.diaryUnlocked);
   show('conversation');
-  refreshAiStatus().catch(()=>{ $('#npc-ai-remaining').textContent='自由に話しかける（確認できませんでした）'; });
+  if(npc.diaryUnlocked)refreshAiStatus().catch(()=>{ $('#npc-ai-remaining').textContent='自由に話しかける（確認できませんでした）'; });
 };
 function renderConversationChoices(options){
   const box=$('#conversation-choices');box.replaceChildren();
@@ -660,6 +663,7 @@ async function openNpcGifts(from='hall',message=''){
  const onlyPaper=from==='npc';
  const data=await api(onlyPaper?'/npcs/paper/gifts':'/gifts');
  const npc=onlyPaper?data:data.npc;
+ $('#mail-npc-section').classList.toggle('hidden',!onlyPaper&&!data.npcUnlocked);
  const inbox=$('#npc-gifts-inbox'),inventory=$('#npc-gifts-inventory'),history=$('#npc-gifts-history');
  const addGiftImage=(container,gift)=>{if(!gift.image)return;const img=document.createElement('img');img.className='npc-gift-image';img.alt=gift.name||'返礼品';img.loading='lazy';img.src=encodeURI(gift.image);img.onerror=()=>img.remove();container.insertBefore(img,container.firstChild);};
  const common=$('#gifts-common-sections');common.classList.toggle('hidden',onlyPaper);
@@ -953,13 +957,15 @@ let conversationHistoryReturn='npc';
 const openConversationHistory=async(origin)=>{
   conversationHistoryReturn=origin;
   $('#conversation-history-back').textContent=origin==='conversation'?'← お話に戻る':'← プロフィールへ';
-  switchHistoryTab(true);
+  const aiUnlocked=!!currentNpc?.diaryUnlocked;
+  $('#history-tab-ai').classList.toggle('hidden',!aiUnlocked);
+  switchHistoryTab(aiUnlocked);
   const list=$('#history-list');
   list.textContent='読み込み中…';
   $('#ai-history-list').textContent='読み込み中…';
   show('history');
   await Promise.all([
-    renderAiHistory(),
+    aiUnlocked?renderAiHistory():Promise.resolve(),
     (async()=>{try{
       const {history}=await api('/npcs/paper/history');
       list.innerHTML=history.length?history.slice(0,20).map(h=>`<article class="history-entry"><time>${safe(h.created_at)} UTC</time><p>${safe(h.response)}</p><span class="muted">${h.affinity_change?'少し親しくなった':''}</span></article>`).join(''):'<p class="muted">まだ会話の記録がありません。</p>';
@@ -969,7 +975,7 @@ const openConversationHistory=async(origin)=>{
 bind('#npc-ai-history-open',()=>openConversationHistory('conversation'));
 bind('#history-btn',()=>openConversationHistory('npc'));
 bind('#conversation-history-back',async()=>{
-  if(conversationHistoryReturn==='conversation'){show('conversation');await refreshAiStatus();}
+  if(conversationHistoryReturn==='conversation'){show('conversation');if(currentNpc?.diaryUnlocked)await refreshAiStatus();}
   else await openNpc(npcReturn);
 });
 document.querySelectorAll('[data-back]').forEach(el=>el.addEventListener('click',handler(async()=>{const page=el.dataset.back;if(page==='hall'){if(el.id==='npc-back'&&npcReturn==='cave')await openCave(selectedCaveSection);else await openHall();}else if(page==='npc')await openNpc(npcReturn);})));
