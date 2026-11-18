@@ -15,10 +15,12 @@ let inventoryReturn='hall';
 let gathering=false;
 let npcReturn='hall', mandatoryStory=false;
 const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-diary','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor'];
+let activePage='';
 const show=(name)=>{
+  const changed=activePage!==name; activePage=name;
   pages.forEach(p=>$(`#${p}-page`).classList.toggle('hidden',p!==name));
   if(name!=='npc'&&profileTimer){clearInterval(profileTimer);profileTimer=null;}
-  window.scrollTo({top:0,behavior:'instant'});
+  if(changed){if(name!=='cave')caveOpening++;window.scrollTo({top:0,behavior:'instant'});}
 };
 const toast=(message)=>{const box=$('#toast');box.textContent=message;box.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>box.classList.remove('show'),4000);};
 const api=async(path,method='GET',payload)=>{
@@ -44,7 +46,7 @@ $('#recover-form').addEventListener('submit',handler(async e=>{e.preventDefault(
 bind('#copy-recovery',async()=>{await navigator.clipboard.writeText(pendingRecovery);toast('復旧コードをコピーしました。');});
 $('#confirmed-recovery').addEventListener('change',e=>{$('#enter-after-recovery').disabled=!e.target.checked;});
 bind('#enter-after-recovery',async()=>{pendingRecovery='';await openHall();});
-bind('#logout-btn',async()=>{try{await api('/logout','POST');}finally{token='';resident=null;localStorage.removeItem(SESSION_KEY);$('#user-bar').classList.add('hidden');show('auth');}});
+bind('#logout-btn',async()=>{try{await api('/logout','POST');}finally{token='';resident=null;$('#game-notifications').replaceChildren();localStorage.removeItem(SESSION_KEY);$('#user-bar').classList.add('hidden');show('auth');}});
 // v0.11.2: ビジュアルはD1のNPC状態を表示するだけ。更新や判定は従来APIに委ねる。
 const VISUALS=window.KAGARISO_VISUALS||{};
 const paperVisual=VISUALS.npcs?.paper;
@@ -194,59 +196,55 @@ async function openHall(){const data=await api('/hall');resident=data.resident;$
   show('hall');
   positionHallCaveDoor();
   if(data.requiredStory){toast('先に洞窟での大切な物語を体験しよう。');await openCave(1);return;}
-  try{const gifts=await api('/gifts');const badge=$('#gift-ready-badge');badge.textContent=gifts.readyCount?`(${gifts.readyCount})`:'';badge.classList.toggle('hidden',!gifts.readyCount);}catch(e){console.warn('通信箱の更新に失敗:',e);}
+  checkGameNotifications().catch(console.warn);
 }
 let selectedCaveSection=1,activeCaveStory=null,caveStoryReplay=false;
 const caveQty=(n)=>Number(n)||0;
-async function openCave(sectionId=null){
-  const {cave}=await api('/cave');
-  if(!cave.sections.length)throw new Error('洞窟のデータがまだありません。');
-  // 救出済み・必須物語完了後のみ地図を解放する。
-  const mapAllowed=cave.rescued && cave.worldRescued && !cave.requiredStory && cave.stories.some(x=>x.id==='rescue');
-  const showMap=mapAllowed && sectionId===null;
-  $('#cave-map').classList.toggle('hidden',!showMap);
-  $('#cave-map-return').classList.toggle('hidden',!mapAllowed||showMap);
-  $('#cave-sections').classList.toggle('hidden',showMap);
-  if(sectionId===null||!cave.sections.some(s=>s.id===sectionId))sectionId=cave.currentSection;
-  selectedCaveSection=sectionId;
-  mandatoryStory=!!cave.requiredStory;
+let caveActionBusy=false,caveRefreshTask=null,caveOpening=0,caveSnapshotKey='',lastCaveProgress=null;
+function renderCaveStatus(cave,items,sectionId){
+  const key=JSON.stringify([cave,items,sectionId]);
+  if(key===caveSnapshotKey)return;
+  caveSnapshotKey=key;
   $('#cave-npc-section').classList.toggle('hidden',!cave.npcInCave||!!cave.requiredStory);
-  $('#cave-npc-note').textContent=cave.npcInCave?'黄色い獣はまだ洞窟の入口で過ごしている。会いに行こう。':'';
   const navigation=$('#cave-sections');navigation.replaceChildren();
   for(const sec of cave.sections){
     const btn=document.createElement('button');btn.type='button';btn.className='secondary small'+(sec.id===sectionId?' selected':'');
     btn.textContent=sec.name;btn.addEventListener('click',handler(()=>openCave(sec.id)));navigation.append(btn);
   }
-  $('#cave-construction').classList.toggle('hidden',cave.rescued);
-  if(!cave.rescued){
+  const constructionVisible=!cave.rescued&&!cave.requiredStory&&sectionId===cave.currentSection;
+  $('#cave-construction').classList.toggle('hidden',!constructionVisible);
+  if(constructionVisible){
     $('#cave-gate-title').textContent=cave.gateLabel;
     const total=cave.requirements.reduce((s,r)=>s+r.needed,0),done=cave.requirements.reduce((s,r)=>s+r.donated,0);
     $('#cave-progress-fill').style.width=(total?100*done/total:0)+'%';
     $('#cave-progress-label').textContent=`現在の区画：${done} / ${total} 納品済み`;
-    const requirements=$('#cave-requirements');requirements.replaceChildren();
-    const {items}=await api('/inventory');const owned=Object.fromEntries(items.map(i=>[i.id,i.quantity]));
+    const requirements=$('#cave-requirements');
+    const focusedItem=document.activeElement?.dataset?.item;const draft=new Map([...requirements.querySelectorAll('input[data-item]')].map(i=>[i.dataset.item,i.value]));requirements.replaceChildren();
+    const owned=Object.fromEntries(items.map(i=>[i.id,i.quantity]));
     for(const req of cave.requirements){
       const card=document.createElement('div');card.className='requirement-row';
       const info=document.createElement('div');info.innerHTML=`<div class="material-inline">${matIcon(req.id)}<div><strong>${safe(req.name)}</strong><div class="muted tiny">納品済み ${req.donated} / ${req.needed}　残り ${req.remaining}　｜持ち物 ×${owned[req.id]||0}</div></div></div>`;
       card.append(info);
       if(req.remaining>0){
         const form=document.createElement('form');form.className='donation-form';
-        const input=document.createElement('input');input.type='number';input.min='1';input.step='1';input.max=String(Math.min(req.remaining,owned[req.id]||0));input.value=String(Math.min(req.remaining,owned[req.id]||0,10)||1);input.setAttribute('aria-label',req.name+'の納品数');
+        const input=document.createElement('input');input.type='number';input.min='1';input.step='1';input.max=String(Math.min(req.remaining,owned[req.id]||0));input.value=String(Math.min(req.remaining,owned[req.id]||0,10)||1);input.dataset.item=req.id;input.setAttribute('aria-label',req.name+'の納品数');if(draft.has(req.id)&&Number(input.max)>0)input.value=String(Math.max(1,Math.min(Number(input.max),Number(draft.get(req.id))||1)));
         const btn=document.createElement('button');btn.type='submit';btn.textContent='納品';btn.className='secondary small';btn.disabled=(owned[req.id]||0)===0;
         form.append(input,btn);form.addEventListener('submit',handler(async e=>{
-          e.preventDefault();const quantity=Number(input.value);
+          e.preventDefault();if(caveActionBusy||gathering)return;const quantity=Number(input.value);
           if(!Number.isSafeInteger(quantity)||quantity<1||quantity>req.remaining||quantity>(owned[req.id]||0))throw new Error('納品数を確認してください。');
           btn.disabled=true;
-          try{const result=await api('/cave/donate','POST',{sectionId:cave.currentSection,itemId:req.id,quantity});toast(result.message);await openCave(selectedCaveSection);}finally{btn.disabled=false;}
+          caveActionBusy=true;
+          try{const result=await api('/cave/donate','POST',{sectionId:cave.currentSection,itemId:req.id,quantity});toast(result.message);}finally{try{await refreshCaveStatus(true);}catch(e){console.warn(e);}caveActionBusy=false;btn.disabled=false;}
         }));card.append(form);
       }
       requirements.append(card);
     }
+    if(focusedItem){const input=[...requirements.querySelectorAll('input[data-item]')].find(i=>i.dataset.item===focusedItem);input?.focus({preventScroll:true});}
     $('#cave-excavate').classList.toggle('hidden',!cave.ready);
     $('#cave-excavate-note').textContent=cave.ready?'必要な素材がすべて揃いました。誰でも開拓できます。':'必要な素材を住人全員で持ち寄りましょう。';
     $('#cave-excavate').onclick=handler(async()=>{
-      const btn=$('#cave-excavate');btn.disabled=true;
-      try{const result=await api('/cave/excavate','POST',{sectionId:cave.currentSection});toast(result.message);await openCave(result.cave.currentSection);if(result.cave.rescued)await openStory('rescue',false);}finally{btn.disabled=false;}
+      if(caveActionBusy||gathering)return;const btn=$('#cave-excavate');btn.disabled=true;caveActionBusy=true;
+      try{const result=await api('/cave/excavate','POST',{sectionId:cave.currentSection});toast(result.message);await openCave(result.cave.currentSection);}finally{caveActionBusy=false;btn.disabled=false;}
     });
   }
   // 解放済みの章は未体験でも開ける。初回選択は個人に保存し、再読では変更しない。
@@ -264,7 +262,49 @@ async function openCave(sectionId=null){
     btn.textContent='黄色い獣を連れ帰った物語';
     btn.disabled=!!cave.requiredStory;btn.addEventListener('click',handler(()=>openStory('rescue',seen)));history.append(btn);
   }
+}
+async function refreshCaveStatus(force=false){
+  if(activePage!=='cave'||!token||(!force&&(gathering||caveActionBusy)))return;
+  if(caveRefreshTask){if(!force)return;await caveRefreshTask.catch(()=>{});if(activePage!=='cave')return;}
+  const generation=caveOpening,section=selectedCaveSection,session=token;
+  const task=(async()=>{
+    const {cave,items}=await api('/cave/status');
+    if(activePage!=='cave'||generation!==caveOpening||section!==selectedCaveSection||session!==token||(!force&&(gathering||caveActionBusy)))return;
+    const previous=lastCaveProgress;lastCaveProgress={section:cave.currentSection,rescued:cave.rescued};
+    if(previous&&(cave.currentSection>previous.section||(!previous.rescued&&cave.rescued))){
+      const target=cave.sections.find(x=>x.id===cave.currentSection);
+      const label=cave.rescued?'洞窟の出口が開拓されました！':`${target?.name||'新しい区画'}が解放されました！`;
+      $('#cave-unlock-notice').textContent=label;$('#cave-unlock-banner').classList.remove('hidden');
+      $('#cave-unlock-go').textContent=cave.rescued?'物語へ進む':`${target?.name||'次の区画'}へ進む`;
+      $('#cave-unlock-go').onclick=handler(async()=>{ $('#cave-unlock-banner').classList.add('hidden');await openCave(cave.currentSection); });
+      if(notificationPrefs().cave)pushGameNotice(label,()=>openCave(cave.currentSection));
+    }
+    const y=window.scrollY;renderCaveStatus(cave,items,section);if(window.scrollY!==y)window.scrollTo(0,y);
+    // 救出などの必須物語が発生したら採取を止め、本人の選択で物語へ進む。
+    if(cave.requiredStory){$('#cave-spots').querySelectorAll('button').forEach(b=>b.disabled=true);$('#cave-unlock-banner').classList.remove('hidden');$('#cave-unlock-notice').textContent='新しい物語が解放されました。先に物語を体験してください。';$('#cave-unlock-go').textContent='物語へ進む';$('#cave-unlock-go').onclick=handler(()=>openCave(section));}
+  })();caveRefreshTask=task;try{await task;}finally{if(caveRefreshTask===task)caveRefreshTask=null;}
+}
+
+async function openCave(sectionId=null){
+  const requestId=++caveOpening;const previousSection=selectedCaveSection;const previousMap=!$('#cave-map').classList.contains('hidden');
+  const {cave,items}=await api('/cave/status');
+  if(requestId!==caveOpening)return;
+  lastCaveProgress={section:cave.currentSection,rescued:cave.rescued};caveSnapshotKey='';$('#cave-unlock-banner').classList.add('hidden');
+  if(!cave.sections.length)throw new Error('洞窟のデータがまだありません。');
+  // 救出済み・必須物語完了後のみ地図を解放する。
+  const mapAllowed=cave.rescued && cave.worldRescued && !cave.requiredStory && cave.stories.some(x=>x.id==='rescue');
+  const showMap=mapAllowed && sectionId===null;
+  $('#cave-map').classList.toggle('hidden',!showMap);
+  $('#cave-map-return').classList.toggle('hidden',!mapAllowed||showMap);
+  $('#cave-sections').classList.toggle('hidden',showMap);
+  if(sectionId===null||!cave.sections.some(s=>s.id===sectionId))sectionId=cave.currentSection;
+  selectedCaveSection=sectionId;
+  mandatoryStory=!!cave.requiredStory;
+  $('#cave-npc-section').classList.toggle('hidden',!cave.npcInCave||!!cave.requiredStory);
+  $('#cave-npc-note').textContent=cave.npcInCave?'黄色い獣はまだ洞窟の入口で過ごしている。会いに行こう。':'';
+  renderCaveStatus(cave,items,sectionId);
   if(showMap){
+    if(activePage==='cave'&&!previousMap)window.scrollTo(0,0);
     $('#cave-section-content').classList.add('hidden');
     $('#cave-map').querySelectorAll('[data-cave-area]').forEach(btn=>{
       const id=Number(btn.dataset.caveArea);
@@ -274,6 +314,7 @@ async function openCave(sectionId=null){
     show('cave');return;
   }
   const entry=await api('/cave/section?id='+sectionId);
+  if(requestId!==caveOpening)return;
   visualImg('#cave-section-background',bgVisual.sections?.[sectionId]||bgVisual.cave);
   $('#cave-section-name').textContent=entry.section.name;
   $('#cave-description').textContent=entry.section.description;
@@ -282,17 +323,20 @@ async function openCave(sectionId=null){
     const btn=document.createElement('button');btn.className='secondary gather-btn';
     btn.innerHTML=`<strong>${safe(spot.name)}</strong><span class="muted tiny">${safe(spot.description)}</span>`;
     btn.addEventListener('click',handler(async()=>{
-      if(gathering)return;
-      gathering=true;list.querySelectorAll('button').forEach(b=>b.disabled=true);
+      if(gathering||caveActionBusy)return;
+      gathering=true;const actionGeneration=caveOpening;list.querySelectorAll('button').forEach(b=>b.disabled=true);
       try{
         const result=await api('/cave/gather','POST',{sectionId,spotId:spot.id});
+        if(activePage!=='cave'||actionGeneration!==caveOpening)return;
         const found=result.items.map(item=>`<span class="material-found-item">${matIcon(item.id)}<strong>${safe(item.name)} ×${Number(item.quantity)}</strong></span>`).join('、');
         $('#cave-result').innerHTML=`<div>${safe(result.message)}</div>${found?`<div>入手：${found}</div>`:''}`;
         $('#cave-result').classList.remove('hidden');
-      }finally{gathering=false;list.querySelectorAll('button').forEach(b=>b.disabled=false);}
+        await refreshCaveStatus(true).catch(console.warn);
+      }finally{gathering=false;list.querySelectorAll('button').forEach(b=>b.disabled=!$('#cave-unlock-banner').classList.contains('hidden')&&$('#cave-unlock-go').textContent==='物語へ進む');}
     }));list.append(btn);
   }
   $('#cave-result').classList.add('hidden');$('#cave-section-content').classList.remove('hidden');show('cave');
+  if(previousSection!==sectionId||previousMap)window.scrollTo(0,0);
   if(cave.requiredStory)await openStory(cave.requiredStory,false);
   else if(entry.story)await openStory(entry.story.id,false);
 }
@@ -939,7 +983,7 @@ bind('#open-inventory',()=>openInventory('hall'));
 bind('#open-material-catalog',openMaterialCatalog);
 bind('#material-catalog-back',openHall);
 bind('#cave-inventory-btn',()=>openInventory('cave'));
-bind('#cave-refresh',()=>openCave($('#cave-map').classList.contains('hidden')?selectedCaveSection:null));
+bind('#cave-refresh',()=>refreshCaveStatus(true));
 bind('#cave-map-return',()=>openCave());
 bind('#cave-npc-visit',()=>openNpc('cave'));
 bind('#cave-story-back',async()=>{if(mandatoryStory)throw new Error('最初の物語を最後まで読んでね。');await openCave(selectedCaveSection);});
@@ -1232,6 +1276,45 @@ bind('#admin-gift-show-history',async()=>{
  history.forEach(x=>{const p=document.createElement('p');p.className='muted tiny';p.textContent=`${x.at} UTC ／ ${x.admin} ／ ${x.action} ／ ${x.name||x.itemId}`;list.append(p);});
 });
 
+// v0.15.1: 通知は本人のブラウザに保存。受信データや既読状態は変更しない。
+const notificationKey=()=>`kagariso-notify-v1:${resident?.id||''}`;
+function notificationPrefs(){try{return {npc:true,resident:true,cave:true,...JSON.parse(localStorage.getItem(notificationKey())||'{}')};}catch{return {npc:true,resident:true,cave:true};}}
+function pushGameNotice(message,action){
+ const stack=$('#game-notifications');const card=document.createElement('div');card.className='game-notification';
+ const title=document.createElement('div');title.textContent=message;title.setAttribute('role','status');
+ const close=document.createElement('button');close.type='button';close.className='secondary small';close.textContent='閉じる';close.onclick=()=>card.remove();
+ card.append(title);const actions=document.createElement('div');actions.className='actions';
+ if(action){const go=document.createElement('button');go.type='button';go.className='secondary small';go.textContent='確認する';go.onclick=handler(async()=>{card.remove();await action();});actions.append(go);}
+ actions.append(close);card.append(actions);stack.append(card);while(stack.children.length>4)stack.firstElementChild.remove();setTimeout(()=>card.remove(),15000);
+}
+let noticeBusy=false;
+async function checkGameNotifications(){
+ if(!token||!resident||document.hidden||noticeBusy||['auth','recovery','admin-login','admin-editor',''].includes(activePage))return;
+ noticeBusy=true;const session=token,id=resident.id;
+ try{
+  const data=await api('/notifications');if(token!==session||resident?.id!==id||document.hidden)return;
+  const badge=$('#gift-ready-badge');badge.textContent=data.readyCount?`(${data.readyCount})`:'';badge.classList.toggle('hidden',!data.readyCount);
+  const key=notificationKey()+':seen';let seen=[];try{seen=JSON.parse(localStorage.getItem(key)||'[]');}catch{}if(!Array.isArray(seen))seen=[];
+  const known=new Set(seen),prefs=notificationPrefs();
+  for(const kind of ['npc','resident']){
+   const fresh=data[kind].filter(g=>!known.has(kind+':'+g.id));
+   for(const g of fresh)known.add(kind+':'+g.id);
+   if(fresh.length&&prefs[kind]&&activePage!=='npc-gifts'){
+    const title=kind==='npc'?'黄色い獣から':fresh.length===1?`${fresh[0].sender}さんから`:'住人から';
+    pushGameNotice(`${title}贈り物が${fresh.length>1?fresh.length+'件':''}届きました！`,()=>openNpcGifts('hall'));
+   }
+  }
+  // 未受取のIDだけ保持。受け取り済みを削除した後に同じIDが再登場することはない。
+  localStorage.setItem(key,JSON.stringify(['npc','resident'].flatMap(kind=>data[kind].map(g=>kind+':'+g.id))));
+ }finally{noticeBusy=false;}
+}
+const openNoticeSettings=()=>{const prefs=notificationPrefs();for(const kind of ['npc','resident','cave'])$('#notify-'+kind).checked=prefs[kind];$('#notification-settings').showModal();};
+bind('#open-notification-settings',openNoticeSettings);
+bind('#close-notification-settings',()=>$('#notification-settings').close());
+for(const kind of ['npc','resident','cave'])$('#notify-'+kind).addEventListener('change',()=>{const prefs=notificationPrefs();prefs[kind]=$('#notify-'+kind).checked;localStorage.setItem(notificationKey(),JSON.stringify(prefs));});
+setInterval(()=>{if(!document.hidden)refreshCaveStatus().catch(console.warn);},15000);
+setInterval(()=>checkGameNotifications().catch(console.warn),30000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){refreshCaveStatus().catch(console.warn);checkGameNotifications().catch(console.warn);}});
 (async()=>{if(token){try{await openHall();}catch(e){toast(e.message);show('auth');}}else show('auth');})();
 
 // v0.12.1 AI人格管理・名前の明示登録
