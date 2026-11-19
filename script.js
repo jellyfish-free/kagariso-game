@@ -545,9 +545,9 @@ function renderConversationChoices(options){
 // v0.12: AI自由会話は選択式会話と別枠。本文は本人だけの履歴として記録する。
 let aiSending=false;
 const showAiUsage=usage=>{
-  $('#npc-ai-remaining').textContent=`自由に話しかける（残り ${usage.remaining} / ${usage.limit}回）`;
+  $('#npc-ai-remaining').textContent=`自由に話しかける（${usage.used}/${usage.limit}回）`;
   const notice=$('#npc-ai-limit-notice');
-  notice.textContent=usage.remaining<=0?'本日の5回を使いました。午前0時に回復します。':usage.globalRemaining<=0?'AI全体の予算に達しました。午前9時に回復します。':'';
+  notice.textContent=usage.remaining<=0||usage.globalRemaining<=0?'今日はもうこれ以上難しいお話はできません。':'';
   notice.classList.toggle('hidden',!notice.textContent);
   const blocked=usage.remaining<=0||usage.globalRemaining<=0||currentNpc?.state?.activity==='sleeping';
   $('#npc-ai-send').disabled=aiSending||blocked;
@@ -983,9 +983,8 @@ bind('#hall-paper-actor',()=>openNpc('hall'));
 // 左端の茶色い扉をクリック・タップして洞窟へ移動。
 // 扉の連打による重複GETを防ぐ。画像の外にもタップ可能な入口を置く。
 let hallDoorBusy=false;
-const enterHallCave=async()=>{if(hallDoorBusy)return;hallDoorBusy=true;const buttons=['#hall-cave-door','#hall-cave-shortcut','[data-door="cave"]'].map(x=>$(x)).filter(Boolean);buttons.forEach(b=>b.disabled=true);try{await openCave();}finally{hallDoorBusy=false;buttons.forEach(b=>b.disabled=false);}};
+const enterHallCave=async()=>{if(hallDoorBusy)return;hallDoorBusy=true;const buttons=['#hall-cave-door','[data-door="cave"]'].map(x=>$(x)).filter(Boolean);buttons.forEach(b=>b.disabled=true);try{await openCave();}finally{hallDoorBusy=false;buttons.forEach(b=>b.disabled=false);}};
 bind('#hall-cave-door',enterHallCave);
-bind('#hall-cave-shortcut',enterHallCave);
 bind('#refresh-hall',openHall);
 bind('#open-inventory',()=>openInventory('hall'));
 bind('#open-material-catalog',openMaterialCatalog);
