@@ -14,7 +14,7 @@ let pendingRecovery='';
 let inventoryReturn='hall';
 let gathering=false;
 let npcReturn='hall', mandatoryStory=false;
-const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-diary','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor','forest-event','forest','forest-memories'];
+const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-diary','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor','forest-event','forest','forest-area','forest-memories'];
 let activePage='';
 const show=(name)=>{
   const changed=activePage!==name; activePage=name;
@@ -32,7 +32,10 @@ const api=async(path,method='GET',payload)=>{
 };
 const safe=(text)=>String(text??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 // v0.15.3: 図鑑の表示もサーバーの新しいレア度に合わせる。
-const MATERIALS=(window.KAGARISO_MATERIALS||[]).map(m=>['S0039','S0040'].includes(m.id)?{...m,rarity:5}:m);
+const FOREST_MATERIALS=[{"id":"S0046","name":"土","rarity":1,"category":"鉱石・土","sections":[],"source":"森","image":"images/materials/sozai0046.webp","description":"土。森で見つけられる素材。"},{"id":"S0047","name":"腐葉土","rarity":2,"category":"鉱石・土","sections":[],"source":"森","image":"images/materials/sozai0047.webp","description":"腐葉土。森で見つけられる素材。"},{"id":"S0048","name":"みみず","rarity":1,"category":"生き物由来","sections":[],"source":"森","image":"images/materials/sozai0048.webp","description":"みみず。森で見つけられる素材。"},{"id":"S0049","name":"苔","rarity":1,"category":"植物・菌類","sections":[],"source":"森","image":"images/materials/sozai0049.webp","description":"苔。森で見つけられる素材。"},{"id":"S0050","name":"落ちた木の実","rarity":1,"category":"植物・菌類","sections":[],"source":"森","image":"images/materials/sozai0050.webp","description":"落ちた木の実。森で見つけられる素材。"},{"id":"S0051","name":"小枝の束","rarity":1,"category":"木材・繊維","sections":[],"source":"森","image":"images/materials/sozai0051.webp","description":"小枝の束。森で見つけられる素材。"},{"id":"S0052","name":"丈夫な枝","rarity":2,"category":"木材・繊維","sections":[],"source":"森","image":"images/materials/sozai0052.webp","description":"丈夫な枝。森で見つけられる素材。"},{"id":"S0053","name":"木材","rarity":2,"category":"木材・繊維","sections":[],"source":"森","image":"images/materials/sozai0053.webp","description":"木材。森で見つけられる素材。"},{"id":"S0054","name":"葉っぱ","rarity":1,"category":"植物・菌類","sections":[],"source":"森","image":"images/materials/sozai0054.webp","description":"葉っぱ。森で見つけられる素材。"},{"id":"S0055","name":"琥珀色の樹液","rarity":3,"category":"液体・甘味","sections":[],"source":"森","image":"images/materials/sozai0055.webp","description":"琥珀色の樹液。森で見つけられる素材。"},{"id":"S0056","name":"森の赤い木の実","rarity":2,"category":"植物・菌類","sections":[],"source":"森","image":"images/materials/sozai0056.webp","description":"森の赤い木の実。森で見つけられる素材。"},{"id":"S0057","name":"山ぶどう","rarity":3,"category":"植物・菌類","sections":[],"source":"森","image":"images/materials/sozai0057.webp","description":"山ぶどう。森で見つけられる素材。"},{"id":"S0058","name":"野生の木苺","rarity":2,"category":"植物・菌類","sections":[],"source":"森","image":"images/materials/sozai0058.webp","description":"野生の木苺。森で見つけられる素材。"},{"id":"S0059","name":"小鳥の羽根","rarity":2,"category":"生き物由来","sections":[],"source":"森","image":"images/materials/sozai0059.webp","description":"小鳥の羽根。森で見つけられる素材。"},{"id":"S0060","name":"獣の抜け毛","rarity":1,"category":"生き物由来","sections":[],"source":"森","image":"images/materials/sozai0060.webp","description":"獣の抜け毛。森で見つけられる素材。"},{"id":"S0061","name":"鹿の落とし角","rarity":4,"category":"生き物由来","sections":[],"source":"森","image":"images/materials/sozai0061.webp","description":"鹿の落とし角。森で見つけられる素材。"},{"id":"S0062","name":"空っぽの巣","rarity":3,"category":"生き物由来","sections":[],"source":"森","image":"images/materials/sozai0062.webp","description":"空っぽの巣。森で見つけられる素材。"},{"id":"S0063","name":"森の湧き水","rarity":3,"category":"液体・甘味","sections":[],"source":"森","image":"images/materials/sozai0063.webp","description":"森の湧き水。森で見つけられる素材。"},{"id":"S0064","name":"森の蜂蜜","rarity":4,"category":"液体・甘味","sections":[],"source":"森","image":"images/materials/sozai0064.webp","description":"森の蜂蜜。森で見つけられる素材。"},{"id":"S0065","name":"香りのよい若葉","rarity":3,"category":"植物・菌類","sections":[],"source":"森","image":"images/materials/sozai0065.webp","description":"香りのよい若葉。森で見つけられる素材。"},{"id":"S0066","name":"りんご","rarity":2,"category":"植物・菌類","sections":[],"source":"森","image":"images/materials/sozai0066.webp","description":"りんご。森で見つけられる素材。"},{"id":"S0067","name":"小魚","rarity":3,"category":"生き物由来","sections":[],"source":"森","image":"images/materials/sozai0067.webp","description":"小魚。森で見つけられる素材。"},{"id":"S0068","name":"岩魚","rarity":4,"category":"生き物由来","sections":[],"source":"森","image":"images/materials/sozai0068.webp","description":"岩魚。森で見つけられる素材。"},{"id":"S0069","name":"錆びた鉄釘","rarity":3,"category":"落とし物","sections":[],"source":"森","image":"images/materials/sozai0069.webp","description":"錆びた鉄釘。森で見つけられる素材。"},{"id":"S0070","name":"真鍮の歯車","rarity":5,"category":"落とし物","sections":[],"source":"森","image":"images/materials/sozai0070.webp","description":"真鍮の歯車。森で見つけられる素材。"},{"id":"S0071","name":"小さな真鍮の鍵","rarity":5,"category":"落とし物","sections":[],"source":"森","image":"images/materials/sozai0071.webp","description":"小さな真鍮の鍵。森で見つけられる素材。"},{"id":"S0072","name":"星読みの羅針盤","rarity":5,"category":"落とし物","sections":[],"source":"森","image":"images/materials/sozai0072.webp","description":"星読みの羅針盤。森で見つけられる素材。"},{"id":"S0073","name":"夕焼けの色眼鏡","rarity":5,"category":"落とし物","sections":[],"source":"森","image":"images/materials/sozai0073.webp","description":"夕焼けの色眼鏡。森で見つけられる素材。"},{"id":"S0074","name":"おばけの種","rarity":5,"category":"植物・菌類","sections":[],"source":"森","image":"images/materials/sozai0074.webp","description":"おばけの種。森で見つけられる素材。"},{"id":"S0075","name":"雨粒の小瓶","rarity":5,"category":"落とし物","sections":[],"source":"森","image":"images/materials/sozai0075.webp","description":"雨粒の小瓶。森で見つけられる素材。"}];
+const FOREST_AREAS=[{"id":1,"name":"灯りの森","description":"木々の間に小さな灯りが揺れている。森の香りが漂う。","image":"images/backgrounds/forest1.webp","spots":[{"id":"f1-1","name":"木々の周辺","items":["S0051","S0052","S0053","S0055","S0046","C026"]},{"id":"f1-2","name":"草花の群生地","items":["S0046","S0047","S0048","S0049","S0054","S0065","S0074","S0005"]},{"id":"f1-3","name":"実のなる木","items":["S0050","S0056","S0057","S0058","S0066"]},{"id":"f1-4","name":"獣たちの痕跡","items":["S0059","S0060","S0061","S0062","S0064","S0073"]}]},{"id":2,"name":"水辺の小道","description":"澄んだ水が流れ、木橋の向こうから滝の音が聞こえる。","image":"images/backgrounds/forest2.webp","spots":[{"id":"f2-1","name":"川の浅瀬","items":["S0046","S0048","S0063","S0067","S0007"]},{"id":"f2-2","name":"滝つぼ","items":["S0049","S0063","S0068","S0075","S0007"]},{"id":"f2-3","name":"川辺の草むら","items":["S0047","S0048","S0054","S0058","S0065","S0005"]},{"id":"f2-4","name":"木橋の周辺","items":["S0069","S0071","C026","C028","C002"]}]},{"id":3,"name":"朽ちた遺跡","description":"苔むした石壁と古い柱が残る、静かな遺跡。","image":"images/backgrounds/forest3.webp","spots":[{"id":"f3-1","name":"崩れた石壁","items":["S0046","S0049","S0069","S0007","C002"]},{"id":"f3-2","name":"朽ちた建造物","items":["S0051","S0053","S0069","S0070","C026","C028"]},{"id":"f3-3","name":"遺跡の草むら","items":["S0047","S0048","S0049","S0054","S0060","S0065","S0005"]},{"id":"f3-4","name":"古い祭壇の周辺","items":["S0049","S0059","S0072","S0007","C002"]}]}];
+const FOREST_COMMON=new Set(["C026","C002","S0005","S0007","C028"]);
+const MATERIALS=[...(window.KAGARISO_MATERIALS||[]),...FOREST_MATERIALS].map(m=>['S0039','S0040'].includes(m.id)?{...m,rarity:5}:m);
 const materialById=id=>MATERIALS.find(m=>m.id===id);
 const matIcon=(id)=>{const m=materialById(id);return m?`<img class="material-thumb" src="${safe(m.image)}" alt="" loading="lazy" onerror="this.style.display='none'">`:'';};
 
@@ -182,7 +185,7 @@ const visualImg=(id,src)=>{
 };
 const paintPaper=(id,npc,override)=>visualImg(id,paperImage(override||paperExpression(npc)));
 const stateText=(npc)=>npc.state.locationLabel;
-// v0.16.0.1: server state is authoritative; replay never modifies the record.
+// v0.16.1: server state is authoritative; replay never modifies the record.
 let forestState=null,forestReplay=false,forestFinishing=false,forestNoticeKey='';
 const updateForestHall=forest=>{
  forestState=forest;const ready=Boolean(forest?.unlocked&&forest?.seen&&forest?.eligible);
@@ -431,7 +434,7 @@ async function openMaterialCatalog(){
  ]);
  const discovered=new Set(discovery.ids||[]);
  const materials=MATERIALS.map(m=>({id:m.id,name:m.name,image:m.image,rarity:m.rarity,
-   category:m.category,description:m.description,kind:'material',source:'洞窟',found:discovered.has(m.id)}));
+   category:m.category,description:m.description,kind:'material',source:m.source||'洞窟',found:discovered.has(m.id)}));
  const events=(eventData.items||[]).map(e=>({id:e.id,name:e.name,description:e.description,
    kind:'event',source:e.source||'その他',found:true}));
  // 実際に「受け取った」プレゼントのみ。準備中や未受取は図鑑に出さない。
@@ -455,7 +458,7 @@ async function openMaterialCatalog(){
    const kind=$('#catalog-kind').value;
    const source=$('#catalog-source').value;
    const selected=entries.filter(m=>(state==='all'||(state==='found'?m.found:!m.found))
-     &&(kind==='all'||m.kind===kind)&&(source==='all'||m.source===source));
+     &&(kind==='all'||m.kind===kind)&&(source==='all'||m.source===source||(source==='森'&&m.kind==='material'&&FOREST_COMMON.has(m.id))));
    $('#catalog-results').textContent=`表示：${selected.length} 件`;
    $('#material-catalog-grid').innerHTML=selected.map(item=>{
      const found=item.found;
@@ -480,7 +483,7 @@ let inventorySortItems=[];
 function renderInventoryItems(){
   const mode=$('#inventory-sort').value;
   const sourceFilter=$('#inventory-source').value;
-  const items=inventorySortItems.filter(i=>sourceFilter==='all'||i.source===sourceFilter);
+  const items=inventorySortItems.filter(i=>sourceFilter==='all'||i.source===sourceFilter||(sourceFilter==='森'&&i.kind==='material'&&FOREST_COMMON.has(i.id)));
   const byName=(a,b)=>String(a.name||'').localeCompare(String(b.name||''),'ja');
   const rarity=i=>Number(i.rarity)||0;
   const count=i=>Number(i.quantity)||0;
@@ -496,9 +499,9 @@ function renderInventoryItems(){
 async function openInventory(from='hall'){
   inventoryReturn=from;
   const {items:serverItems,gifts:ownedGifts=[]}=await api('/inventory');
-  inventorySortItems=[...serverItems.filter(i=>materialById(i.id)).map(i=>({...i,source:'洞窟',kind:'material'})),...ownedGifts.map(g=>({...g,id:g.itemId,category:'プレゼント',source:g.npcName||'黄色い獣',kind:'gift',rarity:0}))]; // 所持素材と受取済み返礼品を統合
+  inventorySortItems=[...serverItems.filter(i=>materialById(i.id)).map(i=>({...i,source:materialById(i.id)?.source||'洞窟',kind:'material'})),...ownedGifts.map(g=>({...g,id:g.itemId,category:'プレゼント',source:g.npcName||'黄色い獣',kind:'gift',rarity:0}))]; // 所持素材と受取済み返礼品を統合
   const sourceSelect=$('#inventory-source');const selectedSource=sourceSelect.value;
-  for(const source of new Set(inventorySortItems.map(i=>i.source))){if(![...sourceSelect.options].some(o=>o.value===source)){const o=document.createElement('option');o.value=source;o.textContent=source;sourceSelect.append(o);}}
+  for(const source of new Set([...inventorySortItems.map(i=>i.source),...(inventorySortItems.some(i=>FOREST_COMMON.has(i.id))?['森']:[])])){if(![...sourceSelect.options].some(o=>o.value===source)){const o=document.createElement('option');o.value=source;o.textContent=source;sourceSelect.append(o);}}
   sourceSelect.value=[...sourceSelect.options].some(o=>o.value===selectedSource)?selectedSource:'all';
   renderInventoryItems();
   show('inventory');
@@ -1009,6 +1012,20 @@ const enterHallCave=async()=>{if(hallDoorBusy)return;hallDoorBusy=true;const but
 bind('#hall-cave-door',enterHallCave);
 bind('#hall-forest-door',openForest);
 bind('#forest-back',openHall);
+let forestAreaId=1,forestGathering=false;
+function showForestArea(id){
+ const area=FOREST_AREAS.find(a=>a.id===id);if(!area)return;
+ forestAreaId=id;$('#forest-area-title').textContent=area.name;$('#forest-area-img').src=area.image;$('#forest-area-desc').textContent=area.description;$('#forest-result').textContent='';
+ const list=$('#forest-spots');list.replaceChildren();
+ for(const spot of area.spots){const b=document.createElement('button');b.className='secondary';b.textContent=spot.name;b.disabled=forestGathering;b.addEventListener('click',handler(async()=>{
+ if(forestGathering)return;forestGathering=true;list.querySelectorAll('button').forEach(x=>x.disabled=true);
+ try{const r=await api('/forest/gather','POST',{areaId:id,spotId:spot.id});if(activePage==='forest-area'&&forestAreaId===id)$('#forest-result').textContent=r.message;}
+ finally{forestGathering=false;$('#forest-spots').querySelectorAll('button').forEach(x=>x.disabled=false);}
+ }));list.append(b);}show('forest-area');
+}
+for(const a of FOREST_AREAS)bind('#forest-area-'+a.id,()=>showForestArea(a.id));
+bind('#forest-area-back',openForest);bind('#forest-inventory',()=>openInventory('forest-area'));
+
 async function openForestMemories(){const {forest}=await api('/forest/status');if(forest.unlocked&&forest.seen&&forest.eligible)show('forest-memories');else toast('まだ思い出はありません。');}
 bind('#forest-memory',openForestMemories);
 bind('#forest-memories-back',openHall);
@@ -1025,7 +1042,7 @@ bind('#cave-map-return',()=>openCave());
 bind('#cave-npc-visit',()=>openNpc('cave'));
 bind('#cave-story-back',async()=>{if(mandatoryStory)throw new Error('最初の物語を最後まで読んでね。');await openCave(selectedCaveSection);});
 bind('#cave-story-done',()=>openCave(activeCaveStory==='rescue'?null:selectedCaveSection));
-bind('#inventory-back',async()=>{if(inventoryReturn==='cave')await openCave(selectedCaveSection);else await openHall();});
+bind('#inventory-back',async()=>{if(inventoryReturn==='cave')await openCave(selectedCaveSection);else if(inventoryReturn==='forest-area')showForestArea(forestAreaId);else await openHall();});
 $('#inventory-sort').addEventListener('change',renderInventoryItems);
 $('#inventory-source').addEventListener('change',renderInventoryItems);
 for(const [selector,action] of [['#rest-btn','rest'],['#wake-btn','wake']]){bind(selector,async()=>{const data=await api('/npcs/paper/life/action','POST',{action});currentNpc=data.npc;const last=lastLocation;lastLocation=data.npc.state.location;renderNpc(last!==lastLocation);$('#life-action-result').textContent=data.message;$('#life-action-result').classList.remove('hidden');});}
