@@ -1429,7 +1429,7 @@ bind('#quest-reset',()=>{if(!questData||questLoading||!confirm('この区画を�
 bind('#quest-reload',async()=>{if(!questDirty||confirm('未保存の変更を破棄しますか？'))await loadQuest();});
 bind('#quest-save',async()=>{if(!questData||questLoading)return;if(questPlan.some(r=>!Number.isInteger(r.needed)||r.needed<1||r.needed>100000)||questData.areas.some(a=>!questPlan.some(r=>r.sectionId===a.id))){toast('各区画に1種類以上、必要数は整数1〜100000個で設定してください。');return;}const warnings=questWarnings();if(warnings.length&&!confirm(warnings.join('\n')+'\n次回用として保存しますか？'))return;questLoading=true;const b=$('#quest-save');b.disabled=true;try{setQuestData(await adminApi('/cave-quest/save','POST',{revision:questData.revision,plan:questPlan}));toast('次回用設定を保存しました。現在の進捗は変更していません。');}finally{questLoading=false;b.disabled=false;}});
 
-// v0.15.9: 読み取り専用の探索分析。設定値と過去の実績は区別する。
+// v0.15.9.1: 読み取り専用の探索分析。設定値と過去の実績は区別する。
 let statsData=null,statsSeq=0;
 const statsSort=new Map();
 const statsCompare=(a,b)=>{const parse=x=>{const t=String(x).replace(/,/g,'').replace(/^[★]/,'').replace(/%$/,'');return /^-?\d+(?:\.\d+)?$/.test(t)?Number(t):null;};const x=parse(a),y=parse(b);return x!==null&&y!==null?x-y:String(a).localeCompare(String(b),'ja',{numeric:true});};
@@ -1466,7 +1466,7 @@ bind('#stats-reset',async()=>{$('#stats-from').value='';$('#stats-to').value='';
 $('#stats-content').addEventListener('click',handler(async e=>{const b=e.target.closest('button');if(!b||!statsData||!adminToken)return;if(b.classList.contains('stats-export'))statsDownload(b.parentElement.querySelector('table'),b.dataset.title);if(b.classList.contains('stats-sort')){const title=b.dataset.title,col=Number(b.dataset.col),prev=statsSort.get(title);statsSort.set(title,{col,dir:prev?.col===col?-prev.dir:1});renderStats();}}));
 $('#stats-area').addEventListener('change',()=>{statsSpots();renderStats();});$('#stats-spot').addEventListener('change',renderStats);
 
-// v0.15.9: separate activity analytics tab; no changes to gameplay or stored data.
+// v0.15.9.1: separate activity analytics tab; no changes to gameplay or stored data.
 let activityData=null,activitySeq=0;
 const activityLabels={gather:'採取',donate:'共同納品操作',chat:'選択式会話',ai:'自由会話記録',feed:'食事',lesson:'言葉の学習',request:'お願い受注',complete:'お願い達成',cancel:'お願い取消',requestDonate:'お願い納品操作',npcGift:'NPC返礼品受取',send:'住人への贈り物送付',receive:'住人からの贈り物受取'};
 const clearActivity=()=>{activitySeq++;activityData=null;$('#activity-content').replaceChildren();$('#activity-resident').replaceChildren(new Option('全住人',''));$('#activity-npc').replaceChildren(new Option('全NPC',''));$('#activity-scope').textContent='';};
