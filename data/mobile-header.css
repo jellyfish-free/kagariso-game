@@ -1,0 +1,22 @@
+/* v0.15.5: mobile header; existing desktop layout unchanged. */
+@media (max-width: 750px) {
+  .layout > .topbar {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center; justify-content: stretch;
+    height: auto; min-height: 0; gap: 8px 10px; padding: 10px 0;
+  }
+  .topbar .brand { grid-column: 1; grid-row: 1; min-width: 0; gap: 8px; }
+  .topbar .brand-mark { flex: 0 0 36px; width: 36px; height: 36px; font-size: 20px; }
+  .topbar .brand strong { font-size: 20px; letter-spacing: .12em; white-space: nowrap; line-height: 1.25; }
+  .topbar .brand .overline { font-size: 9px; letter-spacing: .16em; white-space: nowrap; }
+  .topbar .admin-top-nav { grid-column: 2; grid-row: 1; justify-self: end; min-width: 0; }
+  .topbar .text-button { white-space: nowrap; font-size: 12px; padding: 8px 6px; min-height: 36px; width: auto; }
+  .topbar .user-bar:not(.hidden) { grid-column: 1 / -1; grid-row: 2; display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-width: 0; width: 100%; }
+  .topbar #user-name { flex: 1 1 auto; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+  .topbar .user-bar .text-button { flex: 0 0 auto; }
+}
+@media (max-width: 340px) {
+  .topbar .brand strong { font-size: 18px; }
+  .topbar .text-button { font-size: 11px; padding-inline: 4px; }
+  .topbar .brand-mark { flex-basis: 30px; width: 30px; height: 30px; }
+}
