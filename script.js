@@ -127,10 +127,10 @@ const positionHallCaveDoor=()=>{
   const image=$('#hall-background'),stage=$('#hall-visual'),door=$('#hall-cave-door');
   if(!image||!stage||!door)return;
   if(!image.naturalWidth||!image.naturalHeight){door.classList.add('hidden');return;}
-  // object-fit:cover、object-position:center の拡大率と中央クロップを再現。
+  // object-fit:contain、object-position:center の表示位置を再現。
   const stageWidth=stage.clientWidth,stageHeight=stage.clientHeight;
   if(!stageWidth||!stageHeight)return;
-  const scale=Math.max(stageWidth/image.naturalWidth,stageHeight/image.naturalHeight);
+  const scale=Math.min(stageWidth/image.naturalWidth,stageHeight/image.naturalHeight);
   const drawnWidth=image.naturalWidth*scale,drawnHeight=image.naturalHeight*scale;
   const offsetX=(stageWidth-drawnWidth)/2,offsetY=(stageHeight-drawnHeight)/2;
   const area=HALL_CAVE_DOOR_AREA;
@@ -1352,22 +1352,36 @@ $('#ai-profile-test-form').addEventListener('submit',handler(async e=>{
 bind('#ai-profile-audit',async()=>{const {history}=await adminApi('/ai-profile/audit');const el=$('#ai-profile-audit-list');el.replaceChildren();for(const row of history){const p=document.createElement('p');p.textContent=`改訂 ${row.revision} ／ ${row.display_name} ／ ${row.created_at} UTC`;el.append(p);}});
 $('#npc-name-form').addEventListener('submit',handler(async e=>{e.preventDefault();const b=e.currentTarget.querySelector('button');b.disabled=true;try{const r=await api('/npcs/paper/ai/name','POST',{nickname:$('#npc-name-input').value});$('#speech-line').textContent=r.response;$('#npc-name-input').value='';toast('呼び名を教えました。');}finally{b.disabled=false;}}));
 
-let rateAreas=[],rateData=null,rateLoadVersion=0;
+let rateAreas=[],rateData=null,rateLoadVersion=0,rateCoverage=null;
 const rateArea=()=>rateAreas.find(a=>a.id===Number($('#rates-area').value));
 const rateSpotOptions=()=>{$('#rates-spot').replaceChildren(...rateArea().spots.map(s=>new Option(s.name,s.id)));};
+// v0.15.4: pool membership, search, rarity filter and live candidate preview.
+const rateLocations=(id)=>{const sid=Number($('#rates-area').value),spot=$('#rates-spot').value;return (rateCoverage?.locations||[]).map(l=>l.sectionId===sid&&l.spotId===spot?{...l,groups:rateData.groups}:l).filter(l=>Object.values(l.groups).some(g=>g.some(m=>m.id===id&&m.value>0))).map(l=>l.label);};
+const rateWarnings=()=>{
+ const sid=Number($('#rates-area').value),spot=$('#rates-spot').value;
+ const locations=(rateCoverage?.locations||[]).map(l=>l.sectionId===sid&&l.spotId===spot?{...l,groups:rateData.groups}:l);
+ const obtainable=(id,max)=>locations.some(l=>l.sectionId<=max&&Object.entries(l.groups).some(([k,g])=>g.some(m=>m.id===id&&m.value>0&&(k!=='chest'||m.sections.some(s=>s<=max)))));
+ const warnings=[];for(const r of rateCoverage?.required||[])if(!obtainable(r.item_id,r.section_id))warnings.push(`${materialById(r.item_id)?.name||r.item_id}：第${r.section_id}区画までの未完了納品に必要`);
+ for(const id of rateCoverage?.requests||[])if(!obtainable(id,5))warnings.push(`${materialById(id)?.name||id}：お願いに必要`);
+ return [...new Set(warnings)];
+};
 const renderRates=()=>{
  const list=$('#rates-list');list.replaceChildren();if(!rateData)return;
  $('#rates-revision').textContent=`改訂 ${rateData.revision}（0は初期設定）`;
  for(const [key,items] of Object.entries(rateData.groups)){
  const section=document.createElement('section');section.className='rate-group';const h=document.createElement('h3');h.textContent={normal:'通常採取（重み）',rare:'★5（1回の採取あたりの独立確率）',chest:'宝箱（重み）'}[key];section.append(h);
- const fields=[];for(const m of items){const row=document.createElement('div');row.className='rate-row';const label=document.createElement('label');label.textContent=m.name+' '+ '★'.repeat(m.rarity)+(key==='chest'?'（区画 '+m.sections.join('/')+'）':'');const input=document.createElement('input');input.type='number';input.min='0';input.max='100';input.step='0.01';input.required=true;input.value=m.value;label.append(input);const pct=document.createElement('span');row.append(label,pct);section.append(row);fields.push({m,input,pct});}
+ const fields=[];for(const m of items){const row=document.createElement('div');row.className='rate-row';const label=document.createElement('label');label.textContent=m.name+' '+ '★'.repeat(m.rarity);const input=document.createElement('input');input.type='number';input.min='0';input.max='100';input.step='0.01';input.required=true;input.value=m.value;label.append(input);const pct=document.createElement('span');const remove=document.createElement('button');remove.type='button';remove.className='secondary small';remove.textContent='除外';remove.onclick=()=>{rateData.groups[key]=items.filter(x=>x.id!==m.id);renderRates();};row.append(label,pct,remove);section.append(row);fields.push({m,input,pct});}
  const recalc=()=>{const sum=fields.reduce((a,f)=>a+Number(f.input.value||0),0);for(const f of fields){const v=Number(f.input.value||0);f.pct.textContent=(key==='rare'?v:sum?100*v/sum:0).toFixed(2)+'%'+(key==='chest'?'（全候補時）':key==='normal'?'（通常枠内）':'');}};
- for(const f of fields)f.input.addEventListener('input',()=>{f.m.value=Number(f.input.value);recalc();});recalc();list.append(section);
+ for(const f of fields)f.input.addEventListener('input',()=>{f.m.value=Number(f.input.value);recalc();});recalc();
+ const add=document.createElement('div');add.className='rate-add';const search=document.createElement('input');search.type='search';search.placeholder='素材名で検索';search.setAttribute('aria-label','素材名で検索');const stars=document.createElement('select');stars.replaceChildren(new Option('すべてのレア度',''),...[1,2,3,4,5].map(n=>new Option('★'+n,n)));const select=document.createElement('select');select.setAttribute('aria-label','追加する素材');const preview=document.createElement('div');preview.className='rate-preview';const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent='＋ 素材を追加';
+ const updatePreview=()=>{const m=rateData.catalog.find(x=>x.id===select.value);preview.replaceChildren();button.disabled=!m;if(!m)return;const img=materialById(m.id)?.image;if(img){const el=document.createElement('img');el.src=img;el.alt='';el.className='material-thumb';preview.append(el);}const text=document.createElement('div');text.textContent=m.name+' ／ 登録先：'+(rateLocations(m.id).join('、')||'なし');preview.append(text);};
+ const filter=()=>{const q=search.value.trim().toLowerCase();const options=rateData.catalog.filter(m=>(key==='rare'?m.rarity===5:m.rarity<5)&&!items.some(x=>x.id===m.id)&&(!stars.value||m.rarity===Number(stars.value))&&m.name.toLowerCase().includes(q));select.replaceChildren(...options.map(m=>new Option(m.name+'（★'+m.rarity+'）',m.id)));updatePreview();};
+ search.oninput=filter;stars.onchange=filter;select.onchange=updatePreview;button.onclick=()=>{const m=rateData.catalog.find(x=>x.id===select.value);if(m&&!items.some(x=>x.id===m.id)){items.push({...m,value:key==='rare'?1:10,defaultValue:key==='rare'?1:10});renderRates();}};add.append(search,stars,select,preview,button);section.append(add);filter();list.append(section);
  }
 };
-const loadRates=async()=>{const seq=++rateLoadVersion;rateData=null;renderRates();const data=await adminApi('/material-rates?section='+encodeURIComponent($('#rates-area').value)+'&spot='+encodeURIComponent($('#rates-spot').value));if(seq!==rateLoadVersion)return;rateData=data;renderRates();};
+const loadRates=async()=>{const seq=++rateLoadVersion;rateData=null;renderRates();const [data,coverage]=await Promise.all([adminApi('/material-rates?section='+encodeURIComponent($('#rates-area').value)+'&spot='+encodeURIComponent($('#rates-spot').value)),adminApi('/material-rates/coverage')]);if(seq!==rateLoadVersion)return;rateData=data;rateCoverage=coverage;renderRates();};
 bind('#admin-show-material-editor',async()=>{for(const id of ['admin-conversations-panel','admin-requests-panel','admin-gifts-panel','admin-ai-panel'])$('#'+id).classList.add('hidden');$('#admin-material-panel').classList.remove('hidden');rateAreas=(await adminApi('/material-rates/areas')).areas;$('#rates-area').replaceChildren(...rateAreas.map(a=>new Option(a.name,a.id)));rateSpotOptions();await loadRates();});
-$('#rates-area').addEventListener('change',handler(async()=>{rateSpotOptions();await loadRates();}));$('#rates-spot').addEventListener('change',handler(loadRates));bind('#rates-reload',loadRates);bind('#rates-reset',()=>{if(!rateData)return;for(const group of Object.values(rateData.groups))for(const m of group)m.value=m.defaultValue;renderRates();});
-$('#rates-form').addEventListener('submit',handler(async e=>{e.preventDefault();if(!rateData)return;const sectionId=Number($('#rates-area').value),spotId=$('#rates-spot').value;const b=e.currentTarget.querySelector('button[type=submit]');b.disabled=true;try{const rates=Object.fromEntries(Object.entries(rateData.groups).map(([k,items])=>[k,Object.fromEntries(items.map(m=>[m.id,m.value]))]));await adminApi('/material-rates/save','POST',{sectionId,spotId,revision:rateData.revision,rates});await loadRates();toast('出現頻度を保存しました。');}finally{b.disabled=false;}}));
+$('#rates-area').addEventListener('change',handler(async()=>{rateSpotOptions();await loadRates();}));$('#rates-spot').addEventListener('change',handler(loadRates));bind('#rates-reload',loadRates);bind('#rates-reset',()=>{if(!rateData)return;rateData.groups=JSON.parse(JSON.stringify(rateData.initialGroups));renderRates();});
+$('#rates-form').addEventListener('submit',handler(async e=>{e.preventDefault();if(!rateData)return;const sectionId=Number($('#rates-area').value),spotId=$('#rates-spot').value;const b=e.currentTarget.querySelector('button[type=submit]');b.disabled=true;try{const rates=Object.fromEntries(Object.entries(rateData.groups).map(([k,items])=>[k,Object.fromEntries(items.map(m=>[m.id,m.value]))]));const warnings=rateWarnings();if(warnings.length&&!window.confirm('入手困難になる可能性のある必要素材：\n'+warnings.join('\n')+'\nそれでも保存しますか？'))return;await adminApi('/material-rates/save','POST',{sectionId,spotId,revision:rateData.revision,rates});await loadRates();toast('出現頻度を保存しました。');}finally{b.disabled=false;}}));
 bind('#rates-audit',async()=>{const {history}=await adminApi('/material-rates/audit');$('#rates-audit-list').replaceChildren(...history.map(r=>{const p=document.createElement('p');p.textContent=`区画 ${r.section_id} / ${r.spot_id} / 改訂 ${r.revision} / ${r.display_name} / ${r.created_at} UTC`;return p;}));});
 })();
