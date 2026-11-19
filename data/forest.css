@@ -1,3 +1,12 @@
 .forest-event-visual,.forest-map{position:relative;overflow:hidden;border-radius:12px}.forest-event-visual>img:first-child,.forest-map>img{display:block;width:100%;height:auto}.forest-event-paper{position:absolute;width:18%;left:16%;bottom:8%;object-fit:contain}.forest-event-text{white-space:pre-line;line-height:1.95}.forest-gold{color:#e9c78e;font-weight:bold}.forest-map button{position:absolute;transform:translate(-50%,-50%);background:#222134dd;color:#f5dfad;border:1px solid #d8bd86;border-radius:6px;padding:5px 8px;font-size:clamp(11px,2vw,16px);white-space:nowrap}
 
 .forest-area-image{display:block;width:100%;height:auto;border-radius:12px}.forest-spots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.forest-map button{min-height:36px;cursor:pointer}
+
+/* v0.16.2: keep door names and actions aligned on narrow screens. */
+#doors .door-card{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px}
+#doors .door-card-copy{min-width:0;text-align:left;overflow-wrap:anywhere}
+#doors .door-card-copy strong{white-space:nowrap}
+#doors .door-card .tag,#doors .door-card button{white-space:nowrap;justify-self:end}
+#hall-forest-door{clip-path:none}
+#forest-door-hint{left:50%;bottom:12%;transform:translateX(-50%);max-width:none;white-space:nowrap;padding:3px 5px;font-size:clamp(9px,2.4vw,11px);line-height:1.25}
+@media(max-width:580px){#doors{grid-template-columns:minmax(0,1fr)}#doors .door-card{padding:14px;gap:10px}#doors .door-glyph{font-size:24px}#doors .door-card button{padding:8px 10px}#material-catalog-page .catalog-controls{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}#material-catalog-page .catalog-controls input{min-width:0;font-size:16px;padding:8px}}
