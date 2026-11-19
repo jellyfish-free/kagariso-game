@@ -213,7 +213,7 @@ async function openHall(){const data=await api('/hall');resident=data.resident;$
   paperActor.classList.toggle('hidden',!paperHere);
   if(paperHere){paintPaper('#hall-paper-image',paperHere);$('#hall-paper-label').textContent=paperHere.state.activity==='sleeping'?'黄色い獣はおやすみ中':'黄色い獣に会う';}
   $('#npc-list').innerHTML=data.npcs.map(n=>`<article class="npc-card">${n.id==='paper'&&paperVisual?`<img class="npc-list-portrait" src="${safe(encodeURI(paperImage(paperExpression(n))))}" alt="">`:'<div class="avatar" aria-hidden="true">✦</div>'}<div><strong>${safe(n.name)}</strong><div class="muted">${safe(stateText(n))} · ${safe(n.state.activityLabel)}</div></div><button class="secondary small" data-npc="${safe(n.id)}">詳細を見る</button></article>`).join('');
-  $('#doors').innerHTML=data.hall.doors.map(d=>`<article class="door-card"><span class="door-glyph">◇</span><div><strong>${safe(d.name)}</strong><div class="muted">${d.id==='forest'?(d.status==='available'?'森へ行けます':'まだ開かない扉'):d.status==='available'?'入口の採取ができます':'探索機能は次の開発段階で実装'}</div></div>${d.status==='available'?`<button class="secondary small" data-door="${safe(d.id)}">探索する</button>`:`<span class="tag">${d.id==='forest'?'未解放':'準備中'}</span>`}</article>`).join('');
+  $('#doors').innerHTML=data.hall.doors.map(d=>`<article class="door-card" data-door-card="${safe(d.id)}"><span class="door-glyph">◇</span><div class="door-card-copy"><strong>${safe(d.name)}</strong><div class="muted">${d.id==='forest'?(d.status==='available'?'森へ行けます':'まだ開かない扉'):d.status==='available'?'入口の採取ができます':'探索機能は次の開発段階で実装'}</div></div>${d.status==='available'?`<button class="secondary small" data-door="${safe(d.id)}">探索する</button>`:`<span class="tag">${d.id==='forest'?'未解放':'準備中'}</span>`}</article>`).join('');
   $('#doors').querySelector('[data-door="cave"]')?.addEventListener('click',handler(()=>enterHallCave()));
   $('#doors').querySelector('[data-door="forest"]')?.addEventListener('click',handler(openForest));
   $('#npc-list').querySelectorAll('[data-npc]').forEach(b=>b.addEventListener('click',handler(()=>openNpc('hall'))));
@@ -433,7 +433,8 @@ async function openMaterialCatalog(){
    api('/catalog/gifts')
  ]);
  const discovered=new Set(discovery.ids||[]);
- const materials=MATERIALS.map(m=>({id:m.id,name:m.name,image:m.image,rarity:m.rarity,
+ const forestReady=Boolean(forestState?.unlocked&&forestState?.seen&&forestState?.eligible);
+ const materials=MATERIALS.filter(m=>m.source!=='森'||forestReady||discovered.has(m.id)).map(m=>({id:m.id,name:m.name,image:m.image,rarity:m.rarity,
    category:m.category,description:m.description,kind:'material',source:m.source||'洞窟',found:discovered.has(m.id)}));
  const events=(eventData.items||[]).map(e=>({id:e.id,name:e.name,description:e.description,
    kind:'event',source:e.source||'その他',found:true}));
@@ -455,10 +456,12 @@ async function openMaterialCatalog(){
  const kindLabels={material:'素材',event:'イベントアイテム',gift:'プレゼント',crafted:'作製物'};
  const render=()=>{
    const state=$('#catalog-filter').value;
+   const rarity=$('#catalog-rarity').value, query=$('#catalog-search').value.trim().toLowerCase();
    const kind=$('#catalog-kind').value;
    const source=$('#catalog-source').value;
    const selected=entries.filter(m=>(state==='all'||(state==='found'?m.found:!m.found))
-     &&(kind==='all'||m.kind===kind)&&(source==='all'||m.source===source||(source==='森'&&m.kind==='material'&&FOREST_COMMON.has(m.id))));
+     &&(kind==='all'||m.kind===kind)&&(source==='all'||m.source===source||(source==='森'&&m.kind==='material'&&FOREST_COMMON.has(m.id)))
+     &&(rarity==='all'||(m.kind==='material'&&Number(m.rarity)===Number(rarity)))&&(!query||(m.found&&m.name.toLowerCase().includes(query))));
    $('#catalog-results').textContent=`表示：${selected.length} 件`;
    $('#material-catalog-grid').innerHTML=selected.map(item=>{
      const found=item.found;
@@ -468,14 +471,16 @@ async function openMaterialCatalog(){
        :found?'<span class="catalog-placeholder" aria-hidden="true">✧</span>'
        :'<div class="material-missing-icon" aria-hidden="true">？</div>';
      const subtitle=found
-       ?`${safe(kindLabels[item.kind]||item.kind)} · ${safe(item.source)}${item.kind==='material'?' · '+safe(item.category)+' · '+'★'.repeat(item.rarity):''}`
-       :item.kind==='gift'?'未入手のプレゼント':'未開放素材';
-     return `<article class="material-catalog-card ${found?'':'undiscovered'}"><div class="material-catalog-image">${thumb}</div><strong>${found?safe(item.name):'？？？？？'}</strong><div class="muted tiny">${subtitle}</div>${found&&item.description?`<p class="muted tiny">${safe(item.description)}</p>`:''}</article>`;
+       ?`${safe(kindLabels[item.kind]||item.kind)} · ${safe(item.kind==='material'&&FOREST_COMMON.has(item.id)?'洞窟・森':item.source)}${item.kind==='material'?' · '+safe(item.category)+' · '+'★'.repeat(item.rarity):''}`
+       :item.kind==='gift'?'未入手のプレゼント':'未発見素材';
+     return `<article class="material-catalog-card ${found?'':'undiscovered'}"><div class="material-catalog-image">${thumb}</div><strong>${found?safe(item.name):'？？？？？'}</strong><div class="muted tiny">${subtitle}</div>${found&&item.description?`<p class="muted tiny">${safe(item.description)}</p>`:''}${found&&item.kind==='material'&&forestReady&&FOREST_AREAS.some(a=>a.spots.some(sp=>sp.items.includes(item.id)))?`<p class="muted tiny">森：${safe(FOREST_AREAS.flatMap(a=>a.spots.filter(sp=>sp.items.includes(item.id)).map(sp=>a.name+' / '+sp.name)).join('、'))}</p>`:''}</article>`;
    }).join('')||'<p class="muted catalog-empty">該当する品はまだありません。</p>';
  };
  const sourceSelect=$('#catalog-source');
  for(const source of new Set(entries.map(e=>e.source).filter(Boolean))){if(![...sourceSelect.options].some(o=>o.value===source)){const option=document.createElement('option');option.value=source;option.textContent=source;sourceSelect.append(option);}}
- for(const selector of ['#catalog-filter','#catalog-kind','#catalog-source'])$(selector).onchange=render;
+ const forestOption=[...sourceSelect.options].find(o=>o.value==='森');if(forestOption){forestOption.hidden=!forestReady;forestOption.disabled=!forestReady;if(!forestReady&&sourceSelect.value==='森')sourceSelect.value='all';}
+ for(const selector of ['#catalog-filter','#catalog-kind','#catalog-source','#catalog-rarity'])$(selector).onchange=render;
+ $('#catalog-search').oninput=render;
  render();show('material-catalog');
 }
 // v0.11.8.1: 所持品のデータはサーバーのまま。並び替えは画面上だけで行う。
@@ -912,7 +917,7 @@ async function openNpcRequests(message=''){
   }
   if(!requests.active.length)activeList.innerHTML='<p class="muted">今、引き受けているお願いはありません。</p>';
   for(const t of [...requests.templates,...(requests.permanent||[])]){
-    const card=document.createElement('article');card.className='request-card';card.append(subHeading(`${t.mode==='permanent'?'［常設］':'［今日の候補］'} ★${'★'.repeat(Math.max(0,t.difficulty-1))} ${t.title}`,t.description));
+    const card=document.createElement('article');card.className='request-card';card.append(subHeading(`${t.mode==='permanent'?'［常設］':'［今日の候補］'}${t.items.some(i=>FOREST_MATERIALS.some(m=>m.id===i.id))?'［森］':''} ★${'★'.repeat(Math.max(0,t.difficulty-1))} ${t.title}`,t.description));
     const p=document.createElement('div');p.className='muted tiny';p.innerHTML='必要素材：'+t.items.map(i=>`<span class="material-found-item">${matIcon(i.id)}${safe(i.name)} ×${i.needed}</span>`).join('、');card.append(p);
     const button=document.createElement('button');button.className='secondary small';button.textContent='このお願いを引き受ける';button.disabled=!requests.canAccept;
     button.onclick=handler(async()=>{
@@ -1216,6 +1221,7 @@ const ADMIN_MATERIALS=[
   ['C026','廃木材'],['C002','金属スクラップ'],['C008','洞窟キノコ'],['C001','ごつごつした石'],['C003','湿った粘土'],['C004','赤錆鉱石'],['C005','青白い水晶'],['C006','呼吸する石'],
   ['C009','岩陰の豆'],['C010','白い根菜'],['C011','鈴鳴り苔'],['C012','眠り茸'],['C013','逆さに咲く花'],['C014','洞窟鳥の卵'],['C015','洞窟鳥の羽根'],['C016','抜け落ちた牙'],['C017','脱皮した透明な皮'],['C018','洞窟獣の柔らかな毛'],['C021','岩蜜'],['C022','甘い地底果汁'],['C020','夜光の雫'],['C025','折れた木の棒'],['C027','丈夫な地下蔓'],['C028','色褪せた布'],['C029','しなやかな根木'],['C023','光る石'],['C019','誰のものでもない卵'],['C024','いつまでも冷たい水']
 ];
+for(const m of MATERIALS)if(!ADMIN_MATERIALS.some(x=>x[0]===m.id))ADMIN_MATERIALS.push([m.id,m.name]);
 const blankAdminRequest=()=>({key:null,npcId:'paper',title:'',description:'',acceptText:'えへへ！ ありがとぉ！',completeText:'やったぁ！ ありがとぉ！',difficulty:2,minSection:1,mode:'daily',giftKind:'food',enabled:true,revision:0,items:[{id:'C008',needed:3}]});
 const adminRequestListRender=()=>{
   const q=$('#admin-request-search').value.trim().toLowerCase();
