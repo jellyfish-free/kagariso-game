@@ -584,7 +584,7 @@ let aiHistoryCursor=null, aiOlderLoading=false, aiHistoryGeneration=0;
 const appendAiHistory=(list,entries)=>{
   for(const entry of entries){
     const block=document.createElement('article');block.className='history-entry';
-    const t=document.createElement('time');t.textContent=`${entry.createdAt} UTC`;
+    const t=document.createElement('time');t.textContent=`${jstDate(entry.createdAt)}`;
     const q=document.createElement('p');q.textContent=`あなた：${entry.message}`;
     const a=document.createElement('p');a.textContent=`黄色い獣：${entry.response}`;
     block.append(t,q,a);list.append(block);
@@ -676,7 +676,8 @@ async function openNpcFeeding(){
 
 // v0.8: 共通受信箱。ホールからは全員分、プロフィールからは黄色い獣分を表示。
 let giftBusy=false,giftReturn='hall',giftInventory=[];
-const giftDate=text=>text?new Date(String(text).replace(' ','T')+'Z').toLocaleString('ja-JP',{timeZone:'Asia/Tokyo'}):'';
+const jstDate=text=>{if(!text)return '—';const raw=String(text).replace(' ','T');const date=new Date(/(?:Z|[+-]\d{2}:?\d{2})$/i.test(raw)?raw:raw+'Z');return Number.isNaN(date.getTime())?'日時不明':new Intl.DateTimeFormat('ja-JP',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(date)+' JST';};
+const giftDate=jstDate;
 const giftCard=(title,desc)=>{const c=document.createElement('article');c.className='request-card';const strong=document.createElement('strong');strong.textContent=title;c.append(strong);if(desc){const p=document.createElement('p');p.className='muted tiny';p.textContent=desc;c.append(p);}return c;};
 const giftEmpty=(target,text)=>{if(!target.children.length){const p=document.createElement('p');p.className='muted';p.textContent=text;target.append(p);}};
 function addGiftRow(){
@@ -894,7 +895,7 @@ async function openNpcRequests(message=''){
   }
   if(!requests.templates.length&&!(requests.permanent||[]).length)availableList.innerHTML='<p class="muted">今日の候補はすべて受注済み、または完了しました。また明日見にきてね。</p>';
   if(!requests.canAccept){const p=document.createElement('p');p.className='muted tiny';p.textContent='今日の受注上限、または同時受注3件の上限に達しています。';availableList.prepend(p);}
-  for(const r of requests.history){const p=document.createElement('div');p.className='request-history-entry';p.textContent=`${r.title} — ${r.status==='completed'?'完了':'取り消し'}（${r.resolvedAt||r.createdAt} UTC）`;historyList.append(p);}
+  for(const r of requests.history){const p=document.createElement('div');p.className='request-history-entry';p.textContent=`${r.title} — ${r.status==='completed'?'完了':'取り消し'}（${jstDate(r.resolvedAt||r.createdAt)}）`;historyList.append(p);}
   if(!requests.history.length)historyList.textContent='まだ履歴はありません。';
   show('npc-requests');
 }
@@ -919,7 +920,7 @@ const renderWordBook=(data)=>{
   if(!data.history.length){const p=document.createElement('p');p.className='muted';p.textContent='まだ学習履歴はありません。';hist.append(p);}
   for(const [i,entry] of data.history.slice(0,100).entries()){const card=document.createElement('article');card.className='request-card';
     const title=document.createElement('strong');title.textContent=`${entry.word} ／ ${entry.teacher}`;card.append(title);
-    for(const value of [`意味：${entry.meaning}`,`使い方：${entry.usage}`,`記録：${entry.createdAt} UTC`]){const p=document.createElement('p');p.className='muted tiny';p.textContent=value;card.append(p);}
+    for(const value of [`意味：${entry.meaning}`,`使い方：${entry.usage}`,`記録：${jstDate(entry.createdAt)}`]){const p=document.createElement('p');p.className='muted tiny';p.textContent=value;card.append(p);}
     (i<50?hist:olderHist).append(card);
   }
 };
@@ -1013,7 +1014,7 @@ const openConversationHistory=async(origin)=>{
     aiUnlocked?renderAiHistory():Promise.resolve(),
     (async()=>{try{
       const {history}=await api('/npcs/paper/history');
-      list.innerHTML=history.length?history.slice(0,20).map(h=>`<article class="history-entry"><time>${safe(h.created_at)} UTC</time><p>${safe(h.response)}</p><span class="muted">${h.affinity_change?'少し親しくなった':''}</span></article>`).join(''):'<p class="muted">まだ会話の記録がありません。</p>';
+      list.innerHTML=history.length?history.slice(0,20).map(h=>`<article class="history-entry"><time>${jstDate(safe(h.created_at))}</time><p>${safe(h.response)}</p><span class="muted">${h.affinity_change?'少し親しくなった':''}</span></article>`).join(''):'<p class="muted">まだ会話の記録がありません。</p>';
     }catch(error){list.textContent='選択式の履歴を読み込めませんでした。';}})()
   ]);
 };
@@ -1058,7 +1059,7 @@ $('#admin-setup-form').addEventListener('submit',handler(async e=>{
   },'');$('#admin-setup-form').reset();toast(result.message);
 }));
 bind('#admin-logout',async()=>{
-  try{await adminApi('/logout','POST',{});}finally{adminToken='';questData=null;questPlan=[];questDirty=false;sessionStorage.removeItem(ADMIN_SESSION_KEY);show('admin-login');}
+  try{await adminApi('/logout','POST',{});}finally{adminToken='';statsSeq++;statsData=null;$('#stats-content').replaceChildren();questData=null;questPlan=[];questDirty=false;sessionStorage.removeItem(ADMIN_SESSION_KEY);show('admin-login');}
 });
 const adminConditionOptions=[['any','条件なし'],['hungry','空腹'],['not_hungry','空腹でない'],['full','満腹'],['sleepy','眠そう'],['resting','休憩中'],['awake','活動中'],['happy','ご機嫌'],['angry','不機嫌'],['sad','悲しい'],['hall','ホール'],['cave','洞窟'],['morning','朝'],['day','昼'],['night','夜'],['affinity3','♡3以上'],['affinity5','♡5以上'],['weather_verified','天気連動（未対応）']];
 const adminCategoryOptions=[['daily','日常'],['food','食べ物'],['explore','探索'],['social','住人との交流'],['health','体調'],['weather','天気'],['chat','雑談'],['special','感情・特別'],['play','遊び'],['memory','思い出'],['personality','NPC固有'],['language','言葉'],['sleep','睡眠'],['mood','気分'],['location','場所'],['relationship','関係性']];
@@ -1110,6 +1111,7 @@ const appendDonationControls=(form,input,submit)=>{
  form.append(make('−10',v=>v-10),input,make('＋10',v=>v+10),make('最大',()=>Number(input.max)),submit);
 };
 const openAdminEditor=async()=>{
+ $('#admin-stats-panel').classList.add('hidden');
  $('#admin-quest-panel').classList.add('hidden');
  $('#admin-material-panel').classList.add('hidden');
  $('#admin-ai-panel').classList.add('hidden');
@@ -1152,7 +1154,7 @@ bind('#admin-show-history',async()=>{
   if(!history.length){list.textContent='まだ編集履歴がありません。';return;}
   history.forEach(x=>{
     const p=document.createElement('p');p.className='muted tiny';
-    p.textContent=`${x.at} UTC ／ ${x.admin} ／ ${x.action} ／ ${x.label||x.id}`;list.append(p);
+    p.textContent=`${jstDate(x.at)} ／ ${x.admin} ／ ${x.action} ／ ${x.label||x.id}`;list.append(p);
   });
 });
 
@@ -1204,6 +1206,7 @@ const loadAdminRequestEditor=async()=>{
   adminRequestForm();adminRequestListRender();
 };
 bind('#admin-show-request-editor',async()=>{
+ $('#admin-stats-panel').classList.add('hidden');
  $('#admin-quest-panel').classList.add('hidden');
  $('#admin-material-panel').classList.add('hidden');
  $('#admin-ai-panel').classList.add('hidden');
@@ -1211,6 +1214,7 @@ bind('#admin-show-request-editor',async()=>{
   await loadAdminRequestEditor();
 });
 bind('#admin-show-dialogue-editor',()=>{
+ $('#admin-stats-panel').classList.add('hidden');
  $('#admin-quest-panel').classList.add('hidden');
  $('#admin-material-panel').classList.add('hidden');
  $('#admin-ai-panel').classList.add('hidden');
@@ -1234,7 +1238,7 @@ $('#admin-request-edit-form').addEventListener('submit',handler(async e=>{
 bind('#admin-request-show-history',async()=>{
   const {history}=await adminApi('/requests/audit');const list=$('#admin-request-history');list.replaceChildren();
   if(!history.length){list.textContent='まだ編集履歴がありません。';return;}
-  history.forEach(x=>{const p=document.createElement('p');p.className='muted tiny';p.textContent=`${x.at} UTC ／ ${x.admin} ／ ${x.action} ／ ${x.title||x.key}`;list.append(p);});
+  history.forEach(x=>{const p=document.createElement('p');p.className='muted tiny';p.textContent=`${jstDate(x.at)} ／ ${x.admin} ／ ${x.action} ／ ${x.title||x.key}`;list.append(p);});
 });
 
 // v0.11.7: 返礼品エディター。画像ファイルは公開GitHubに置き、登録された相対パスを表示。
@@ -1265,6 +1269,7 @@ const loadAdminGiftEditor=async()=>{
  adminGiftForm();adminGiftListRender();
 };
 bind('#admin-show-gift-editor',async()=>{
+ $('#admin-stats-panel').classList.add('hidden');
  $('#admin-quest-panel').classList.add('hidden');
  $('#admin-material-panel').classList.add('hidden');
  $('#admin-ai-panel').classList.add('hidden');
@@ -1286,7 +1291,7 @@ $('#admin-gift-form').addEventListener('submit',handler(async e=>{
 bind('#admin-gift-show-history',async()=>{
  const {history}=await adminApi('/gifts/audit'),list=$('#admin-gift-history');list.replaceChildren();
  if(!history.length){list.textContent='まだ編集履歴がありません。';return;}
- history.forEach(x=>{const p=document.createElement('p');p.className='muted tiny';p.textContent=`${x.at} UTC ／ ${x.admin} ／ ${x.action} ／ ${x.name||x.itemId}`;list.append(p);});
+ history.forEach(x=>{const p=document.createElement('p');p.className='muted tiny';p.textContent=`${jstDate(x.at)} ／ ${x.admin} ／ ${x.action} ／ ${x.name||x.itemId}`;list.append(p);});
 });
 
 // v0.15.1: 通知は本人のブラウザに保存。受信データや既読状態は変更しない。
@@ -1340,7 +1345,7 @@ const loadAiProfile=async()=>{
  $('#ai-profile-examples').value=profile.examples.map(e=>e.user+'\t'+e.assistant).join('\n');
 };
 bind('#admin-show-ai-editor',async()=>{
- for(const id of ['admin-conversations-panel','admin-requests-panel','admin-gifts-panel','admin-material-panel','admin-quest-panel'])$('#'+id).classList.add('hidden');
+ for(const id of ['admin-stats-panel','admin-conversations-panel','admin-requests-panel','admin-gifts-panel','admin-material-panel','admin-quest-panel'])$('#'+id).classList.add('hidden');
  $('#admin-ai-panel').classList.remove('hidden');await loadAiProfile();
 });
 bind('#ai-profile-reload',loadAiProfile);
@@ -1353,7 +1358,7 @@ $('#ai-profile-test-form').addEventListener('submit',handler(async e=>{
  e.preventDefault();const b=e.currentTarget.querySelector('button');b.disabled=true;
  try{const r=await adminApi('/ai-profile/test','POST',{message:$('#ai-profile-test-message').value});$('#ai-profile-test-result').textContent=r.response;}finally{b.disabled=false;}
 }));
-bind('#ai-profile-audit',async()=>{const {history}=await adminApi('/ai-profile/audit');const el=$('#ai-profile-audit-list');el.replaceChildren();for(const row of history){const p=document.createElement('p');p.textContent=`改訂 ${row.revision} ／ ${row.display_name} ／ ${row.created_at} UTC`;el.append(p);}});
+bind('#ai-profile-audit',async()=>{const {history}=await adminApi('/ai-profile/audit');const el=$('#ai-profile-audit-list');el.replaceChildren();for(const row of history){const p=document.createElement('p');p.textContent=`改訂 ${row.revision} ／ ${row.display_name} ／ ${jstDate(row.created_at)}`;el.append(p);}});
 $('#npc-name-form').addEventListener('submit',handler(async e=>{e.preventDefault();const b=e.currentTarget.querySelector('button');b.disabled=true;try{const r=await api('/npcs/paper/ai/name','POST',{nickname:$('#npc-name-input').value});$('#speech-line').textContent=r.response;$('#npc-name-input').value='';toast('呼び名を教えました。');}finally{b.disabled=false;}}));
 
 let rateAreas=[],rateData=null,rateLoadVersion=0,rateCoverage=null;
@@ -1384,10 +1389,10 @@ const renderRates=()=>{
  }
 };
 const loadRates=async()=>{const seq=++rateLoadVersion;rateData=null;renderRates();const [data,coverage]=await Promise.all([adminApi('/material-rates?section='+encodeURIComponent($('#rates-area').value)+'&spot='+encodeURIComponent($('#rates-spot').value)),adminApi('/material-rates/coverage')]);if(seq!==rateLoadVersion)return;rateData=data;rateCoverage=coverage;renderRates();};
-bind('#admin-show-material-editor',async()=>{for(const id of ['admin-conversations-panel','admin-requests-panel','admin-gifts-panel','admin-ai-panel','admin-quest-panel'])$('#'+id).classList.add('hidden');$('#admin-material-panel').classList.remove('hidden');rateAreas=(await adminApi('/material-rates/areas')).areas;$('#rates-area').replaceChildren(...rateAreas.map(a=>new Option(a.name,a.id)));rateSpotOptions();await loadRates();});
+bind('#admin-show-material-editor',async()=>{for(const id of ['admin-stats-panel','admin-conversations-panel','admin-requests-panel','admin-gifts-panel','admin-ai-panel','admin-quest-panel'])$('#'+id).classList.add('hidden');$('#admin-material-panel').classList.remove('hidden');rateAreas=(await adminApi('/material-rates/areas')).areas;$('#rates-area').replaceChildren(...rateAreas.map(a=>new Option(a.name,a.id)));rateSpotOptions();await loadRates();});
 $('#rates-area').addEventListener('change',handler(async()=>{rateSpotOptions();await loadRates();}));$('#rates-spot').addEventListener('change',handler(loadRates));bind('#rates-reload',loadRates);bind('#rates-reset',()=>{if(!rateData)return;rateData.groups=JSON.parse(JSON.stringify(rateData.initialGroups));renderRates();});
 $('#rates-form').addEventListener('submit',handler(async e=>{e.preventDefault();if(!rateData)return;const sectionId=Number($('#rates-area').value),spotId=$('#rates-spot').value;const b=e.currentTarget.querySelector('button[type=submit]');b.disabled=true;try{const rates=Object.fromEntries(Object.entries(rateData.groups).map(([k,items])=>[k,Object.fromEntries(items.map(m=>[m.id,m.value]))]));const warnings=rateWarnings();if(warnings.length&&!window.confirm('入手困難になる可能性のある必要素材：\n'+warnings.join('\n')+'\nそれでも保存しますか？'))return;await adminApi('/material-rates/save','POST',{sectionId,spotId,revision:rateData.revision,rates});await loadRates();toast('出現頻度を保存しました。');}finally{b.disabled=false;}}));
-bind('#rates-audit',async()=>{const {history}=await adminApi('/material-rates/audit');$('#rates-audit-list').replaceChildren(...history.map(r=>{const p=document.createElement('p');p.textContent=`区画 ${r.section_id} / ${r.spot_id} / 改訂 ${r.revision} / ${r.display_name} / ${r.created_at} UTC`;return p;}));});
+bind('#rates-audit',async()=>{const {history}=await adminApi('/material-rates/audit');$('#rates-audit-list').replaceChildren(...history.map(r=>{const p=document.createElement('p');p.textContent=`区画 ${r.section_id} / ${r.spot_id} / 改訂 ${r.revision} / ${r.display_name} / ${jstDate(r.created_at)}`;return p;}));});
 
 // v0.15.6: next reset quest plan, separate from current live progression.
 let questData=null,questPlan=[],questDirty=false,questLoading=false;
@@ -1413,9 +1418,9 @@ const renderQuest=()=>{
  const available=questData.catalog.filter(m=>!rows.some(r=>r.id===m.id));$('#quest-add-item').replaceChildren(...available.map(m=>new Option(`${m.name}（★${m.rarity}）`,m.id)));$('#quest-add').disabled=!available.length;
  $('#quest-live').replaceChildren(...questData.live.filter(r=>r.sectionId===sectionId).map(r=>{const p=document.createElement('p');p.textContent=`${questName(r.id)}：${r.donated} / ${r.needed}個`;return p;}));questTotals();
 };
-const setQuestData=data=>{const old=questArea();questData=data;questPlan=structuredClone(data.plan);questDirty=false;$('#quest-area').replaceChildren(...data.areas.map(a=>new Option(a.name,a.id)));if(data.areas.some(a=>a.id===old))$('#quest-area').value=String(old);$('#quest-history').replaceChildren(...data.history.map(h=>{const d=document.createElement('details'),s=document.createElement('summary'),p=document.createElement('p');s.textContent=`改訂 ${h.revision} ／ ${h.display_name||'管理者'} ／ ${h.created_at} UTC`;p.textContent=JSON.parse(h.plan_json).map(r=>`第${r.sectionId}区画 ${questName(r.id)}：${r.needed}個`).join('\n');p.style.whiteSpace='pre-line';d.append(s,p);return d;}));renderQuest();};
+const setQuestData=data=>{const old=questArea();questData=data;questPlan=structuredClone(data.plan);questDirty=false;$('#quest-area').replaceChildren(...data.areas.map(a=>new Option(a.name,a.id)));if(data.areas.some(a=>a.id===old))$('#quest-area').value=String(old);$('#quest-history').replaceChildren(...data.history.map(h=>{const d=document.createElement('details'),s=document.createElement('summary'),p=document.createElement('p');s.textContent=`改訂 ${h.revision} ／ ${h.display_name||'管理者'} ／ ${jstDate(h.created_at)}`;p.textContent=JSON.parse(h.plan_json).map(r=>`第${r.sectionId}区画 ${questName(r.id)}：${r.needed}個`).join('\n');p.style.whiteSpace='pre-line';d.append(s,p);return d;}));renderQuest();};
 const loadQuest=async()=>{if(questLoading)return;questLoading=true;try{setQuestData(await adminApi('/cave-quest'));}finally{questLoading=false;}};
-bind('#admin-show-quest-editor',async()=>{for(const id of ['admin-conversations-panel','admin-requests-panel','admin-gifts-panel','admin-ai-panel','admin-material-panel'])$('#'+id).classList.add('hidden');$('#admin-quest-panel').classList.remove('hidden');if(!questData||!questDirty)await loadQuest();});
+bind('#admin-show-quest-editor',async()=>{for(const id of ['admin-stats-panel','admin-conversations-panel','admin-requests-panel','admin-gifts-panel','admin-ai-panel','admin-material-panel'])$('#'+id).classList.add('hidden');$('#admin-quest-panel').classList.remove('hidden');if(!questData||!questDirty)await loadQuest();});
 $('#quest-area').addEventListener('change',renderQuest);
 bind('#quest-add',()=>{if(!questData||questLoading)return;const id=$('#quest-add-item').value;if(id&&!questPlan.some(r=>r.sectionId===questArea()&&r.id===id)){questPlan.push({sectionId:questArea(),id,needed:10});questDirty=true;renderQuest();}});
 const scaleQuest=all=>{if(!questData||questLoading)return;const n=Number($('#quest-factor').value);if(!Number.isFinite(n)||n<0.1||n>10){toast('倍率は0.1〜10です。');return;}if(!confirm(`現在の編集値を ${n} 倍しますか？`))return;for(const r of questPlan)if(all||r.sectionId===questArea())r.needed=Math.max(1,Math.min(100000,Math.round(r.needed*n)));questDirty=true;renderQuest();};
@@ -1423,5 +1428,28 @@ bind('#quest-scale-area',()=>scaleQuest(false));bind('#quest-scale-all',()=>scal
 bind('#quest-reset',()=>{if(!questData||questLoading||!confirm('この区画をエディター導入時の必要数に戻しますか？'))return;questPlan=[...questPlan.filter(r=>r.sectionId!==questArea()),...structuredClone(questData.baseline.filter(r=>r.sectionId===questArea()))];questDirty=true;renderQuest();});
 bind('#quest-reload',async()=>{if(!questDirty||confirm('未保存の変更を破棄しますか？'))await loadQuest();});
 bind('#quest-save',async()=>{if(!questData||questLoading)return;if(questPlan.some(r=>!Number.isInteger(r.needed)||r.needed<1||r.needed>100000)||questData.areas.some(a=>!questPlan.some(r=>r.sectionId===a.id))){toast('各区画に1種類以上、必要数は整数1〜100000個で設定してください。');return;}const warnings=questWarnings();if(warnings.length&&!confirm(warnings.join('\n')+'\n次回用として保存しますか？'))return;questLoading=true;const b=$('#quest-save');b.disabled=true;try{setQuestData(await adminApi('/cave-quest/save','POST',{revision:questData.revision,plan:questPlan}));toast('次回用設定を保存しました。現在の進捗は変更していません。');}finally{questLoading=false;b.disabled=false;}});
+
+// v0.15.7: 読み取り専用の探索分析。設定値と過去の実績は区別する。
+let statsData=null,statsSeq=0;
+const statsTable=(title,headers,rows)=>`<details open><summary>${safe(title)}</summary><div class="stats-scroll"><table><thead><tr>${headers.map(x=>`<th>${safe(x)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(x=>`<td>${safe(x)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></details>`;
+const statsSum=(rows,key)=>rows.reduce((n,r)=>n+Number(r[key]||0),0);
+const statsSpan=(a,b)=>{if(!a||!b)return '不明';const n=Math.max(0,Math.round((Date.parse(b.replace(' ','T')+'Z')-Date.parse(a.replace(' ','T')+'Z'))/60000));return `${Math.floor(n/60)}時間${n%60}分`;};
+const statsSpots=()=>{const area=statsData?.areas.find(a=>a.id===Number($('#stats-area').value));$('#stats-spot').replaceChildren(new Option('全採取場所',''),...(area?.spots||[]).map(s=>new Option(s.name,s.id)));};
+const renderStats=()=>{
+ const d=statsData;if(!d)return;const section=Number($('#stats-area').value),spot=$('#stats-spot').value;
+ const filter=r=>(!section||r.section_id===section)&&(!spot||r.spot_id===spot);
+ const a=d.attempts.filter(filter),detail=d.details.filter(filter),legacy=d.legacy.filter(filter),g=[...detail,...legacy],don=d.donations.filter(r=>!section||r.section_id===section);
+ const n=statsSum(a,'attempts'),people=new Set([...a.map(x=>x.resident_id),...(!spot?don.map(x=>x.resident_id):[])]),dates=d.attempts.map(x=>x.first_at).filter(Boolean).sort(),start=dates[0],areaName=id=>d.areas.find(x=>x.id===id)?.name||id;
+ const pct=(x,y)=>y?(100*x/y).toFixed(2)+'%':'—';const num=x=>Number(x).toLocaleString('ja-JP');
+ const peopleRows=d.residents.filter(r=>people.has(r.id)).map(r=>[r.name,num(statsSum(a.filter(x=>x.resident_id===r.id),'attempts')),spot?'—':num(statsSum(don.filter(x=>x.resident_id===r.id),'quantity'))]);
+ const materials=d.catalog.map(m=>{const rows=g.filter(x=>x.item_id===m.id);return [m.name,'★'+m.rarity,num(statsSum(rows,'quantity')),pct(statsSum(rows,'hits'),n),spot?'—':num(statsSum(don.filter(x=>x.item_id===m.id),'quantity'))];});
+ const milestones=d.areas.map(ar=>{const exact=d.milestones.find(x=>x.section_id===ar.id)?.created_at;const last=ar.id===5&&d.progress?.rescued?d.progress.updated_at:null;const t=exact||last;return [ar.name,num(statsSum(d.requirements.filter(x=>x.section_id===ar.id),'needed')),num(statsSum(d.requirements.filter(x=>x.section_id===ar.id),'donated')),num(statsSum(d.plan.filter(x=>x.sectionId===ar.id),'needed')),t?jstDate(t):'未記録',t?statsSpan(start,t):'—'];});
+ const rateRows=[];for(const ar of d.areas.filter(x=>!section||x.id===section))for(const s of ar.spots.filter(x=>!spot||x.id===spot)){const local=a.filter(x=>x.section_id===ar.id&&x.spot_id===s.id),count=statsSum(local,'attempts');const rare=s.groups.rare,none=rare.reduce((v,r)=>v*(1-r.value/100),1),normal=s.groups.normal,weight=statsSum(normal,'value');for(const m of d.catalog){const r=rare.find(x=>x.id===m.id),q=normal.find(x=>x.id===m.id);if(!r&&!q&&!s.groups.chest.some(x=>x.id===m.id))continue;const hits=statsSum(g.filter(x=>x.section_id===ar.id&&x.spot_id===s.id&&x.item_id===m.id),'hits');const direct=r?r.value:weight?100*none*.74*(q?.value||0)/weight:0;rateRows.push([ar.name+' / '+s.name,m.name,direct.toFixed(2)+'%',pct(hits,count),num(count)]);}}
+ const live=statsSum(d.requirements,'needed'),next=statsSum(d.plan,'needed');const rescued=d.rescuedAt;
+ $('#stats-content').innerHTML=`<p class="stats-note">旧ログは複数獲得時の先頭素材のみ（全体で ${num(d.legacyCount)} 件の旧方式獲得ログ）。獲得数・獲得率は記録上の下限です。納品は採取場所で絞れないため、場所指定時は非表示。</p><div class="stats-kpis">${[['参加住人',people.size+'人'],['採取回数',num(n)+'回'],['獲得記録数',num(statsSum(g,'quantity'))+'個'],['共同納品',spot?'—':num(statsSum(don,'quantity'))+'個'],['素材獲得のあった採取',pct(statsSum(a.filter(x=>['item','chest'].includes(x.outcome)),'attempts'),n)],['現行→次回必要数',num(live)+' → '+num(next)]].map(([k,v])=>`<div><small>${safe(k)}</small><strong>${safe(v)}</strong></div>`).join('')}</div><p>必要総数の比率：${live?(next/live).toFixed(2):'—'}倍。前回5人・約5時間を基準とした10人での目安：${live?(2.5*next/live).toFixed(1):'—'}時間（人数・採取効率が比例する仮定。実測値ではありません）。</p><p>最初の採取 ${safe(jstDate(start))} ／ 最初の救出物語 ${safe(jstDate(rescued))} ／ 経過 ${safe(statsSpan(start,rescued))}（実働時間ではありません）</p>`+statsTable('区画進捗（全区画）',['区画','必要数','納品済','次回必要数','開拓完了日時','開始からの経過'],milestones)+statsTable('住人別（管理者専用）',['住人','採取回数','納品個数'],peopleRows)+statsTable('素材別',['素材','レア度','獲得記録数','記録上の獲得率','納品数'],materials)+`<p class="stats-note">設定率は現在の通常・★5抽選のみ（宝箱を含まない）。実績は宝箱も含む全期間の記録。途中の設定変更や旧ログがあるので単純比較はできません。</p>`+statsTable('採取場所別・設定と実績',['場所','素材','現在の直接採取率','記録上の獲得率','採取回数'],rateRows);
+};
+const loadStats=async()=>{const seq=++statsSeq,b=$('#stats-refresh');b.disabled=true;try{const d=await adminApi('/cave-statistics');if(seq!==statsSeq||!adminToken)return;const old=$('#stats-area').value,spot=$('#stats-spot').value;statsData=d;$('#stats-area').replaceChildren(new Option('全区画','0'),...d.areas.map(x=>new Option(x.name,x.id)));$('#stats-area').value=old||'0';statsSpots();if([...$('#stats-spot').options].some(x=>x.value===spot))$('#stats-spot').value=spot;renderStats();}finally{b.disabled=false;}};
+bind('#admin-show-stats',async()=>{for(const id of ['admin-conversations-panel','admin-requests-panel','admin-gifts-panel','admin-ai-panel','admin-material-panel','admin-quest-panel'])$('#'+id).classList.add('hidden');$('#admin-stats-panel').classList.remove('hidden');await loadStats();});
+bind('#stats-refresh',loadStats);$('#stats-area').addEventListener('change',()=>{statsSpots();renderStats();});$('#stats-spot').addEventListener('change',renderStats);
 
 })();
