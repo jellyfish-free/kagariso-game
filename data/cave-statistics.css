@@ -11,3 +11,32 @@
 .stats-chart {border:1px solid #555269;border-radius:10px;padding:.75rem;min-width:0;}.stats-chart h3 {font-size:1rem;margin:0 0 .65rem;}
 .stats-bar-row {display:grid;grid-template-columns:minmax(80px,1fr) minmax(40px,1fr) auto;gap:.5rem;align-items:center;margin:.4rem 0;font-size:.8rem;}.stats-bar-row span {overflow-wrap:anywhere;}.stats-track {background:#191a2b;border-radius:4px;height:9px;overflow:hidden;}.stats-track>div {background:#d9b37e;height:100%;border-radius:4px;}.stats-bar-row b {font-variant-numeric:tabular-nums;font-size:.8rem;}
 .stats-scroll .stats-sort {font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0;white-space:nowrap;}.stats-scroll th {position:sticky;top:0;background:#29283c;}.stats-export {margin:.5rem 0;}
+
+/* v0.15.9.1: 統計画面の内容幅がページ全体を押し広げないようにする。 */
+#admin-editor-page, #admin-editor-page > .panel {min-width:0;max-width:100%;}
+#admin-stats-panel {width:100%;min-width:0;max-width:100%;grid-template-columns:minmax(0,1fr);}
+#admin-stats-panel :is(#stats-explore-view,#stats-activity-view,#stats-content,#activity-content,details) {min-width:0;max-width:100%;width:100%;}
+#admin-stats-panel .stats-filters {grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));align-items:end;}
+#admin-stats-panel .stats-filters > * {min-width:0;max-width:100%;}
+#admin-stats-panel .stats-filters button {width:100%;white-space:normal;min-height:44px;}
+#admin-stats-panel select {display:block;width:100%;min-width:0;max-width:100%;min-height:44px;background:#191a2b;color:var(--ink,#f4f0ec);border:1px solid #646477;border-radius:9px;padding:8px 10px;font:inherit;}
+#admin-stats-panel .stats-filters input {min-height:44px;}
+#admin-stats-panel .stats-kpis {grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr));}
+#admin-stats-panel .stats-charts {grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));}
+#admin-stats-panel .stats-chart {min-width:0;max-width:100%;}
+#admin-stats-panel .stats-bar-row {grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,max-content);}
+#admin-stats-panel .stats-track {min-width:0;}
+#admin-stats-panel .stats-bar-row b {text-align:right;white-space:nowrap;}
+#admin-stats-panel .stats-scroll {display:block;width:100%;min-width:0;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;}
+#admin-stats-panel .stats-scroll table {width:max-content;min-width:100%;max-width:none;}
+#admin-stats-panel .stats-scroll th,#admin-stats-panel .stats-scroll td {white-space:nowrap;}
+#admin-stats-panel .stats-scroll th:first-child,#admin-stats-panel .stats-scroll td:first-child {position:sticky;left:0;background:#29283c;z-index:1;}
+#admin-stats-panel .stats-scroll th:first-child {z-index:2;}
+@media(max-width:640px){
+ #admin-stats-panel .stats-filters {grid-template-columns:repeat(2,minmax(0,1fr));}
+ #admin-stats-panel .stats-kpis {grid-template-columns:repeat(2,minmax(0,1fr));}
+ #admin-stats-panel .stats-charts {grid-template-columns:minmax(0,1fr);}
+ #admin-stats-panel .stats-chart {padding:.6rem;}
+ #admin-stats-panel .stats-bar-row {gap:.35rem;}
+}
+@media(max-width:350px){#admin-stats-panel .stats-filters {grid-template-columns:minmax(0,1fr);}}
