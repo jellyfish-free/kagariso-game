@@ -1058,7 +1058,7 @@ $('#admin-setup-form').addEventListener('submit',handler(async e=>{
   },'');$('#admin-setup-form').reset();toast(result.message);
 }));
 bind('#admin-logout',async()=>{
-  try{await adminApi('/logout','POST',{});}finally{adminToken='';sessionStorage.removeItem(ADMIN_SESSION_KEY);show('admin-login');}
+  try{await adminApi('/logout','POST',{});}finally{adminToken='';questData=null;questPlan=[];questDirty=false;sessionStorage.removeItem(ADMIN_SESSION_KEY);show('admin-login');}
 });
 const adminConditionOptions=[['any','条件なし'],['hungry','空腹'],['not_hungry','空腹でない'],['full','満腹'],['sleepy','眠そう'],['resting','休憩中'],['awake','活動中'],['happy','ご機嫌'],['angry','不機嫌'],['sad','悲しい'],['hall','ホール'],['cave','洞窟'],['morning','朝'],['day','昼'],['night','夜'],['affinity3','♡3以上'],['affinity5','♡5以上'],['weather_verified','天気連動（未対応）']];
 const adminCategoryOptions=[['daily','日常'],['food','食べ物'],['explore','探索'],['social','住人との交流'],['health','体調'],['weather','天気'],['chat','雑談'],['special','感情・特別'],['play','遊び'],['memory','思い出'],['personality','NPC固有'],['language','言葉'],['sleep','睡眠'],['mood','気分'],['location','場所'],['relationship','関係性']];
@@ -1110,6 +1110,7 @@ const appendDonationControls=(form,input,submit)=>{
  form.append(make('−10',v=>v-10),input,make('＋10',v=>v+10),make('最大',()=>Number(input.max)),submit);
 };
 const openAdminEditor=async()=>{
+ $('#admin-quest-panel').classList.add('hidden');
  $('#admin-material-panel').classList.add('hidden');
  $('#admin-ai-panel').classList.add('hidden');
  $('#admin-gifts-panel').classList.add('hidden');
@@ -1203,12 +1204,14 @@ const loadAdminRequestEditor=async()=>{
   adminRequestForm();adminRequestListRender();
 };
 bind('#admin-show-request-editor',async()=>{
+ $('#admin-quest-panel').classList.add('hidden');
  $('#admin-material-panel').classList.add('hidden');
  $('#admin-ai-panel').classList.add('hidden');
   $('#admin-gifts-panel').classList.add('hidden');$('#admin-requests-panel').classList.remove('hidden');$('#admin-conversations-panel').classList.add('hidden');
   await loadAdminRequestEditor();
 });
 bind('#admin-show-dialogue-editor',()=>{
+ $('#admin-quest-panel').classList.add('hidden');
  $('#admin-material-panel').classList.add('hidden');
  $('#admin-ai-panel').classList.add('hidden');
   $('#admin-gifts-panel').classList.add('hidden');$('#admin-requests-panel').classList.add('hidden');$('#admin-conversations-panel').classList.remove('hidden');
@@ -1262,6 +1265,7 @@ const loadAdminGiftEditor=async()=>{
  adminGiftForm();adminGiftListRender();
 };
 bind('#admin-show-gift-editor',async()=>{
+ $('#admin-quest-panel').classList.add('hidden');
  $('#admin-material-panel').classList.add('hidden');
  $('#admin-ai-panel').classList.add('hidden');
  $('#admin-conversations-panel').classList.add('hidden');$('#admin-requests-panel').classList.add('hidden');$('#admin-gifts-panel').classList.remove('hidden');
@@ -1336,7 +1340,7 @@ const loadAiProfile=async()=>{
  $('#ai-profile-examples').value=profile.examples.map(e=>e.user+'\t'+e.assistant).join('\n');
 };
 bind('#admin-show-ai-editor',async()=>{
- for(const id of ['admin-conversations-panel','admin-requests-panel','admin-gifts-panel','admin-material-panel'])$('#'+id).classList.add('hidden');
+ for(const id of ['admin-conversations-panel','admin-requests-panel','admin-gifts-panel','admin-material-panel','admin-quest-panel'])$('#'+id).classList.add('hidden');
  $('#admin-ai-panel').classList.remove('hidden');await loadAiProfile();
 });
 bind('#ai-profile-reload',loadAiProfile);
@@ -1380,8 +1384,44 @@ const renderRates=()=>{
  }
 };
 const loadRates=async()=>{const seq=++rateLoadVersion;rateData=null;renderRates();const [data,coverage]=await Promise.all([adminApi('/material-rates?section='+encodeURIComponent($('#rates-area').value)+'&spot='+encodeURIComponent($('#rates-spot').value)),adminApi('/material-rates/coverage')]);if(seq!==rateLoadVersion)return;rateData=data;rateCoverage=coverage;renderRates();};
-bind('#admin-show-material-editor',async()=>{for(const id of ['admin-conversations-panel','admin-requests-panel','admin-gifts-panel','admin-ai-panel'])$('#'+id).classList.add('hidden');$('#admin-material-panel').classList.remove('hidden');rateAreas=(await adminApi('/material-rates/areas')).areas;$('#rates-area').replaceChildren(...rateAreas.map(a=>new Option(a.name,a.id)));rateSpotOptions();await loadRates();});
+bind('#admin-show-material-editor',async()=>{for(const id of ['admin-conversations-panel','admin-requests-panel','admin-gifts-panel','admin-ai-panel','admin-quest-panel'])$('#'+id).classList.add('hidden');$('#admin-material-panel').classList.remove('hidden');rateAreas=(await adminApi('/material-rates/areas')).areas;$('#rates-area').replaceChildren(...rateAreas.map(a=>new Option(a.name,a.id)));rateSpotOptions();await loadRates();});
 $('#rates-area').addEventListener('change',handler(async()=>{rateSpotOptions();await loadRates();}));$('#rates-spot').addEventListener('change',handler(loadRates));bind('#rates-reload',loadRates);bind('#rates-reset',()=>{if(!rateData)return;rateData.groups=JSON.parse(JSON.stringify(rateData.initialGroups));renderRates();});
 $('#rates-form').addEventListener('submit',handler(async e=>{e.preventDefault();if(!rateData)return;const sectionId=Number($('#rates-area').value),spotId=$('#rates-spot').value;const b=e.currentTarget.querySelector('button[type=submit]');b.disabled=true;try{const rates=Object.fromEntries(Object.entries(rateData.groups).map(([k,items])=>[k,Object.fromEntries(items.map(m=>[m.id,m.value]))]));const warnings=rateWarnings();if(warnings.length&&!window.confirm('入手困難になる可能性のある必要素材：\n'+warnings.join('\n')+'\nそれでも保存しますか？'))return;await adminApi('/material-rates/save','POST',{sectionId,spotId,revision:rateData.revision,rates});await loadRates();toast('出現頻度を保存しました。');}finally{b.disabled=false;}}));
 bind('#rates-audit',async()=>{const {history}=await adminApi('/material-rates/audit');$('#rates-audit-list').replaceChildren(...history.map(r=>{const p=document.createElement('p');p.textContent=`区画 ${r.section_id} / ${r.spot_id} / 改訂 ${r.revision} / ${r.display_name} / ${r.created_at} UTC`;return p;}));});
+
+// v0.15.6: next reset quest plan, separate from current live progression.
+let questData=null,questPlan=[],questDirty=false,questLoading=false;
+const questArea=()=>Number($('#quest-area').value);
+const questName=id=>questData?.catalog.find(m=>m.id===id)?.name||id;
+const questWarnings=()=>questPlan.flatMap(r=>{
+ const m=questData.catalog.find(m=>m.id===r.id);if(!m)return [`${r.id}：不明な素材`];
+ const possible=questData.coverage.some(l=>l.sectionId<=r.sectionId&&Object.entries(l.groups).some(([k,items])=>items.some(x=>x.id===r.id&&x.value>0&&(k!=='chest'||m.sections.some(s=>s<=r.sectionId)))));
+ return [...(!possible?[`第${r.sectionId}区画までに ${m.name} を入手できません。`]:[]),...(m.rarity===5?[`第${r.sectionId}区画：${m.name} は★5素材です。`]:[])];
+});
+const questTotals=()=>{
+ const total=rows=>rows.reduce((n,r)=>n+Number(r.needed||0),0);
+ $('#quest-summary').textContent=`この区画：${total(questPlan.filter(r=>r.sectionId===questArea())).toLocaleString()}個 ／ 全区画：${total(questPlan).toLocaleString()}個（初期値 ${total(questData.baseline).toLocaleString()}個）`;
+ const warnings=questWarnings();$('#quest-warnings').textContent=warnings.join('\n');
+ $('#quest-status').textContent=`改訂 ${questData.revision} ／ ${questDirty?'未保存の変更あり':'保存済みの表示'} ／ 現在の進行：第${questData.progress.section}区画${questData.progress.rescued?'・出口解放済み':''}`;
+};
+const renderQuest=()=>{
+ if(!questData)return;const sectionId=questArea(),rows=questPlan.filter(r=>r.sectionId===sectionId);
+ const list=$('#quest-list');list.replaceChildren();
+ for(const r of rows){const row=document.createElement('div');row.className='quest-row';const label=document.createElement('div');label.innerHTML=matIcon(r.id)+`<span>${safe(questName(r.id))}（★${questData.catalog.find(m=>m.id===r.id)?.rarity||'?'}）</span>`;
+ const input=document.createElement('input');input.type='number';input.min='1';input.max='100000';input.step='1';input.value=r.needed;input.setAttribute('aria-label',questName(r.id)+' 必要数');input.addEventListener('input',()=>{r.needed=input.value===''?0:Number(input.value);questDirty=true;questTotals();});
+ const remove=document.createElement('button');remove.type='button';remove.className='secondary small';remove.textContent='除外';remove.onclick=()=>{questPlan=questPlan.filter(x=>x!==r);questDirty=true;renderQuest();};row.append(label,input,remove);list.append(row);}
+ const available=questData.catalog.filter(m=>!rows.some(r=>r.id===m.id));$('#quest-add-item').replaceChildren(...available.map(m=>new Option(`${m.name}（★${m.rarity}）`,m.id)));$('#quest-add').disabled=!available.length;
+ $('#quest-live').replaceChildren(...questData.live.filter(r=>r.sectionId===sectionId).map(r=>{const p=document.createElement('p');p.textContent=`${questName(r.id)}：${r.donated} / ${r.needed}個`;return p;}));questTotals();
+};
+const setQuestData=data=>{const old=questArea();questData=data;questPlan=structuredClone(data.plan);questDirty=false;$('#quest-area').replaceChildren(...data.areas.map(a=>new Option(a.name,a.id)));if(data.areas.some(a=>a.id===old))$('#quest-area').value=String(old);$('#quest-history').replaceChildren(...data.history.map(h=>{const d=document.createElement('details'),s=document.createElement('summary'),p=document.createElement('p');s.textContent=`改訂 ${h.revision} ／ ${h.display_name||'管理者'} ／ ${h.created_at} UTC`;p.textContent=JSON.parse(h.plan_json).map(r=>`第${r.sectionId}区画 ${questName(r.id)}：${r.needed}個`).join('\n');p.style.whiteSpace='pre-line';d.append(s,p);return d;}));renderQuest();};
+const loadQuest=async()=>{if(questLoading)return;questLoading=true;try{setQuestData(await adminApi('/cave-quest'));}finally{questLoading=false;}};
+bind('#admin-show-quest-editor',async()=>{for(const id of ['admin-conversations-panel','admin-requests-panel','admin-gifts-panel','admin-ai-panel','admin-material-panel'])$('#'+id).classList.add('hidden');$('#admin-quest-panel').classList.remove('hidden');if(!questData||!questDirty)await loadQuest();});
+$('#quest-area').addEventListener('change',renderQuest);
+bind('#quest-add',()=>{if(!questData||questLoading)return;const id=$('#quest-add-item').value;if(id&&!questPlan.some(r=>r.sectionId===questArea()&&r.id===id)){questPlan.push({sectionId:questArea(),id,needed:10});questDirty=true;renderQuest();}});
+const scaleQuest=all=>{if(!questData||questLoading)return;const n=Number($('#quest-factor').value);if(!Number.isFinite(n)||n<0.1||n>10){toast('倍率は0.1〜10です。');return;}if(!confirm(`現在の編集値を ${n} 倍しますか？`))return;for(const r of questPlan)if(all||r.sectionId===questArea())r.needed=Math.max(1,Math.min(100000,Math.round(r.needed*n)));questDirty=true;renderQuest();};
+bind('#quest-scale-area',()=>scaleQuest(false));bind('#quest-scale-all',()=>scaleQuest(true));
+bind('#quest-reset',()=>{if(!questData||questLoading||!confirm('この区画をエディター導入時の必要数に戻しますか？'))return;questPlan=[...questPlan.filter(r=>r.sectionId!==questArea()),...structuredClone(questData.baseline.filter(r=>r.sectionId===questArea()))];questDirty=true;renderQuest();});
+bind('#quest-reload',async()=>{if(!questDirty||confirm('未保存の変更を破棄しますか？'))await loadQuest();});
+bind('#quest-save',async()=>{if(!questData||questLoading)return;if(questPlan.some(r=>!Number.isInteger(r.needed)||r.needed<1||r.needed>100000)||questData.areas.some(a=>!questPlan.some(r=>r.sectionId===a.id))){toast('各区画に1種類以上、必要数は整数1〜100000個で設定してください。');return;}const warnings=questWarnings();if(warnings.length&&!confirm(warnings.join('\n')+'\n次回用として保存しますか？'))return;questLoading=true;const b=$('#quest-save');b.disabled=true;try{setQuestData(await adminApi('/cave-quest/save','POST',{revision:questData.revision,plan:questPlan}));toast('次回用設定を保存しました。現在の進捗は変更していません。');}finally{questLoading=false;b.disabled=false;}});
+
 })();

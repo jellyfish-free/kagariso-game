@@ -12,14 +12,15 @@
   <link rel="stylesheet" href="data/diary.css?v=0.13.0">
   <link rel="stylesheet" href="data/notifications.css?v=0.15.1">
   <link rel="stylesheet" href="data/material-rates.css?v=0.15.4">
-  <link rel="stylesheet" href="data/mobile-header.css?v=0.15.5">
+  <link rel="stylesheet" href="data/quest-editor.css?v=0.15.6">
+  <link rel="stylesheet" href="data/mobile-header.css?v=0.15.6">
   <script src="config.js" defer></script>
   <script src="data/materials.js" defer></script>
   <script src="data/gifts.js" defer></script>
   <script src="data/npcs.js" defer></script>
   <script src="data/visuals.js" defer></script>
   <script src="data/hall-backgrounds.js" defer></script>
-  <script src="script.js?v=0.15.5" defer></script>
+  <script src="script.js?v=0.15.6" defer></script>
 </head>
 <body>
   <div class="ambient ambient-a" aria-hidden="true"></div><div class="ambient ambient-b" aria-hidden="true"></div>
@@ -258,8 +259,8 @@
   <section id="admin-editor-page" class="page hidden">
     <button class="back" id="admin-editor-back" type="button">← ゲームへ戻る</button>
     <div class="panel"><div class="admin-editor-head"><div><span class="eyebrow">DIALOGUE EDITOR</span><h1>NPC会話エディター</h1><p class="muted">管理者：<span id="admin-logged-name"></span> ／ 現在のNPC：黄色い獣</p></div><button class="secondary small" id="admin-logout">管理者ログアウト</button></div>
-      <div class="admin-editor-switch"><button id="admin-show-dialogue-editor" class="secondary small" type="button">会話エディター</button><button id="admin-show-request-editor" class="secondary small" type="button">お願いエディター</button><button id="admin-show-gift-editor" class="secondary small" type="button">返礼品エディター</button><button id="admin-show-ai-editor" class="secondary small" type="button">AI人格エディター</button><button id="admin-show-material-editor" class="secondary small" type="button">素材エディター</button></div>
-      <div id="admin-material-panel" class="hidden"><h2>素材エディター</h2><label for="rates-area">探索区画</label><select id="rates-area"></select><label for="rates-spot">採取場所</label><select id="rates-spot"></select><p id="rates-revision" class="muted"></p><p class="muted tiny">通常・宝箱は重み（0〜100）、★5は各素材の独立した出現率（%）。0でその経路の出現を停止。素材を追加・除外し、保存すると次の採取から反映します。宝箱は解放済み区画の素材のみ抽選します。</p><form id="rates-form"><div id="rates-list"></div><div class="rate-actions"><button class="secondary" type="button" id="rates-reset">初期値に戻す（未保存）</button><button class="secondary" type="button" id="rates-reload">再読み込み</button><button class="primary" type="submit">設定を保存</button></div></form><details><summary id="rates-audit">編集履歴</summary><div id="rates-audit-list"></div></details></div><div id="admin-conversations-panel"><div class="admin-editor-layout"><aside class="admin-sidebar">
+      <div class="admin-editor-switch"><button id="admin-show-dialogue-editor" class="secondary small" type="button">会話エディター</button><button id="admin-show-request-editor" class="secondary small" type="button">お願いエディター</button><button id="admin-show-gift-editor" class="secondary small" type="button">返礼品エディター</button><button id="admin-show-ai-editor" class="secondary small" type="button">AI人格エディター</button><button id="admin-show-quest-editor" class="secondary small" type="button">クエストエディター</button><button id="admin-show-material-editor" class="secondary small" type="button">素材エディター</button></div>
+      <div id="admin-quest-panel" class="hidden admin-quest"><h2>共同開拓クエストエディター</h2><p>次回初期化用の設定です。保存しても現在の納品実績・救出状態は変更されません。</p><p id="quest-status" class="muted"></p><label for="quest-area">探索区画</label><select id="quest-area"></select><div class="quest-toolbar"><label>倍率（現在の編集値に対して） <input id="quest-factor" type="number" min="0.1" max="10" step="0.1" value="2"></label><button id="quest-scale-area" class="secondary" type="button">この区画に適用</button><button id="quest-scale-all" class="secondary" type="button">全区画に適用</button></div><p id="quest-summary"></p><div id="quest-list"></div><div class="quest-toolbar"><select id="quest-add-item" aria-label="追加する素材"></select><button id="quest-add" class="secondary" type="button">素材を追加</button></div><div id="quest-warnings" aria-live="polite"></div><div class="quest-toolbar"><button id="quest-reset" class="secondary" type="button">この区画を初期値に戻す</button><button id="quest-reload" class="secondary" type="button">再読み込み</button><button id="quest-save" class="primary" type="button">次回用設定を保存</button></div><details><summary>現在の納品状況（変更されません）</summary><div id="quest-live"></div></details><details><summary>編集履歴</summary><div id="quest-history"></div></details></div><div id="admin-material-panel" class="hidden"><h2>素材エディター</h2><label for="rates-area">探索区画</label><select id="rates-area"></select><label for="rates-spot">採取場所</label><select id="rates-spot"></select><p id="rates-revision" class="muted"></p><p class="muted tiny">通常・宝箱は重み（0〜100）、★5は各素材の独立した出現率（%）。0でその経路の出現を停止。素材を追加・除外し、保存すると次の採取から反映します。宝箱は解放済み区画の素材のみ抽選します。</p><form id="rates-form"><div id="rates-list"></div><div class="rate-actions"><button class="secondary" type="button" id="rates-reset">初期値に戻す（未保存）</button><button class="secondary" type="button" id="rates-reload">再読み込み</button><button class="primary" type="submit">設定を保存</button></div></form><details><summary id="rates-audit">編集履歴</summary><div id="rates-audit-list"></div></details></div><div id="admin-conversations-panel"><div class="admin-editor-layout"><aside class="admin-sidebar">
         <label for="admin-topic-search">話題を検索</label><input id="admin-topic-search" placeholder="質問・カテゴリで検索">
         <p id="admin-topic-count" class="muted tiny"></p>
         <div class="actions"><button class="secondary small" id="admin-topic-new" type="button">＋ 新しい話題</button><button class="secondary small" id="admin-topic-refresh" type="button">再読み込み</button></div>
@@ -329,7 +330,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.15.5</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.15.6</span></footer>
   </div>
 </body>
 </html>
