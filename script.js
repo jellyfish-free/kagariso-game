@@ -191,7 +191,7 @@ async function openHall(){const data=await api('/hall');resident=data.resident;$
   if(paperHere){paintPaper('#hall-paper-image',paperHere);$('#hall-paper-label').textContent=paperHere.state.activity==='sleeping'?'黄色い獣はおやすみ中':'黄色い獣に会う';}
   $('#npc-list').innerHTML=data.npcs.map(n=>`<article class="npc-card">${n.id==='paper'&&paperVisual?`<img class="npc-list-portrait" src="${safe(encodeURI(paperImage(paperExpression(n))))}" alt="">`:'<div class="avatar" aria-hidden="true">✦</div>'}<div><strong>${safe(n.name)}</strong><div class="muted">${safe(stateText(n))} · ${safe(n.state.activityLabel)}</div></div><button class="secondary small" data-npc="${safe(n.id)}">詳細を見る</button></article>`).join('');
   $('#doors').innerHTML=data.hall.doors.map(d=>`<article class="door-card"><span class="door-glyph">◇</span><div><strong>${safe(d.name)}</strong><div class="muted">${d.status==='available'?'入口の採取ができます':'探索機能は次の開発段階で実装'}</div></div>${d.status==='available'?'<button class="secondary small" data-door="cave">探索する</button>':'<span class="tag">準備中</span>'}</article>`).join('');
-  $('#doors').querySelector('[data-door="cave"]')?.addEventListener('click',handler(()=>openCave()));
+  $('#doors').querySelector('[data-door="cave"]')?.addEventListener('click',handler(()=>enterHallCave()));
   $('#npc-list').querySelectorAll('[data-npc]').forEach(b=>b.addEventListener('click',handler(()=>openNpc('hall'))));
   if(!data.npcs.length)$('#npc-list').innerHTML='<p class="muted">黄色い獣の姿はまだここにない。洞窟の扉を調べてみよう。</p>';
   show('hall');
@@ -516,7 +516,7 @@ const openConversation=async()=>{
   renderConversationChoices(menu.choices);
   $('#conversation-after-rescue').classList.toggle('hidden',!npc.diaryUnlocked);
   show('conversation');
-  if(npc.diaryUnlocked)refreshAiStatus().catch(()=>{ $('#npc-ai-remaining').textContent='自由に話しかける（確認できませんでした）'; });
+  if(npc.diaryUnlocked){$('#npc-ai-send').disabled=true;$('#npc-ai-remaining').textContent='自由に話しかける（確認中）';refreshAiStatus().catch(()=>{ $('#npc-ai-remaining').textContent='自由に話しかける（確認できませんでした）'; });}
 };
 function renderConversationChoices(options){
   const box=$('#conversation-choices');box.replaceChildren();
@@ -545,10 +545,10 @@ function renderConversationChoices(options){
 // v0.12: AI自由会話は選択式会話と別枠。本文は本人だけの履歴として記録する。
 let aiSending=false;
 const showAiUsage=usage=>{
-  $('#npc-ai-remaining').textContent=`自由に話しかける（${usage.used}/${usage.limit}回）`;
+  $('#npc-ai-remaining').textContent=`自由に話しかける（残り ${usage.remaining} / ${usage.limit}回）`;
   const notice=$('#npc-ai-limit-notice');
-  notice.textContent=usage.globalRemaining<=0?'今日の全体上限に達しました。': '';
-  notice.classList.toggle('hidden',usage.globalRemaining>0);
+  notice.textContent=usage.remaining<=0?'本日の5回を使いました。午前0時に回復します。':usage.globalRemaining<=0?'AI全体の予算に達しました。午前9時に回復します。':'';
+  notice.classList.toggle('hidden',!notice.textContent);
   const blocked=usage.remaining<=0||usage.globalRemaining<=0||currentNpc?.state?.activity==='sleeping';
   $('#npc-ai-send').disabled=aiSending||blocked;
 };
@@ -557,12 +557,13 @@ const refreshAiStatus=async()=>{
 };
 $('#npc-ai-form').addEventListener('submit',handler(async event=>{
   event.preventDefault();
-  if(aiSending)return;
+  if(aiSending||$('#npc-ai-send').disabled)return;
   const message=$('#npc-ai-message').value.trim();
   if(!message){toast('話しかけたいことを書いてね。');return;}
   aiSending=true;$('#npc-ai-send').disabled=true;
   $('#npc-ai-result').classList.remove('hidden');
   $('#npc-ai-result').textContent='黄色い獣が おへんじを かんがえているよ…';
+  let latestUsage=null;
   try{
     const result=await api('/npcs/paper/ai/chat','POST',{message});
     currentNpc=result.npc;
@@ -570,13 +571,14 @@ $('#npc-ai-form').addEventListener('submit',handler(async event=>{
     $('#speech-line').textContent=result.response;
     $('#npc-ai-result').textContent='黄色い獣がお返事してくれたよ。';
     $('#npc-ai-message').value='';
-    showAiUsage(result.usage);
+    latestUsage=result.usage;
   }catch(error){
     $('#npc-ai-result').textContent=error.message||'AIとの通信がうまくいかなかったようです。';
     throw error;
   }finally{
     aiSending=false;
-    try{await refreshAiStatus();}catch{$('#npc-ai-send').disabled=false;}
+    if(latestUsage)showAiUsage(latestUsage);
+    else try{await refreshAiStatus();}catch{$('#npc-ai-send').disabled=true;}
   }
 }));
 // 自由会話は最新20件を常時表示し、古い履歴のみ必要に応じて取得する。
@@ -979,7 +981,11 @@ bind('#npc-requests-back',()=>openNpc(npcReturn));
 
 bind('#hall-paper-actor',()=>openNpc('hall'));
 // 左端の茶色い扉をクリック・タップして洞窟へ移動。
-bind('#hall-cave-door',()=>openCave());
+// 扉の連打による重複GETを防ぐ。画像の外にもタップ可能な入口を置く。
+let hallDoorBusy=false;
+const enterHallCave=async()=>{if(hallDoorBusy)return;hallDoorBusy=true;const buttons=['#hall-cave-door','#hall-cave-shortcut','[data-door="cave"]'].map(x=>$(x)).filter(Boolean);buttons.forEach(b=>b.disabled=true);try{await openCave();}finally{hallDoorBusy=false;buttons.forEach(b=>b.disabled=false);}};
+bind('#hall-cave-door',enterHallCave);
+bind('#hall-cave-shortcut',enterHallCave);
 bind('#refresh-hall',openHall);
 bind('#open-inventory',()=>openInventory('hall'));
 bind('#open-material-catalog',openMaterialCatalog);
