@@ -40,3 +40,7 @@
  #admin-stats-panel .stats-bar-row {gap:.35rem;}
 }
 @media(max-width:350px){#admin-stats-panel .stats-filters {grid-template-columns:minmax(0,1fr);}}
+/* v0.15.10 総合分析：既存のレスポンシブ制限を維持 */
+#stats-overview-view,#overview-content{width:100%;min-width:0;max-width:100%;}
+#admin-stats-panel button[aria-pressed="true"]{border-color:#d9b37e;color:#e6c69a;}
+#admin-stats-panel .overview-heat .stats-scroll td,#admin-stats-panel .overview-heat .stats-scroll th{text-align:center;padding:.45rem;min-width:42px;}
