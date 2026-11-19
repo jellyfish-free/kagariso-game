@@ -1,0 +1,6 @@
+#admin-stats-panel {min-width:0;max-width:100%;}
+#admin-stats-panel label {display:block;margin:.75rem 0;}
+.stats-kpis {display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:.6rem;margin:1rem 0;}
+.stats-kpis>div {padding:.8rem;border:1px solid #555269;border-radius:8px;min-width:0;}
+.stats-kpis small,.stats-kpis strong {display:block;overflow-wrap:anywhere;}.stats-kpis strong {color:#e6c69a;font-size:1.2rem;margin-top:.3rem;}
+.stats-scroll {overflow-x:auto;max-width:100%;margin:.5rem 0 1rem;}.stats-scroll table {width:100%;border-collapse:collapse;font-size:.85rem;}.stats-scroll th,.stats-scroll td {text-align:left;padding:.5rem;border-bottom:1px solid #48465a;white-space:nowrap;}.stats-note {font-size:.85rem;color:#c6c0d3;line-height:1.6;}
