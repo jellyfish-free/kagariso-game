@@ -14,7 +14,7 @@ let pendingRecovery='';
 let inventoryReturn='hall';
 let gathering=false;
 let npcReturn='hall', mandatoryStory=false;
-const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-diary','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor'];
+const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-diary','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor','forest-event','forest','forest-memories'];
 let activePage='';
 const show=(name)=>{
   const changed=activePage!==name; activePage=name;
@@ -126,7 +126,7 @@ const HALL_CAVE_DOOR_AREA={x:0.009,y:0.16,width:0.108,height:0.59};
 const positionHallCaveDoor=()=>{
   const image=$('#hall-background'),stage=$('#hall-visual'),door=$('#hall-cave-door');
   if(!image||!stage||!door)return;
-  if(!image.naturalWidth||!image.naturalHeight){door.classList.add('hidden');return;}
+  if(!image.naturalWidth||!image.naturalHeight){door.classList.add('hidden');$('#hall-forest-door')?.classList.add('hidden');return;}
   // object-fit:contain、object-position:center の表示位置を再現。
   const stageWidth=stage.clientWidth,stageHeight=stage.clientHeight;
   if(!stageWidth||!stageHeight)return;
@@ -134,6 +134,8 @@ const positionHallCaveDoor=()=>{
   const drawnWidth=image.naturalWidth*scale,drawnHeight=image.naturalHeight*scale;
   const offsetX=(stageWidth-drawnWidth)/2,offsetY=(stageHeight-drawnHeight)/2;
   const area=HALL_CAVE_DOOR_AREA;
+  const forestDoor=$('#hall-forest-door');
+  if(forestDoor){Object.assign(forestDoor.style,{left:`${offsetX+drawnWidth*0.15}px`,top:`${offsetY+drawnHeight*0.29}px`,width:`${drawnWidth*0.11}px`,height:`${drawnHeight*0.42}px`});forestDoor.classList.remove('hidden');}
   const left=offsetX+drawnWidth*area.x,top=offsetY+drawnHeight*area.y;
   const width=drawnWidth*area.width,height=drawnHeight*area.height;
   // 背景トリミングで扉が完全に見えない場合は反応させない。
@@ -180,8 +182,26 @@ const visualImg=(id,src)=>{
 };
 const paintPaper=(id,npc,override)=>visualImg(id,paperImage(override||paperExpression(npc)));
 const stateText=(npc)=>npc.state.locationLabel;
+// v0.16.0.1: server state is authoritative; replay never modifies the record.
+let forestState=null,forestReplay=false,forestFinishing=false,forestNoticeKey='';
+const updateForestHall=forest=>{
+ forestState=forest;const ready=Boolean(forest?.unlocked&&forest?.seen&&forest?.eligible);
+ $('#forest-door-hint').textContent=ready?'森へ':'🔒';
+ $('#hall-forest-door').title=ready?'森へ':'白い扉';
+ $('#forest-memory').classList.toggle('hidden',!ready);
+};
+const showForestEvent=replay=>{
+ forestReplay=replay;$('#forest-event-unlocked').classList.toggle('hidden',replay);
+ $('#forest-event-finish').textContent=replay?'思い出の一覧へ戻る':'ホールへ';show('forest-event');
+};
+async function openForest(){
+ const {forest}=await api('/forest/status');updateForestHall(forest);
+ if(!forest.unlocked||!forest.eligible){toast('白い扉はまだ開かない。');return;}
+ if(!forest.seen){showForestEvent(false);return;}show('forest');
+}
 async function openHall(){const data=await api('/hall');resident=data.resident;$('#user-name').textContent=resident.name;$('#user-bar').classList.remove('hidden');
   updateHallBackground();
+  updateForestHall(data.forest);
   const paperHere=data.npcs.find(n=>n.id==='paper'&&n.state.location==='hall');
   // ホール専用の表示位置。5体対応の予約枠はCSS側の data-hall-slot=1〜5。
   // 黄色い獣だけがいる現在は中央(3)へ。プロフィール・会話画面には影響しない。
@@ -190,13 +210,15 @@ async function openHall(){const data=await api('/hall');resident=data.resident;$
   paperActor.classList.toggle('hidden',!paperHere);
   if(paperHere){paintPaper('#hall-paper-image',paperHere);$('#hall-paper-label').textContent=paperHere.state.activity==='sleeping'?'黄色い獣はおやすみ中':'黄色い獣に会う';}
   $('#npc-list').innerHTML=data.npcs.map(n=>`<article class="npc-card">${n.id==='paper'&&paperVisual?`<img class="npc-list-portrait" src="${safe(encodeURI(paperImage(paperExpression(n))))}" alt="">`:'<div class="avatar" aria-hidden="true">✦</div>'}<div><strong>${safe(n.name)}</strong><div class="muted">${safe(stateText(n))} · ${safe(n.state.activityLabel)}</div></div><button class="secondary small" data-npc="${safe(n.id)}">詳細を見る</button></article>`).join('');
-  $('#doors').innerHTML=data.hall.doors.map(d=>`<article class="door-card"><span class="door-glyph">◇</span><div><strong>${safe(d.name)}</strong><div class="muted">${d.status==='available'?'入口の採取ができます':'探索機能は次の開発段階で実装'}</div></div>${d.status==='available'?'<button class="secondary small" data-door="cave">探索する</button>':'<span class="tag">準備中</span>'}</article>`).join('');
+  $('#doors').innerHTML=data.hall.doors.map(d=>`<article class="door-card"><span class="door-glyph">◇</span><div><strong>${safe(d.name)}</strong><div class="muted">${d.id==='forest'?(d.status==='available'?'森へ行けます':'まだ開かない扉'):d.status==='available'?'入口の採取ができます':'探索機能は次の開発段階で実装'}</div></div>${d.status==='available'?`<button class="secondary small" data-door="${safe(d.id)}">探索する</button>`:`<span class="tag">${d.id==='forest'?'未解放':'準備中'}</span>`}</article>`).join('');
   $('#doors').querySelector('[data-door="cave"]')?.addEventListener('click',handler(()=>enterHallCave()));
+  $('#doors').querySelector('[data-door="forest"]')?.addEventListener('click',handler(openForest));
   $('#npc-list').querySelectorAll('[data-npc]').forEach(b=>b.addEventListener('click',handler(()=>openNpc('hall'))));
   if(!data.npcs.length)$('#npc-list').innerHTML='<p class="muted">黄色い獣の姿はまだここにない。洞窟の扉を調べてみよう。</p>';
   show('hall');
   positionHallCaveDoor();
   if(data.requiredStory){toast('先に洞窟での大切な物語を体験しよう。');await openCave(1);return;}
+  if(data.forest?.unlocked&&data.forest.eligible&&!data.forest.seen){showForestEvent(false);return;}
   checkGameNotifications().catch(console.warn);
 }
 let selectedCaveSection=1,activeCaveStory=null,caveStoryReplay=false;
@@ -985,6 +1007,14 @@ bind('#hall-paper-actor',()=>openNpc('hall'));
 let hallDoorBusy=false;
 const enterHallCave=async()=>{if(hallDoorBusy)return;hallDoorBusy=true;const buttons=['#hall-cave-door','[data-door="cave"]'].map(x=>$(x)).filter(Boolean);buttons.forEach(b=>b.disabled=true);try{await openCave();}finally{hallDoorBusy=false;buttons.forEach(b=>b.disabled=false);}};
 bind('#hall-cave-door',enterHallCave);
+bind('#hall-forest-door',openForest);
+bind('#forest-back',openHall);
+async function openForestMemories(){const {forest}=await api('/forest/status');if(forest.unlocked&&forest.seen&&forest.eligible)show('forest-memories');else toast('まだ思い出はありません。');}
+bind('#forest-memory',openForestMemories);
+bind('#forest-memories-back',openHall);
+bind('#forest-memory-cave',async()=>{await openCave();if(activePage==='cave'){$('#cave-history').closest('details').open=true;$('#cave-history').scrollIntoView({block:'nearest'});}});
+bind('#forest-memory-replay',async()=>{const {forest}=await api('/forest/status');if(forest.unlocked&&forest.seen&&forest.eligible)showForestEvent(true);else toast('まだ思い出はありません。');});
+bind('#forest-event-finish',async()=>{if(forestFinishing)return;forestFinishing=true;const btn=$('#forest-event-finish');btn.disabled=true;try{if(forestReplay){await openForestMemories();}else{await api('/forest/event','POST');await openHall();}}finally{forestFinishing=false;btn.disabled=false;}});
 bind('#refresh-hall',openHall);
 bind('#open-inventory',()=>openInventory('hall'));
 bind('#open-material-catalog',openMaterialCatalog);
@@ -1302,12 +1332,12 @@ bind('#admin-gift-show-history',async()=>{
 // v0.15.1: 通知は本人のブラウザに保存。受信データや既読状態は変更しない。
 const notificationKey=()=>`kagariso-notify-v1:${resident?.id||''}`;
 function notificationPrefs(){try{return {npc:true,resident:true,cave:true,...JSON.parse(localStorage.getItem(notificationKey())||'{}')};}catch{return {npc:true,resident:true,cave:true};}}
-function pushGameNotice(message,action){
+function pushGameNotice(message,action,goLabel="確認する",closeLabel="閉じる"){
  const stack=$('#game-notifications');const card=document.createElement('div');card.className='game-notification';
  const title=document.createElement('div');title.textContent=message;title.setAttribute('role','status');
- const close=document.createElement('button');close.type='button';close.className='secondary small';close.textContent='閉じる';close.onclick=()=>card.remove();
+ const close=document.createElement('button');close.type='button';close.className='secondary small';close.textContent=closeLabel;close.onclick=()=>card.remove();
  card.append(title);const actions=document.createElement('div');actions.className='actions';
- if(action){const go=document.createElement('button');go.type='button';go.className='secondary small';go.textContent='確認する';go.onclick=handler(async()=>{card.remove();await action();});actions.append(go);}
+ if(action){const go=document.createElement('button');go.type='button';go.className='secondary small';go.textContent=goLabel;go.onclick=handler(async()=>{card.remove();await action();});actions.append(go);}
  actions.append(close);card.append(actions);stack.append(card);while(stack.children.length>4)stack.firstElementChild.remove();setTimeout(()=>card.remove(),15000);
 }
 let noticeBusy=false;
@@ -1319,6 +1349,14 @@ async function checkGameNotifications(){
   const badge=$('#gift-ready-badge');badge.textContent=data.readyCount?`(${data.readyCount})`:'';badge.classList.toggle('hidden',!data.readyCount);
   const key=notificationKey()+':seen';let seen=[];try{seen=JSON.parse(localStorage.getItem(key)||'[]');}catch{}if(!Array.isArray(seen))seen=[];
   const known=new Set(seen),prefs=notificationPrefs();
+  if(data.forest?.unlocked&&data.forest.eligible&&!data.forest.seen){
+    if(activePage==='hall'){updateForestHall(data.forest);showForestEvent(false);}
+    else if(!['forest-event','forest'].includes(activePage)&&prefs.cave){
+      const k=id+':'+data.forest.unlockedAt;
+      if(forestNoticeKey!==k){forestNoticeKey=k;pushGameNotice('ホールで何かが起きたようです。黄色い獣が、白い扉の前で何かを見つけたようです。',openHall,'ホールへ戻る','探索を続ける');}
+    }
+  }
+
   for(const kind of ['npc','resident']){
    const fresh=data[kind].filter(g=>!known.has(kind+':'+g.id));
    for(const g of fresh)known.add(kind+':'+g.id);

@@ -15,13 +15,14 @@
   <link rel="stylesheet" href="data/quest-editor.css?v=0.15.11">
   <link rel="stylesheet" href="data/mobile-header.css?v=0.15.11">
   <link rel="stylesheet" href="data/cave-statistics.css?v=0.15.11">
+  <link rel="stylesheet" href="data/forest.css?v=0.16.0.1">
   <script src="config.js" defer></script>
   <script src="data/materials.js" defer></script>
   <script src="data/gifts.js" defer></script>
   <script src="data/npcs.js" defer></script>
   <script src="data/visuals.js" defer></script>
   <script src="data/hall-backgrounds.js" defer></script>
-  <script src="script.js?v=0.15.11.1" defer></script>
+  <script src="script.js?v=0.16.0.1" defer></script>
 </head>
 <body>
   <div class="ambient ambient-a" aria-hidden="true"></div><div class="ambient ambient-b" aria-hidden="true"></div>
@@ -31,7 +32,7 @@
     <h2>通知設定</h2><p class="muted tiny">このブラウザの住人ごとに保存されます。</p>
     <label><input type="checkbox" id="notify-npc"> 黄色い獣からの贈り物</label>
     <label><input type="checkbox" id="notify-resident"> 住人からの贈り物</label>
-    <label><input type="checkbox" id="notify-cave"> 探索区画の解放</label>
+    <label><input type="checkbox" id="notify-cave"> 探索区画・扉の解放</label>
     <button type="button" class="secondary" id="close-notification-settings">閉じる</button>
   </dialog>
   <div class="layout">
@@ -49,14 +50,31 @@
         </div>
       </section>
       <section id="recovery-page" class="page hidden narrow"><div class="panel recovery-panel"><div class="big-icon">✉</div><span class="eyebrow">IMPORTANT</span><h1>復旧コードを保存してね</h1><p>このコードは<strong>今回だけ</strong>表示されます。端末やブラウザを変更したとき、住人データを復旧するために必要です。</p><div class="secret-code" id="recovery-output"></div><button id="copy-recovery" class="secondary">コードをコピー</button><label class="confirm"><input id="confirmed-recovery" type="checkbox"> 安全な場所に保存しました</label><button id="enter-after-recovery" class="primary" disabled>ホールへ進む →</button></div></section>
-      <section id="hall-page" class="page hidden"><div class="hall-head"><div><span class="eyebrow">THE HALL OF DOORS</span><h1>塀の扉の向こう側</h1><p>静かな大理石のホール。いくつもの扉のうち、開くのはまだほんの一部。</p></div><div class="actions hall-utilities"><button id="open-inventory" class="secondary small">持ち物</button><button id="open-material-catalog" class="secondary small">図鑑</button><button id="open-gifts" class="secondary small">通信箱 <span id="gift-ready-badge" class="hidden"></span></button><button id="refresh-hall" class="secondary small">↻ 更新</button></div></div><div class="game-backdrop hall-visual" id="hall-visual" role="group" aria-label="ホールの風景">
+      <section id="hall-page" class="page hidden"><div class="hall-head"><div><span class="eyebrow">THE HALL OF DOORS</span><h1>塀の扉の向こう側</h1><p>静かな大理石のホール。いくつもの扉のうち、開くのはまだほんの一部。</p></div><div class="actions hall-utilities"><button id="open-inventory" class="secondary small">持ち物</button><button id="open-material-catalog" class="secondary small">図鑑</button><button id="open-gifts" class="secondary small">通信箱 <span id="gift-ready-badge" class="hidden"></span></button><button id="forest-memory" class="secondary small hidden">思い出を読み返す</button><button id="refresh-hall" class="secondary small">↻ 更新</button></div></div><div class="game-backdrop hall-visual" id="hall-visual" role="group" aria-label="ホールの風景">
             <img class="scene-background" id="hall-background" alt="大理石のホール" loading="eager">
             <!-- v0.11.8.4: 背景上の左端の茶色い扉。画像の表示位置に合わせてJSで配置。 -->
             <button type="button" id="hall-cave-door" class="hall-door-hotspot" aria-label="左端の茶色い扉を開いて洞窟を探索する" title="洞窟へ行く"><span class="hall-door-hint" aria-hidden="true">洞窟へ</span></button>
+            <button type="button" id="hall-forest-door" class="hall-door-hotspot hidden" aria-label="白い扉"><span class="hall-door-hint" id="forest-door-hint">白い扉</span></button>
             <button type="button" id="hall-paper-actor" class="npc-actor hidden" aria-label="黄色い獣のプロフィールを見る">
               <img id="hall-paper-image" alt="黄色い獣" loading="eager"><span id="hall-paper-label">黄色い獣に会う</span>
             </button>
           </div><div class="section-top"><h2>ここにいる住人たち</h2><p class="muted">居場所は、住人全員で共有されています。</p></div><div id="npc-list" class="npc-list"></div><div class="section-top"><h2>不思議な扉</h2><p class="muted">扉の向こうには、新しい探索が待っている。</p></div><div id="doors" class="doors"></div></section>
+      <section id="forest-event-page" class="page hidden narrow">
+        <div class="panel story"><span class="eyebrow">A MEMORY IN THE HALL</span><h1>白い扉の向こう側</h1>
+          <div class="forest-event-visual"><img src="images/backgrounds/hall.webp" alt="ホール"><img class="forest-event-paper" src="images/npc/paper/normal.png" alt="黄色い獣"></div>
+          <p class="forest-event-text">「……ん？」
+
+黄色い獣が、ふと白い扉の方へ顔を向けた。
+鼻をひくひくと動かしながら、扉の前まで駆け寄っていく。
+
+「いいニオイするぅ……！」
+
+今まで何をしても開くことのなかった扉から、微かに風が吹き込んでいる。
+黄色い獣が前足で扉に触れると、小さな音を立てて扉が開いた。</p>
+          <p id="forest-event-unlocked" class="forest-gold">白い扉が解放されました。</p><button id="forest-event-finish" class="primary">ホールへ</button></div>
+      </section>
+      <section id="forest-memories-page" class="page hidden narrow"><button id="forest-memories-back" class="back">← ホールに戻る</button><div class="panel"><span class="eyebrow">MEMORIES</span><h1>思い出を読み返す</h1><details open><summary>第1の扉 ― 洞窟</summary><button id="forest-memory-cave" class="secondary">洞窟の物語一覧へ →</button></details><details open><summary>第2の扉 ― 森</summary><button id="forest-memory-replay" class="secondary">白い扉の向こう側 →</button></details></div></section>
+      <section id="forest-page" class="page hidden narrow"><button id="forest-back" class="back">← ホールに戻る</button><div class="panel"><span class="eyebrow">THE FOREST</span><h1>森</h1><p class="muted">白い扉の向こうに広がる森。採取は次の更新で解放予定です。</p><div class="forest-map"><img src="images/backgrounds/forestMap.webp" alt="森の地図"><span style="left:19%;top:27%">灯りの森</span><span style="left:70%;top:47%">水辺の小道</span><span style="left:21%;top:76%">朽ちた遺跡</span></div></div></section>
       <section id="cave-page" class="page hidden narrow">
         <button class="back" data-back="hall">← ホールに戻る</button>
         <div class="panel">
@@ -331,7 +349,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.15.11.1</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.16.0.1</span></footer>
   </div>
 </body>
 </html>
