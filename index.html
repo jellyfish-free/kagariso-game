@@ -15,14 +15,14 @@
   <link rel="stylesheet" href="data/quest-editor.css?v=0.15.11">
   <link rel="stylesheet" href="data/mobile-header.css?v=0.15.11">
   <link rel="stylesheet" href="data/cave-statistics.css?v=0.15.11">
-  <link rel="stylesheet" href="data/forest.css?v=0.16.4">
+  <link rel="stylesheet" href="data/forest.css?v=0.16.4.1">
   <script src="config.js" defer></script>
   <script src="data/materials.js" defer></script>
   <script src="data/gifts.js" defer></script>
   <script src="data/npcs.js" defer></script>
   <script src="data/visuals.js" defer></script>
   <script src="data/hall-backgrounds.js" defer></script>
-  <script src="script.js?v=0.16.4" defer></script>
+  <script src="script.js?v=0.16.4.1" defer></script>
 </head>
 <body>
   <div class="ambient ambient-a" aria-hidden="true"></div><div class="ambient ambient-b" aria-hidden="true"></div>
@@ -74,7 +74,7 @@
           <p id="forest-event-unlocked" class="forest-gold">白い扉が解放されました。</p><button id="forest-event-finish" class="primary">ホールへ</button></div>
       </section>
       <section id="forest-memories-page" class="page hidden narrow"><button id="forest-memories-back" class="back">← ホールに戻る</button><div class="panel"><span class="eyebrow">MEMORIES</span><h1>思い出を読み返す</h1><details open><summary>第1の扉 ― 洞窟</summary><button id="forest-memory-cave" class="secondary">洞窟の物語一覧へ →</button></details><details open><summary>第2の扉 ― 森</summary><button id="forest-memory-replay" class="secondary">白い扉の向こう側 →</button></details></div></section>
-      <section id="forest-area-page" class="page hidden narrow"><nav class="forest-area-nav" aria-label="戻る"><button id="forest-area-hall" class="back">← ホールに戻る</button><button id="forest-area-back" class="back">← MAPに戻る</button></nav><div class="panel"><span class="eyebrow">THE FOREST</span><h1 id="forest-area-title"></h1><img id="forest-area-img" class="forest-area-image" alt="区画の風景"><p id="forest-area-desc"></p><h2>採取場所</h2><div id="forest-spots" class="forest-spots"></div><div id="forest-result" role="status" aria-live="polite"></div><button id="forest-inventory" class="secondary">持ち物を見る</button></div></section>
+      <section id="forest-area-page" class="page hidden narrow"><nav class="forest-area-nav" aria-label="戻る"><button id="forest-area-hall" class="back">← ホールに戻る</button></nav><div class="panel"><span class="eyebrow">THE FOREST</span><h1 id="forest-area-title"></h1><img id="forest-area-img" class="forest-area-image" alt="区画の風景"><p id="forest-area-desc"></p><h2>採取場所</h2><div id="forest-spots" class="forest-spots"></div><div id="forest-result" role="status" aria-live="polite"></div><button id="forest-inventory" class="secondary">持ち物を見る</button></div></section>
 <section id="forest-page" class="page hidden narrow"><button id="forest-back" class="back">← ホールに戻る</button><div class="panel"><span class="eyebrow">THE FOREST</span><h1>森</h1><p class="muted">白い扉の向こうに広がる森。好きな区画へ進んで探索できます。</p><div class="forest-map"><img src="images/backgrounds/forestMap.webp" alt="森の地図"><button type="button" id="forest-area-1" style="left:19%;top:27%">灯りの森</button><button type="button" id="forest-area-2" style="left:70%;top:47%">水辺の小道</button><button type="button" id="forest-area-3" style="left:21%;top:76%">朽ちた遺跡</button></div></div></section>
       <section id="cave-page" class="page hidden narrow">
         <button class="back" data-back="hall">← ホールに戻る</button>
@@ -351,7 +351,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.16.4</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.16.4.1</span></footer>
   </div>
 </body>
 </html>

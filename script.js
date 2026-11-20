@@ -1036,7 +1036,7 @@ function showForestArea(id){
  }));list.append(b);}show('forest-area');
 }
 for(const a of FOREST_AREAS)bind('#forest-area-'+a.id,()=>showForestArea(a.id));
-bind('#forest-area-hall',openHall);bind('#forest-area-back',openForest);bind('#forest-inventory',()=>openInventory('forest-area'));
+bind('#forest-area-hall',openHall);bind('#forest-inventory',()=>openInventory('forest-area'));
 
 async function openForestMemories(){const {forest}=await api('/forest/status');if(forest.unlocked&&forest.seen&&forest.eligible)show('forest-memories');else toast('まだ思い出はありません。');}
 bind('#forest-memory',openForestMemories);
