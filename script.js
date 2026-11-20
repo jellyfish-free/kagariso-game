@@ -924,7 +924,7 @@ async function openNpcRequests(message=''){
   }
   if(!requests.active.length)activeList.innerHTML='<p class="muted">今、引き受けているお願いはありません。</p>';
   for(const t of [...requests.templates,...(requests.permanent||[])]){
-    const card=document.createElement('article');card.className='request-card';card.append(subHeading(`${t.mode==='permanent'?'［常設］':'［今日の候補］'}${t.items.some(i=>FOREST_MATERIALS.some(m=>m.id===i.id))?'［森］':''} ★${'★'.repeat(Math.max(0,t.difficulty-1))} ${t.title}`,t.description));
+    const card=document.createElement('article');card.className='request-card';card.append(subHeading(`${t.mode==='permanent'?'［常設］':'［今日の候補］'}${t.items.some(i=>FOREST_MATERIALS.some(m=>m.id===i.id))?'［森］':''} ${t.title}`,t.description));
     const p=document.createElement('div');p.className='muted tiny';p.innerHTML='必要素材：'+t.items.map(i=>`<span class="material-found-item">${matIcon(i.id)}${safe(i.name)} ×${i.needed}</span>`).join('、');card.append(p);
     const button=document.createElement('button');button.className='secondary small';button.textContent='このお願いを引き受ける';button.disabled=!requests.canAccept;
     button.onclick=handler(async()=>{
@@ -1031,12 +1031,12 @@ function showForestArea(id){
  const list=$('#forest-spots');list.replaceChildren();
  for(const spot of area.spots){const b=document.createElement('button');b.className='secondary';b.textContent=spot.name;b.disabled=forestGathering;b.addEventListener('click',handler(async()=>{
  if(forestGathering)return;forestGathering=true;list.querySelectorAll('button').forEach(x=>x.disabled=true);
- try{const r=await api('/forest/gather','POST',{areaId:id,spotId:spot.id});if(activePage==='forest-area'&&forestAreaId===id)$('#forest-result').textContent=r.message;}
+ try{const r=await api('/forest/gather','POST',{areaId:id,spotId:spot.id});if(activePage==='forest-area'&&forestAreaId===id){const found=(r.items||[]).map(item=>`<span class="material-found-item">${matIcon(item.id)}<strong>${safe(item.name)} ×${Number(item.quantity)}</strong></span>`).join('、');$('#forest-result').innerHTML=`<div>${safe(r.message)}</div>${found?`<div>入手：${found}</div>`:''}`;}}
  finally{forestGathering=false;$('#forest-spots').querySelectorAll('button').forEach(x=>x.disabled=false);}
  }));list.append(b);}show('forest-area');
 }
 for(const a of FOREST_AREAS)bind('#forest-area-'+a.id,()=>showForestArea(a.id));
-bind('#forest-area-back',openForest);bind('#forest-inventory',()=>openInventory('forest-area'));
+bind('#forest-area-hall',openHall);bind('#forest-area-back',openForest);bind('#forest-inventory',()=>openInventory('forest-area'));
 
 async function openForestMemories(){const {forest}=await api('/forest/status');if(forest.unlocked&&forest.seen&&forest.eligible)show('forest-memories');else toast('まだ思い出はありません。');}
 bind('#forest-memory',openForestMemories);
