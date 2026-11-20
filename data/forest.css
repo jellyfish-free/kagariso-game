@@ -18,3 +18,8 @@
 .forest-area-nav{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 20px}
 #forest-result:not(:empty){margin:14px 0;padding:12px;border:1px solid var(--line);border-radius:10px;line-height:1.7}
 #forest-result .material-thumb{width:64px;height:64px;object-fit:contain}
+
+/* v0.16.4.2: 洞窟と同じ区画切替。スマホでは自然に折り返す。 */
+#forest-sections{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 26px}
+#forest-sections button.selected{border-color:#eac38a;background:rgba(234,195,138,.12);color:#f7ddae}
+#forest-area-title{margin-top:18px}
