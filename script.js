@@ -1028,11 +1028,18 @@ let forestAreaId=1,forestGathering=false;
 function showForestArea(id){
  const area=FOREST_AREAS.find(a=>a.id===id);if(!area)return;
  forestAreaId=id;$('#forest-area-title').textContent=area.name;$('#forest-area-img').src=area.image;$('#forest-area-desc').textContent=area.description;$('#forest-result').textContent='';
+ // 洞窟と同じ区画ナビ。採取中は区画変更を無効化する。
+ const navigation=$('#forest-sections');navigation.replaceChildren();
+ for(const section of FOREST_AREAS){
+   const btn=document.createElement('button');btn.type='button';btn.className='secondary small'+(section.id===id?' selected':'');
+   btn.textContent=section.name;btn.setAttribute('aria-pressed',String(section.id===id));btn.disabled=forestGathering;
+   btn.addEventListener('click',handler(()=>{if(!forestGathering&&section.id!==forestAreaId)showForestArea(section.id);}));navigation.append(btn);
+ }
  const list=$('#forest-spots');list.replaceChildren();
  for(const spot of area.spots){const b=document.createElement('button');b.className='secondary';b.textContent=spot.name;b.disabled=forestGathering;b.addEventListener('click',handler(async()=>{
- if(forestGathering)return;forestGathering=true;list.querySelectorAll('button').forEach(x=>x.disabled=true);
+ if(forestGathering)return;forestGathering=true;list.querySelectorAll('button').forEach(x=>x.disabled=true);$('#forest-sections').querySelectorAll('button').forEach(x=>x.disabled=true);
  try{const r=await api('/forest/gather','POST',{areaId:id,spotId:spot.id});if(activePage==='forest-area'&&forestAreaId===id){const found=(r.items||[]).map(item=>`<span class="material-found-item">${matIcon(item.id)}<strong>${safe(item.name)} ×${Number(item.quantity)}</strong></span>`).join('、');$('#forest-result').innerHTML=`<div>${safe(r.message)}</div>${found?`<div>入手：${found}</div>`:''}`;}}
- finally{forestGathering=false;$('#forest-spots').querySelectorAll('button').forEach(x=>x.disabled=false);}
+ finally{forestGathering=false;$('#forest-spots').querySelectorAll('button').forEach(x=>x.disabled=false);$('#forest-sections').querySelectorAll('button').forEach(x=>x.disabled=false);}
  }));list.append(b);}show('forest-area');
 }
 for(const a of FOREST_AREAS)bind('#forest-area-'+a.id,()=>showForestArea(a.id));
