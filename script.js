@@ -14,7 +14,7 @@ let pendingRecovery='';
 let inventoryReturn='hall';
 let gathering=false;
 let npcReturn='hall', mandatoryStory=false;
-const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-diary','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor','forest-event','forest','forest-area','forest-memories','sea','sea-event'];
+const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-diary','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor','forest-event','forest','forest-area','forest-memories','sea','sea-event','pyoro'];
 let activePage='';
 const show=(name)=>{
   const changed=activePage!==name; activePage=name;
@@ -304,16 +304,19 @@ async function openHall(){const data=await api('/hall');resident=data.resident;$
   // ホール専用の表示位置。5体対応の予約枠はCSS側の data-hall-slot=1〜5。
   // 黄色い獣だけがいる現在は中央(3)へ。プロフィール・会話画面には影響しない。
   const paperActor=$('#hall-paper-actor');
-  paperActor.dataset.hallSlot='3';
+  const pyoroHere=data.npcs.find(n=>n.id==='pyoro'&&n.state.location==='hall');
+  paperActor.dataset.hallSlot=pyoroHere?'2':'3';
+  $('#hall-pyoro-actor').classList.toggle('hidden',!pyoroHere);
+  $('#hall-pyoro-actor').onclick=handler(openPyoro);
   paperActor.classList.toggle('hidden',!paperHere);
   if(paperHere){paintPaper('#hall-paper-image',paperHere);$('#hall-paper-label').textContent=paperHere.state.activity==='sleeping'?'黄色い獣はおやすみ中':'黄色い獣に会う';}
-  $('#npc-list').innerHTML=data.npcs.map(n=>`<article class="npc-card">${n.id==='paper'&&paperVisual?`<img class="npc-list-portrait" src="${safe(encodeURI(paperImage(paperExpression(n))))}" alt="">`:'<div class="avatar" aria-hidden="true">✦</div>'}<div><strong>${safe(n.name)}</strong><div class="muted">${safe(stateText(n))} · ${safe(n.state.activityLabel)}</div></div><button class="secondary small" data-npc="${safe(n.id)}">詳細を見る</button></article>`).join('');
+  $('#npc-list').innerHTML=data.npcs.map(n=>`<article class="npc-card">${n.id==='paper'&&paperVisual?`<img class="npc-list-portrait" src="${safe(encodeURI(paperImage(paperExpression(n))))}" alt="">`:n.id==='pyoro'?'<img class="npc-list-portrait" src="images/npc/pyoro/normal.webp" alt="">':'<div class="avatar" aria-hidden="true">✦</div>'}<div><strong>${safe(n.name)}</strong><div class="muted">${safe(stateText(n))} · ${safe(n.state.activityLabel)}</div></div><button class="secondary small" data-npc="${safe(n.id)}">詳細を見る</button></article>`).join('');
   $('#doors').innerHTML=data.hall.doors.map(d=>`<article class="door-card" data-door-card="${safe(d.id)}"><span class="door-glyph">◇</span><div class="door-card-copy"><strong>${safe(d.id==='forest'&&d.status==='available'?'森':d.id==='sea'&&d.status==='available'?'海':d.id==='unknown'?'正面の扉':d.name)}</strong>${['forest','cave','sea'].includes(d.id)?'':`<div class="muted">${d.status==='available'?'入口の採取ができます':'探索機能は次の開発段階で実装'}</div>`}</div>${d.status==='available'?`<button class="secondary small" data-door="${safe(d.id)}">探索する</button>`:`<span class="tag">${['forest','sea'].includes(d.id)?'未解放':'準備中'}</span>`}</article>`).join('');
   $('#doors').querySelector('[data-door="cave"]')?.addEventListener('click',handler(()=>enterHallCave()));
   $('#doors').querySelector('[data-door="forest"]')?.addEventListener('click',handler(openForest));
   $('#doors').querySelector('[data-door="sea"]')?.addEventListener('click',handler(async()=>{if(!await checkSeaEvents())await window.KAGARISO_SEA.open();}));
   $('#hall-sea-door').onclick=handler(async()=>{if(!seaState?.unlocked||!seaState?.eligible){toast('緑の扉はまだ開かない。');return;}if(!await checkSeaEvents())await window.KAGARISO_SEA.open();});
-  $('#npc-list').querySelectorAll('[data-npc]').forEach(b=>b.addEventListener('click',handler(()=>openNpc('hall'))));
+  $('#npc-list').querySelectorAll('[data-npc]').forEach(b=>b.addEventListener('click',handler(()=>b.dataset.npc==='pyoro'?openPyoro():openNpc('hall'))));
   if(!data.npcs.length)$('#npc-list').innerHTML='<p class="muted">黄色い獣の姿はまだここにない。洞窟の扉を調べてみよう。</p>';
   show('hall');
   positionHallCaveDoor();
@@ -619,6 +622,18 @@ async function openInventory(from='hall'){
   renderInventoryItems();
   show('inventory');
 }
+async function openPyoro(){
+ const {npc}=await api('/npcs/pyoro');
+ $('#pyoro-name').textContent=npc.name;
+ $('#pyoro-hearts').textContent='♥'.repeat(npc.affinity)+'♡'.repeat(10-npc.affinity);
+ $('#pyoro-relationship').textContent=`あなたとの関係：${npc.relationship}（${npc.affinityPoints}pt）`;
+ $('#pyoro-description').textContent=npc.description;
+ $('#pyoro-personality').textContent=npc.personality;
+ $('#pyoro-state').textContent=`${npc.state.locationLabel} ・ ${npc.state.activityLabel} ／ 元気 ${npc.state.energy} ／ 空腹 ${npc.state.hunger} ／ 気分 ${npc.state.mood}`;
+ $('#pyoro-memory').classList.toggle('hidden',!npc.isFinder);
+ show('pyoro');
+}
+bind('#pyoro-back',openHall);
 async function openNpc(from='hall'){npcReturn=from;const {npc}=await api('/npcs/paper');currentNpc=npc;lastLocation=npc.state.location;profileScene=npc.scene;$('#life-action-result').classList.add('hidden');$('#npc-move-notice').classList.add('hidden');renderNpc(false);show('npc');profileTimer=setInterval(async()=>{if(document.hidden)return;try{const {npc:updated}=await api('/npcs/paper');const old=lastLocation;currentNpc=updated;lastLocation=updated.state.location;renderNpc(old!==updated.state.location);}catch{}},15000);}
 function renderNpc(moved){const n=currentNpc;
   $('#npc-diary-section').classList.toggle('hidden',!n.diaryUnlocked);
