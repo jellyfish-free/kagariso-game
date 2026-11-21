@@ -631,7 +631,7 @@ async function openPyoro(){
  $('#pyoro-personality').textContent=npc.personality;
  $('#pyoro-state').textContent=`${npc.state.locationLabel} ・ ${npc.state.activityLabel} ／ 元気 ${npc.state.energy} ／ 空腹 ${npc.state.hunger} ／ 気分 ${npc.state.mood}`;
  $('#pyoro-memory').classList.toggle('hidden',!npc.isFinder);
- $('#pyoro-talk-result').textContent='';$('#pyoro-history').replaceChildren();await loadPyoroTalk();await loadPyoroFood();show('pyoro');
+ $('#pyoro-talk-result').textContent='';$('#pyoro-history').replaceChildren();await loadPyoroTalk();await loadPyoroFood();await Promise.all([loadPyoroRequests(),loadPyoroGifts(),loadPyoroWords()]);show('pyoro');
 }
 let pyoroBusy=false;
 const paintPyoroTalkUsage=u=>{$('#pyoro-ai-usage').textContent=`今日のAI会話：${u.used} / ${u.limit}回`;};
@@ -648,6 +648,78 @@ const renderPyoroFood=data=>{
  for(const kind of ['meal','snack']){const h=document.createElement('h3');h.textContent=kind==='meal'?'ごはん':'おやつ';list.append(h);const items=data.items.filter(x=>x.kind===kind);if(!items.length){const p=document.createElement('p');p.textContent='渡せる素材がありません。';list.append(p);}for(const item of items){const b=document.createElement('button');b.className='secondary';b.textContent=`${item.name} ×${item.quantity}（空腹 -${item.restore}）`;b.onclick=handler(async()=>{if(pyoroBusy)return;pyoroBusy=true;try{const r=await api('/npcs/pyoro/feeding','POST',{itemId:item.id});$('#pyoro-feed-result').textContent=r.message+(r.affinityChange?`（親密度 +${r.affinityChange}pt）`:'');renderPyoroFood(r);}finally{pyoroBusy=false;}});list.append(b);}}
 };
 const loadPyoroFood=async()=>{const data=await api('/npcs/pyoro/feeding');renderPyoroFood(data);};
+
+// v0.17.0.7: Requests/presents/words are separate for pyoro.
+let pyoroRequestBusy=false,pyoroGiftBusy=false;
+const pyoroStatus=(id,message)=>{const el=$(id);el.textContent=message||'';el.classList.toggle('hidden',!message);};
+const pyoroRequestCard=(title,description)=>{
+  const box=document.createElement('article');box.className='request-card';
+  const h=document.createElement('h3');h.textContent=title;box.append(h);
+  if(description){const p=document.createElement('p');p.className='muted tiny';p.textContent=description;box.append(p);}
+  return box;
+};
+const pyoroRequestUpdate=async(path,body)=>{
+  if(pyoroRequestBusy)return;
+  pyoroRequestBusy=true;
+  try{const result=await api(path,'POST',body);pyoroStatus('#pyoro-request-message',result.message);await loadPyoroRequests();}finally{pyoroRequestBusy=false;}
+};
+async function loadPyoroRequests(){
+  const {requests:r}=await api('/npcs/pyoro/requests');
+  $('#pyoro-request-status').textContent=`今日の受注 ${r.acceptedToday}/${r.dailyLimit} 件（残り ${r.remainingToday} 件）／受注済みは日をまたいで継続`;
+  const active=$('#pyoro-request-active'),offers=$('#pyoro-request-offers'),history=$('#pyoro-request-history');
+  active.replaceChildren();offers.replaceChildren();history.replaceChildren();
+  for(const req of r.active){
+    const card=pyoroRequestCard(req.title,'預けた素材は完了報告まで保管されます。');
+    let complete=true;
+    for(const item of req.items){
+      const row=document.createElement('div');row.className='request-item';
+      const label=document.createElement('p');label.className='muted tiny';label.textContent=`${item.name}：${item.donated}/${item.needed}（残り ${item.remaining}・所持 ${item.owned}）`;
+      row.append(label);
+      if(item.remaining>0){complete=false;const form=document.createElement('form');form.className='actions';
+        const input=document.createElement('input');input.type='number';input.min='1';input.max=String(Math.min(item.remaining,item.owned));input.value=String(Math.min(1,item.remaining,item.owned)||1);input.step='1';input.style.maxWidth='90px';input.setAttribute('aria-label',item.name+'の納品個数');
+        const btn=document.createElement('button');btn.type='submit';btn.className='secondary small';btn.textContent='預ける';btn.disabled=item.owned<1;
+        form.append(input,btn);form.addEventListener('submit',handler(async e=>{e.preventDefault();const quantity=Number(input.value);if(!Number.isSafeInteger(quantity)||quantity<1||quantity>item.remaining||quantity>item.owned)throw new Error('素材の個数を確認してね。');await pyoroRequestUpdate('/npcs/pyoro/requests/donate',{requestId:req.id,itemId:item.id,quantity});}));
+        row.append(form);
+      }
+      card.append(row);
+    }
+    const actions=document.createElement('div');actions.className='actions';
+    const report=document.createElement('button');report.className='primary small';report.textContent='赤い獣に報告する';report.disabled=!complete;report.onclick=handler(()=>pyoroRequestUpdate('/npcs/pyoro/requests/resolve',{requestId:req.id,action:'report'}));
+    const cancel=document.createElement('button');cancel.className='secondary small';cancel.textContent='取り消す';cancel.onclick=handler(async()=>{if(confirm('お願いを取り消しますか？ 預けた素材は持ち物に戻ります。'))await pyoroRequestUpdate('/npcs/pyoro/requests/resolve',{requestId:req.id,action:'cancel'});});
+    actions.append(report,cancel);card.append(actions);active.append(card);
+  }
+  if(!r.active.length)active.textContent='引き受けているお願いはありません。';
+  for(const offer of r.offers){
+    const card=pyoroRequestCard(offer.title,offer.description);
+    const p=document.createElement('p');p.className='muted tiny';p.textContent='必要：'+offer.items.map(i=>`${i.name} ×${i.needed}`).join('、');card.append(p);
+    const b=document.createElement('button');b.className='secondary small';b.textContent='引き受ける';b.disabled=!r.canAccept;b.onclick=handler(()=>pyoroRequestUpdate('/npcs/pyoro/requests/accept',{templateKey:offer.key}));card.append(b);offers.append(card);
+  }
+  if(!r.offers.length)offers.textContent='今日は新しく引き受けられるお願いがありません。';
+  for(const req of r.history){const p=document.createElement('p');p.className='muted tiny';p.textContent=`${req.title}：${req.status==='completed'?'完了':'取消'}${req.affinityGain?'（親密度 +'+req.affinityGain+'pt）':''}`;history.append(p);}
+  if(!r.history.length)history.textContent='まだ記録はありません。';
+}
+async function loadPyoroGifts(){
+ const data=await api('/npcs/pyoro/gifts');const inbox=$('#pyoro-gift-inbox'),history=$('#pyoro-gift-history');inbox.replaceChildren();history.replaceChildren();
+ const present=g=>{const card=pyoroRequestCard(g.name,g.description);if(g.image){const image=document.createElement('img');image.src=encodeURI(g.image);image.alt='';image.loading='lazy';image.style.cssText='width:100%;max-width:230px;border-radius:12px;display:block;margin:8px 0;';card.append(image);}return card;};
+ for(const g of data.inbox){const card=present(g);
+  if(g.ready){const btn=document.createElement('button');btn.className='primary small';btn.textContent='プレゼントを受け取る';btn.onclick=handler(async()=>{if(pyoroGiftBusy)return;pyoroGiftBusy=true;try{const r=await api('/npcs/pyoro/gifts/claim','POST',{giftId:g.id});pyoroStatus('#pyoro-gift-message',r.reply);await loadPyoroGifts();}finally{pyoroGiftBusy=false;}});card.append(btn);}
+  else {const p=document.createElement('p');p.className='muted tiny';p.textContent='まだ作っているところみたい。';card.append(p);}
+  inbox.append(card);
+ }
+ if(!data.inbox.length)inbox.textContent='今は届いているプレゼントはありません。';
+ for(const g of data.history)history.append(present(g));
+ if(!data.history.length)history.textContent='まだ受け取ったものはありません。';
+}
+async function loadPyoroWords(){
+ const data=await api('/npcs/pyoro/words');const list=$('#pyoro-word-list');list.replaceChildren();
+ for(const w of data.words){const p=document.createElement('p');p.className='muted tiny';p.textContent=`${w.word}：${w.meaning}（${w.lessons}回教わった）`;list.append(p);}
+ if(!data.words.length)list.textContent='まだ覚えた言葉はありません。';
+}
+$('#pyoro-word-form').addEventListener('submit',handler(async e=>{
+ e.preventDefault();const button=e.currentTarget.querySelector('[type=submit]');if(button.disabled)return;button.disabled=true;
+ try{const r=await api('/npcs/pyoro/words/teach','POST',{word:$('#pyoro-word').value,meaning:$('#pyoro-meaning').value,usage:$('#pyoro-usage').value});pyoroStatus('#pyoro-word-message',r.message);e.currentTarget.reset();await loadPyoroWords();}
+ finally{button.disabled=false;}
+}));
 bind('#pyoro-back',openHall);
 async function openNpc(from='hall'){npcReturn=from;const {npc}=await api('/npcs/paper');currentNpc=npc;lastLocation=npc.state.location;profileScene=npc.scene;$('#life-action-result').classList.add('hidden');$('#npc-move-notice').classList.add('hidden');renderNpc(false);show('npc');profileTimer=setInterval(async()=>{if(document.hidden)return;try{const {npc:updated}=await api('/npcs/paper');const old=lastLocation;currentNpc=updated;lastLocation=updated.state.location;renderNpc(old!==updated.state.location);}catch{}},15000);}
 function renderNpc(moved){const n=currentNpc;
