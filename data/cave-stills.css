@@ -1,0 +1,18 @@
+/* v0.16.4.4 初回の洞窟入口物語・最終ページ専用スチル。
+   既存の洞窟画像とNPCの表示方式は、その他のページでは変更しない。 */
+#cave-story-visual.cave-story-still-mode {
+  height:auto;
+  aspect-ratio:4/3;
+  overflow:hidden;
+}
+#cave-story-visual .cave-story-still {
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  object-position:center;
+}
+#cave-story-visual .cave-story-still.hidden {display:none!important;}
+@media (max-width:560px) {
+  #cave-story-visual.cave-story-still-mode {height:auto;}
+}
