@@ -228,6 +228,8 @@ let selectedCaveSection=1,activeCaveStory=null,caveStoryReplay=false;
 const caveQty=(n)=>Number(n)||0;
 let caveActionBusy=false,caveRefreshTask=null,caveOpening=0,caveSnapshotKey='',lastCaveProgress=null;
 function renderCaveStatus(cave,items,sectionId){
+  // v0.16.4.3: 共同開拓が完了したら、手動の進捗更新は不要。
+  $('#cave-refresh').classList.toggle('hidden',!!cave.rescued);
   const key=JSON.stringify([cave,items,sectionId]);
   if(key===caveSnapshotKey)return;
   caveSnapshotKey=key;
