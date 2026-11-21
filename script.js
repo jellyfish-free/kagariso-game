@@ -184,6 +184,72 @@ const visualImg=(id,src)=>{
   img.onload=()=>{img.classList.remove('visual-error');};
 };
 const paintPaper=(id,npc,override)=>visualImg(id,paperImage(override||paperExpression(npc)));
+const paperStoryAsset=(file)=>`images/npc/paper/${file}`;
+const caveStoryVisualPlan=(storyId,phase,index,preCount,postCount)=>{
+  const base={
+    background:bgVisual.cave||'images/backgrounds/cave.png',
+    paperMode:'expression',
+    paperExpression:'normal',
+    still:null
+  };
+  if(storyId==='section-2')base.background='images/backgrounds/cave2.png';
+  else if(storyId==='section-3')base.background='images/backgrounds/cave3.png';
+  else if(storyId==='section-4')base.background='images/backgrounds/cave4.png';
+  else if(storyId==='section-5'||storyId==='rescue')base.background='images/backgrounds/cave5.png';
+
+  if(storyId==='section-1'){
+    if(phase==='pre'){
+      if(index===0){base.paperMode='hidden';}
+      else if(index===1){base.paperMode='src';base.paperSrc=paperStoryAsset('stand up.png');}
+      else if(index===4){base.paperMode='src';base.paperSrc=paperStoryAsset('scary.png');}
+    }
+    if((phase==='post'&&postCount>0&&index===postCount-1)||phase==='complete'){
+      base.still='images/memories/caveStill001.webp';
+      base.paperMode='hidden';
+    }
+    return base;
+  }
+
+  if(storyId==='rescue'){
+    if(phase==='pre'&&index<=1){
+      base.still='images/memories/caveStill002.webp';
+      base.paperMode='hidden';
+      return base;
+    }
+    if((phase==='pre'&&index>=3)||phase==='choice'||phase==='response'||(phase==='post'&&index<postCount-1)){
+      base.still='images/memories/faintPaper.webp';
+      base.paperMode='hidden';
+      return base;
+    }
+    if((phase==='post'&&postCount>0&&index===postCount-1)||phase==='complete'){
+      base.background=bgVisual.hall||'images/backgrounds/hall.png';
+      base.paperMode='expression';
+      return base;
+    }
+    return base;
+  }
+
+  return base;
+};
+const applyCaveStoryVisual=(storyId,phase,index,preCount,postCount)=>{
+  const visual=caveStoryVisualPlan(storyId,phase,index,preCount,postCount);
+  const wrapper=$('#cave-story-visual');
+  const background=$('#cave-story-background');
+  const paper=$('#cave-story-paper-image');
+  const still=$('#cave-story-still');
+  wrapper.classList.toggle('cave-story-still-mode',!!visual.still);
+  background.classList.toggle('hidden',!!visual.still);
+  still.classList.toggle('hidden',!visual.still);
+  if(visual.still){
+    visualImg('#cave-story-still',visual.still);
+    paper.classList.add('hidden');
+  }else{
+    visualImg('#cave-story-background',visual.background);
+    if(visual.paperMode==='hidden')paper.classList.add('hidden');
+    else if(visual.paperMode==='src'){paper.classList.remove('hidden');visualImg('#cave-story-paper-image',visual.paperSrc);}
+    else {paper.classList.remove('hidden');paintPaper('#cave-story-paper-image',currentNpc,visual.paperExpression||'normal');}
+  }
+};
 const stateText=(npc)=>npc.state.locationLabel;
 // v0.16.1: server state is authoritative; replay never modifies the record.
 let forestState=null,forestReplay=false,forestFinishing=false,forestNoticeKey='';
@@ -383,23 +449,7 @@ async function openStory(storyId,replay){
   const post=Array.isArray(story.post)&&story.post.length?story.post:[];
   const showParagraph=(value)=>{scene.textContent=value;scene.classList.remove('hidden');};
   const render=()=>{
-    // v0.16.4.4 洞窟入口の出会い(section-1)のみ画像を段階切り替え。
-    // 文章・選択肢・進行順序・初回選択の記録は従来のまま。
-    // pre[0]とpre[1]は塞がった岩だけ、pre[2]以降は黄色い獣を初表示。
-    // 最後のpostだけ既存の一枚絵に切り替え、読み返しでも同じ表示にする。
-    const isFirstEncounter=storyId==='section-1';
-    const showIntroRocks=isFirstEncounter&&phase==='pre'&&index<2;
-    const showFinalStill=isFirstEncounter&&(
-      (phase==='post'&&post.length>0&&index===post.length-1)||phase==='complete'
-    );
-    const visual=$('#cave-story-visual');
-    const background=$('#cave-story-background');
-    const paper=$('#cave-story-paper-image');
-    const still=$('#cave-story-still');
-    visual.classList.toggle('cave-story-still-mode',showFinalStill);
-    background.classList.toggle('hidden',showFinalStill);
-    paper.classList.toggle('hidden',showIntroRocks||showFinalStill);
-    still.classList.toggle('hidden',!showFinalStill);
+    applyCaveStoryVisual(storyId,phase,index,pre.length,post.length);
     choices.replaceChildren(); result.classList.add('hidden');done.classList.add('hidden');next.classList.add('hidden');
     speech.parentElement.classList.add('hidden');
     if(phase==='pre'){
