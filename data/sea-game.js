@@ -76,10 +76,10 @@ const draw=()=>{
   // 魚もプレビューと同じ形・大きさ・進行方向で描く。
   const theta=rad(deg-90);
   ctx.save();ctx.translate(c+radius*Math.cos(theta),cy+radius*Math.sin(theta));
-  ctx.rotate(theta+Math.PI/2);ctx.fillStyle='#ffcb4d';ctx.strokeStyle='#ffe9a0';ctx.lineWidth=1.5;
+  ctx.rotate(theta+Math.PI/2);ctx.fillStyle='#38b5ee';ctx.strokeStyle='#b9edff';ctx.lineWidth=1.5;
   ctx.beginPath();ctx.ellipse(0,0,15,10,0,0,TWO_PI);ctx.fill();ctx.stroke();
   ctx.beginPath();ctx.moveTo(-11,0);ctx.lineTo(-24,-10);ctx.lineTo(-24,10);ctx.closePath();ctx.fill();
-  ctx.fillStyle='#503c29';ctx.beginPath();ctx.arc(8,-3,2.6,0,TWO_PI);ctx.fill();ctx.restore();
+  ctx.fillStyle='#08385d';ctx.beginPath();ctx.arc(8,-3,2.6,0,TWO_PI);ctx.fill();ctx.restore();
   ctx.fillStyle='#d7f8ff';ctx.font='36px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.fillText('⚓',c,cy);
   ctx.fillStyle='white';ctx.font='bold 25px sans-serif';ctx.fillText((a.stage+1)+' / '+a.rings,c,cy-68);
