@@ -16,13 +16,14 @@
   <link rel="stylesheet" href="data/mobile-header.css?v=0.15.11">
   <link rel="stylesheet" href="data/cave-statistics.css?v=0.15.11">
   <link rel="stylesheet" href="data/forest.css?v=0.16.4.3">
+  <link rel="stylesheet" href="data/cave-stills.css?v=0.16.4.4">
   <script src="config.js" defer></script>
   <script src="data/materials.js" defer></script>
   <script src="data/gifts.js" defer></script>
   <script src="data/npcs.js" defer></script>
   <script src="data/visuals.js" defer></script>
   <script src="data/hall-backgrounds.js" defer></script>
-  <script src="script.js?v=0.16.4.3" defer></script>
+  <script src="script.js?v=0.16.4.4" defer></script>
 </head>
 <body>
   <div class="ambient ambient-a" aria-hidden="true"></div><div class="ambient ambient-b" aria-hidden="true"></div>
@@ -120,7 +121,7 @@
       <section id="cave-story-page" class="page hidden narrow">
         <button class="back" id="cave-story-back">← 洞窟に戻る</button>
         <div class="panel story"><span class="eyebrow">A MEMORY IN THE CAVE</span><h1 id="cave-story-title"></h1>
-          <div class="game-backdrop cave-story-visual"><img class="scene-background" id="cave-story-background" alt="洞窟の風景"><img id="cave-story-paper-image" class="story-paper-image" alt="黄色い獣"></div>
+          <div class="game-backdrop cave-story-visual" id="cave-story-visual"><img class="scene-background" id="cave-story-background" alt="洞窟の風景"><img id="cave-story-paper-image" class="story-paper-image" alt="黄色い獣"><img id="cave-story-still" class="cave-story-still hidden" src="images/memories/caveStill001.webp" alt="黄色い獣との出会いの思い出" loading="eager"></div>
           <div id="cave-story-scene" class="scene"></div>
           <div class="speech"><span class="speaker">黄色い獣</span><p id="cave-story-speech"></p></div>
           <div id="cave-story-choices" class="choice-list"></div>
@@ -351,7 +352,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.16.4.3</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.16.4.4</span></footer>
   </div>
 </body>
 </html>

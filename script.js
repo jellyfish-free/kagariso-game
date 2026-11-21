@@ -383,6 +383,23 @@ async function openStory(storyId,replay){
   const post=Array.isArray(story.post)&&story.post.length?story.post:[];
   const showParagraph=(value)=>{scene.textContent=value;scene.classList.remove('hidden');};
   const render=()=>{
+    // v0.16.4.4 洞窟入口の出会い(section-1)のみ画像を段階切り替え。
+    // 文章・選択肢・進行順序・初回選択の記録は従来のまま。
+    // pre[0]とpre[1]は塞がった岩だけ、pre[2]以降は黄色い獣を初表示。
+    // 最後のpostだけ既存の一枚絵に切り替え、読み返しでも同じ表示にする。
+    const isFirstEncounter=storyId==='section-1';
+    const showIntroRocks=isFirstEncounter&&phase==='pre'&&index<2;
+    const showFinalStill=isFirstEncounter&&(
+      (phase==='post'&&post.length>0&&index===post.length-1)||phase==='complete'
+    );
+    const visual=$('#cave-story-visual');
+    const background=$('#cave-story-background');
+    const paper=$('#cave-story-paper-image');
+    const still=$('#cave-story-still');
+    visual.classList.toggle('cave-story-still-mode',showFinalStill);
+    background.classList.toggle('hidden',showFinalStill);
+    paper.classList.toggle('hidden',showIntroRocks||showFinalStill);
+    still.classList.toggle('hidden',!showFinalStill);
     choices.replaceChildren(); result.classList.add('hidden');done.classList.add('hidden');next.classList.add('hidden');
     speech.parentElement.classList.add('hidden');
     if(phase==='pre'){
