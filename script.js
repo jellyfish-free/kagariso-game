@@ -631,7 +631,7 @@ async function openPyoro(){
  $('#pyoro-personality').textContent=npc.personality;
  $('#pyoro-state').textContent=`${npc.state.locationLabel} ・ ${npc.state.activityLabel} ／ 元気 ${npc.state.energy} ／ 空腹 ${npc.state.hunger} ／ 気分 ${npc.state.mood}`;
  $('#pyoro-memory').classList.toggle('hidden',!npc.isFinder);
- $('#pyoro-talk-result').textContent='';$('#pyoro-history').replaceChildren();await loadPyoroTalk();await loadPyoroFood();await Promise.all([loadPyoroRequests(),loadPyoroGifts(),loadPyoroWords()]);show('pyoro');
+ $('#pyoro-talk-result').textContent='';$('#pyoro-history').replaceChildren();$('#pyoro-diary-entries').replaceChildren();$('#pyoro-interactions').replaceChildren();$('#pyoro-diary-more').classList.add('hidden');pyoroDiaryBefore='';await loadPyoroTalk();await loadPyoroFood();await Promise.all([loadPyoroRequests(),loadPyoroGifts(),loadPyoroWords()]);show('pyoro');
 }
 let pyoroBusy=false;
 const paintPyoroTalkUsage=u=>{$('#pyoro-ai-usage').textContent=`今日のAI会話：${u.used} / ${u.limit}回`;};
@@ -720,6 +720,33 @@ $('#pyoro-word-form').addEventListener('submit',handler(async e=>{
  try{const r=await api('/npcs/pyoro/words/teach','POST',{word:$('#pyoro-word').value,meaning:$('#pyoro-meaning').value,usage:$('#pyoro-usage').value});pyoroStatus('#pyoro-word-message',r.message);e.currentTarget.reset();await loadPyoroWords();}
  finally{button.disabled=false;}
 }));
+let pyoroDiaryBefore='',pyoroDiaryLoading=false;
+const loadPyoroDiary=async(reset=true)=>{
+ if(pyoroDiaryLoading)return;
+ pyoroDiaryLoading=true;
+ const more=$('#pyoro-diary-more');more.disabled=true;
+ try{
+  const path='/npcs/pyoro/diary'+(!reset&&pyoroDiaryBefore?'?before='+encodeURIComponent(pyoroDiaryBefore):'');
+  const {entries,hasMore}=await api(path);
+  const list=$('#pyoro-diary-entries');if(reset)list.replaceChildren();
+  for(const entry of entries){
+   const card=document.createElement('article');card.className='scene';
+   const title=document.createElement('strong');title.textContent=entry.day+' ／ '+(entry.weather==='clear'?'☀ はれ':'☁ くもり');
+   const body=document.createElement('p');body.style.whiteSpace='pre-line';body.textContent=entry.body;
+   card.append(title,body);list.append(card);
+  }
+  if(reset&&!entries.length)list.textContent='日記はまだありません。';
+  if(entries.length)pyoroDiaryBefore=entries[entries.length-1].day;
+  more.classList.toggle('hidden',!hasMore);
+ }finally{pyoroDiaryLoading=false;more.disabled=false;}
+};
+bind('#pyoro-diary-load',()=>loadPyoroDiary(true));
+bind('#pyoro-diary-more',()=>loadPyoroDiary(false));
+bind('#pyoro-interactions-load',async()=>{
+ const data=await api('/npcs/pyoro/interactions'),list=$('#pyoro-interactions');list.replaceChildren();
+ for(const i of data.interactions){const p=document.createElement('p');p.className='scene';p.textContent=i.day+'　'+i.summary+'\n'+i.pyoro_view;list.append(p);}
+ if(!data.interactions.length)list.textContent='2匹の思い出はまだありません。';
+});
 bind('#pyoro-back',openHall);
 async function openNpc(from='hall'){npcReturn=from;const {npc}=await api('/npcs/paper');currentNpc=npc;lastLocation=npc.state.location;profileScene=npc.scene;$('#life-action-result').classList.add('hidden');$('#npc-move-notice').classList.add('hidden');renderNpc(false);show('npc');profileTimer=setInterval(async()=>{if(document.hidden)return;try{const {npc:updated}=await api('/npcs/paper');const old=lastLocation;currentNpc=updated;lastLocation=updated.state.location;renderNpc(old!==updated.state.location);}catch{}},15000);}
 function renderNpc(moved){const n=currentNpc;
