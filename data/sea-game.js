@@ -21,6 +21,7 @@ const renderPier=data=>{
 };
 const open=async()=>{
   if(busy)return;
+  if(await bridge.checkEvents())return;
   const data=await api('status');attempt=data.attempt||null;
   bridge.show('sea');view='pier';
   $('sea-pier').classList.remove('hidden');$('sea-game').classList.add('hidden');
@@ -89,6 +90,7 @@ const tap=async()=>{
   setBusy(true);cancelAnimationFrame(raf);
   try{
     const response=await api('tap','POST',{attemptId:attempt.id,tapAt:Math.round(Date.now()+clockOffset)});attempt=response.attempt;
+    if(response.outcome==='discovery'){view='pier';await bridge.checkEvents();return;}
     if(attempt?.state==='won'){finish(attempt.item,response.outcome);return;}
     if(attempt?.state!=='active'){finish(null,response.outcome);return;}
     if(response.outcome==='next'){showMessage('いい感じ！ 次の輪へ！');raf=requestAnimationFrame(draw);}
