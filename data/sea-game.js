@@ -48,7 +48,9 @@ const draw=()=>{
   ctx.clearRect(0,0,w,w);
   const elapsed=Date.now()+clockOffset-a.stageStartMs;
   const deg=(elapsed/a.periodMs*360)%360;
-  const ringRadii=[184,139,94];
+  // v0.17.1.1 装飾フレームの内周に合わせて、3本の円を同心のまま調整。
+  // 判定は角度で行うため、リングの当たり判定や難易度には影響しない。
+  const ringRadii=[190,145,100];
   for(let i=0;i<a.rings;i++){
     const radius=ringRadii[i];
     ctx.beginPath();ctx.arc(mid,mid,radius,0,TWO_PI);ctx.strokeStyle='rgba(222,239,245,.36)';ctx.lineWidth=23;ctx.stroke();

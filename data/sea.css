@@ -10,7 +10,7 @@
 #sea-page .sea-bait-panel small{opacity:.7;}
 #sea-page .sea-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
 #sea-page .sea-board{width:min(100%,490px,calc(100dvh - 156px));min-width:210px;margin:0 auto;position:relative;border-radius:18px;overflow:hidden;background:linear-gradient(#04375366,#05324eaa),url('../images/backgrounds/seaMap.webp') center/cover,#0e354e;}
-#sea-page .sea-board::after{content:'';position:absolute;inset:0;z-index:2;pointer-events:none;background:url('../images/backgrounds/fishingFrame.webp') center/contain no-repeat;}
+#sea-page .sea-board::after{content:'';position:absolute;inset:0;z-index:2;pointer-events:none;background:url('../images/backgrounds/fishingFrame.webp') center/100% 100% no-repeat;}
 #sea-page .sea-board canvas{display:block;width:100%;height:auto;touch-action:manipulation;cursor:pointer;position:relative;z-index:1;}
 #sea-page .sea-guide{text-align:center;font-size:12px;margin:8px 0;color:#d0e7ed;}
 #sea-page #sea-game{text-align:center;scroll-margin-top:8px;}
@@ -18,3 +18,7 @@
 #sea-page .sea-result{display:flex;gap:12px;align-items:center;margin-top:16px;}
 #sea-page .sea-catch-icon{height:110px;width:110px;object-fit:contain;}
 #sea-page #sea-hint{min-height:1.7em;}
+
+/* v0.17.1.1: 描画座標と装飾画像を同じ正方形に固定 */
+#sea-page .sea-board{aspect-ratio:1 / 1;}
+#sea-page .sea-board canvas{width:100%;height:100%;aspect-ratio:1 / 1;}
