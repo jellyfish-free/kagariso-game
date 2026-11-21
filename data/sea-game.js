@@ -44,35 +44,45 @@ const finish=(item,reason)=>{
 const draw=()=>{
   if(view!=='game'||!attempt)return;
   const a=attempt,canvas=$('sea-canvas'),ctx=canvas.getContext('2d');if(!ctx)return;
-  const w=500,mid=250;
+  const w=500,c=250,cy=242;
   ctx.clearRect(0,0,w,w);
   const elapsed=Date.now()+clockOffset-a.stageStartMs;
   const deg=(elapsed/a.periodMs*360)%360;
-  // v0.17.1.2 装飾フレームの外周寄りに3本の輪を寄せ、
-  // 画像中央へ食い込みすぎないよう半径と線幅を再調整。
-  // 判定は角度で行うため、当たり判定や難易度には影響しない。
-  const ringRadii=[198,156,114];
-  const baseLineWidth=19;
-  const activeLineWidth=20;
-  const starLineWidth=22;
-  for(let i=0;i<a.rings;i++){
-    const radius=ringRadii[i];
-    ctx.beginPath();ctx.arc(mid,mid,radius,0,TWO_PI);ctx.strokeStyle='rgba(222,239,245,.32)';ctx.lineWidth=baseLineWidth;ctx.stroke();
-    if(i===a.stage){
-      ctx.beginPath();ctx.arc(mid,mid,radius,(a.blueStart-90)*Math.PI/180,(a.blueStart+a.blueWidth-90)*Math.PI/180);
-      ctx.strokeStyle='#69ddea';ctx.lineWidth=activeLineWidth;ctx.lineCap='round';ctx.stroke();
-      if(a.starEnabled){
-        ctx.beginPath();ctx.arc(mid,mid,radius,(a.blueStart+a.blueWidth-a.starWidth-90)*Math.PI/180,(a.blueStart+a.blueWidth-90)*Math.PI/180);
-        ctx.strokeStyle='#ffd57c';ctx.lineWidth=starLineWidth;ctx.stroke();
-        const x=(a.blueStart+a.blueWidth-a.starWidth/2-90)*Math.PI/180;
-        ctx.font='21px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#54340c';ctx.fillText('★',mid+radius*Math.cos(x),mid+radius*Math.sin(x));
-      }
-      const theta=(deg-90)*Math.PI/180;
-      const fx=mid+radius*Math.cos(theta),fy=mid+radius*Math.sin(theta);
-      ctx.font='30px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#fff';ctx.fillText('🐟',fx,fy);
-    }
+  const rad=d=>d*Math.PI/180;
+  // v0.17.1.3: 承認済みのローカル釣りプレビューと全く同じリング配置・描画。
+  // 2段階は [181,106]、3段階は [181,130,77]、中心は (250,242)。
+  // サーバーに送るタップ時刻や当たり判定は変更しない。
+  const radii=a.rings===2?[181,106]:[181,130,77];
+  const radius=radii[a.stage];
+  ctx.fillStyle='#073b4b66';ctx.beginPath();ctx.arc(c,cy,225,0,TWO_PI);ctx.fill();
+  for(let i=0;i<=a.stage;i++){
+    const rr=radii[i];
+    ctx.strokeStyle=i===a.stage?'#063f4ddd':'#70c9dc66';
+    ctx.lineWidth=32;ctx.beginPath();ctx.arc(c,cy,rr,0,TWO_PI);ctx.stroke();
+    ctx.strokeStyle='#b7f6ff99';ctx.lineWidth=1.5;
+    for(const edge of [rr-16,rr+16]){ctx.beginPath();ctx.arc(c,cy,edge,0,TWO_PI);ctx.stroke();}
   }
-  ctx.font='bold 25px sans-serif';ctx.fillStyle='white';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText((a.stage+1)+' / '+a.rings,mid,mid);
+  // Worker は12時方向を0°としているため、表示時のみ90°戻す。
+  const blue=rad(a.blueStart-90),blueWidth=rad(a.blueWidth);
+  ctx.lineWidth=30;ctx.lineCap='butt';ctx.strokeStyle='#89f2f5';
+  ctx.beginPath();ctx.arc(c,cy,radius,blue,blue+blueWidth);ctx.stroke();
+  if(a.starEnabled){
+    const star=rad(a.blueStart+a.blueWidth-a.starWidth-90),starWidth=rad(a.starWidth);
+    ctx.strokeStyle='#ffe5a0';ctx.beginPath();ctx.arc(c,cy,radius,star,star+starWidth);ctx.stroke();
+    const theta=star+starWidth/2;
+    ctx.fillStyle='#da930e';ctx.font='bold 23px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('★',c+radius*Math.cos(theta),cy+radius*Math.sin(theta));
+  }
+  // 魚もプレビューと同じ形・大きさ・進行方向で描く。
+  const theta=rad(deg-90);
+  ctx.save();ctx.translate(c+radius*Math.cos(theta),cy+radius*Math.sin(theta));
+  ctx.rotate(theta+Math.PI/2);ctx.fillStyle='#ffcb4d';ctx.strokeStyle='#ffe9a0';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.ellipse(0,0,15,10,0,0,TWO_PI);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(-11,0);ctx.lineTo(-24,-10);ctx.lineTo(-24,10);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#503c29';ctx.beginPath();ctx.arc(8,-3,2.6,0,TWO_PI);ctx.fill();ctx.restore();
+  ctx.fillStyle='#d7f8ff';ctx.font='36px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('⚓',c,cy);
+  ctx.fillStyle='white';ctx.font='bold 25px sans-serif';ctx.fillText((a.stage+1)+' / '+a.rings,c,cy-68);
   const laps=Math.max(0,Math.floor(elapsed/a.periodMs));
   $('sea-laps').textContent='残り '+Math.max(0,3-laps)+' 周';
   if(elapsed>=a.periodMs*3){tap();return;}
