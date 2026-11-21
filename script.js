@@ -631,8 +631,15 @@ async function openPyoro(){
  $('#pyoro-personality').textContent=npc.personality;
  $('#pyoro-state').textContent=`${npc.state.locationLabel} ・ ${npc.state.activityLabel} ／ 元気 ${npc.state.energy} ／ 空腹 ${npc.state.hunger} ／ 気分 ${npc.state.mood}`;
  $('#pyoro-memory').classList.toggle('hidden',!npc.isFinder);
- show('pyoro');
+ $('#pyoro-talk-result').textContent='';$('#pyoro-history').replaceChildren();await loadPyoroTalk();show('pyoro');
 }
+let pyoroBusy=false;
+const paintPyoroTalkUsage=u=>{$('#pyoro-ai-usage').textContent=`今日のAI会話：${u.used} / ${u.limit}回`;};
+const pyoroReply=r=>{ $('#pyoro-talk-result').textContent=r.response+(r.affinityChange?`（親密度 +${r.affinityChange}pt）`:''); $('#pyoro-hearts').textContent='♥'.repeat(r.npc.affinity)+'♡'.repeat(10-r.npc.affinity); $('#pyoro-relationship').textContent=`あなたとの関係：${r.npc.relationship}（${r.npc.affinityPoints}pt）`;paintPyoroTalkUsage(r.usage);};
+const pyoroAction=async(path,body)=>{if(pyoroBusy)return;pyoroBusy=true;try{const r=await api(path,'POST',body);pyoroReply(r);return r;}finally{pyoroBusy=false;}};
+const loadPyoroTalk=async()=>{const data=await api('/npcs/pyoro/conversation/options');paintPyoroTalkUsage(data.usage);const list=$('#pyoro-talk-options');list.replaceChildren();for(const t of data.choices){const b=document.createElement('button');b.className='secondary';b.textContent=t.label;b.onclick=handler(()=>pyoroAction('/npcs/pyoro/conversation',{choice:t.id}));list.append(b);}};
+$('#pyoro-ai-form').addEventListener('submit',handler(async e=>{e.preventDefault();const field=$('#pyoro-ai-message');const r=await pyoroAction('/npcs/pyoro/ai/chat',{message:field.value});if(r)field.value='';}));
+bind('#pyoro-history-load',async()=>{const data=await api('/npcs/pyoro/history');const list=$('#pyoro-history');list.replaceChildren();for(const r of data.history){const el=document.createElement('p');el.className='scene';el.textContent=`${r.message} → ${r.response}`;list.append(el);}if(!data.history.length)list.textContent='まだ会話の記録はありません。';});
 bind('#pyoro-back',openHall);
 async function openNpc(from='hall'){npcReturn=from;const {npc}=await api('/npcs/paper');currentNpc=npc;lastLocation=npc.state.location;profileScene=npc.scene;$('#life-action-result').classList.add('hidden');$('#npc-move-notice').classList.add('hidden');renderNpc(false);show('npc');profileTimer=setInterval(async()=>{if(document.hidden)return;try{const {npc:updated}=await api('/npcs/paper');const old=lastLocation;currentNpc=updated;lastLocation=updated.state.location;renderNpc(old!==updated.state.location);}catch{}},15000);}
 function renderNpc(moved){const n=currentNpc;
