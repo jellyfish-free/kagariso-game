@@ -1412,6 +1412,7 @@ const appendDonationControls=(form,input,submit)=>{
  form.append(make('−10',v=>v-10),input,make('＋10',v=>v+10),make('最大',()=>Number(input.max)),submit);
 };
 const openAdminEditor=async()=>{
+ $('#admin-sea-panel').classList.add('hidden');
  $('#admin-pyoro-panel').classList.add('hidden');
  $('#admin-stats-panel').classList.add('hidden');
  $('#admin-quest-panel').classList.add('hidden');
@@ -1975,6 +1976,73 @@ $('#pyoro-admin-form').addEventListener('submit',handler(async e=>{
 bind('#pyoro-admin-audit-refresh',async()=>{
  const {history}=await adminApi('/pyoro/audit');
  $('#pyoro-admin-audit').replaceChildren(...history.map(x=>{const p=document.createElement('p');p.className='pyoro-audit-row';p.textContent=`${x.created_at} ／ ${x.section} ／ ${x.target_id}`;return p;}));
+});
+
+// v0.17.1 海の難易度・ぴょろ発見イベントの管理者操作
+let adminSeaState=null;
+const seaDifficultyFields=[
+ {key:'weight',label:'重み',min:0,max:10000,step:1},
+ {key:'rings',label:'リング',min:1,max:3,step:1},
+ {key:'period',label:'秒',min:800,max:8000,step:100},
+ {key:'blue',label:'水色',min:15,max:160,step:1},
+ {key:'star',label:'星',min:0,max:160,step:1},
+ {key:'chance',label:'星率',min:0,max:100,step:1}
+];
+const renderAdminSea=()=>{
+ if(!adminSeaState)return;
+ const s=adminSeaState;
+ $('#admin-sea-status').textContent=`設定リビジョン ${s.revision}。進行中の釣りには変更を適用しません。`;
+ const body=$('#admin-sea-rows');body.replaceChildren();
+ for(let i=1;i<=5;i++){
+  const tr=document.createElement('tr');const label=document.createElement('th');label.textContent='★'.repeat(i);tr.append(label);
+  for(const def of seaDifficultyFields){
+   const td=document.createElement('td'),input=document.createElement('input');input.type='number';
+   input.min=def.min;input.max=def.max;input.step=def.step;
+   input.id=`sea-diff-${i}-${def.key}`;
+   input.value=def.key==='weight'?s.weights[i-1]:def.key==='period'?(s.presets[i].period/1000):s.presets[i][def.key];
+   if(def.key==='period'){input.min='.8';input.max='8';input.step='.1';}
+   input.setAttribute('aria-label',`★${i} ${def.label}`);
+   td.append(input);tr.append(td);
+  }body.append(tr);
+ }
+ $('#admin-sea-target').value=s.target;
+ $('#admin-sea-target').min=Math.max(2,s.progress+1);
+ $('#admin-sea-target').disabled=s.discovered;
+ $('#admin-sea-progress').textContent=`現在の全住人共通進捗：${s.progress}回 ／ 目標 ${s.target}回。過去の加算は消えません。`;
+ $('#admin-sea-discovery-state').textContent=s.discovered?'発見済み（発見者の記録は永続保持）':s.activated?'発見イベント：有効（ゲージが満ちた最初の住人が発見者になります）':'発見イベント：無効（ゲージは目標の1つ前で停止）';
+ const btn=$('#admin-sea-enable');btn.disabled=s.discovered;btn.textContent=s.discovered?'発見済み（切替不可）':s.activated?'発見イベントを一時停止する':'発見イベントを有効化する';
+};
+const reloadAdminSea=async()=>{adminSeaState=await adminApi('/sea/difficulty');renderAdminSea();};
+bind('#admin-show-sea-editor',async()=>{
+ for(const id of ['admin-pyoro-panel','admin-stats-panel','admin-quest-panel','admin-material-panel','admin-conversations-panel','admin-requests-panel','admin-gifts-panel','admin-ai-panel'])$('#'+id).classList.add('hidden');
+ $('#admin-sea-panel').classList.remove('hidden');await reloadAdminSea();
+});
+for(const el of document.querySelectorAll('.admin-editor-switch button:not(#admin-show-sea-editor)')){
+ el.addEventListener('click',()=>$('#admin-sea-panel').classList.add('hidden'),true);
+}
+bind('#admin-sea-reload',reloadAdminSea);
+$('#admin-sea-form').addEventListener('submit',handler(async(event)=>{
+ event.preventDefault();if(!adminSeaState)return;
+ const weights=[],presets={};
+ for(let i=1;i<=5;i++){
+  const get=k=>Number($(`#sea-diff-${i}-${k}`).value);
+  weights.push(get('weight'));
+  presets[i]={rings:get('rings'),period:Math.round(get('period')*1000),blue:get('blue'),star:get('star'),chance:get('chance')};
+ }
+ const button=$('#admin-sea-save');button.disabled=true;
+ try{
+  adminSeaState=await adminApi('/sea/difficulty/save','POST',{revision:adminSeaState.revision,weights,presets,target:Number($('#admin-sea-target').value)});
+  renderAdminSea();toast('海の難易度を保存しました。');
+ }finally{button.disabled=false;}
+}));
+bind('#admin-sea-enable',async()=>{
+ if(!adminSeaState||adminSeaState.discovered)return;
+ const activate=!adminSeaState.activated;
+ const question=activate?`赤い獣の発見を有効化します。現在 ${adminSeaState.progress}/${adminSeaState.target} 回です。住人が次の有効タップで発見する可能性があります。よろしいですか？`:'発見イベントを一時停止しますか？ 進捗は残ります。';
+ if(!window.confirm(question))return;
+ const b=$('#admin-sea-enable');b.disabled=true;
+ try{adminSeaState=await adminApi('/sea/discovery/switch','POST',{enable:activate});renderAdminSea();toast(activate?'発見イベントを有効にしました。':'発見イベントを停止しました。');}
+ finally{b.disabled=false;}
 });
 
 })();
