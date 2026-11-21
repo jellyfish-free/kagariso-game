@@ -14,7 +14,7 @@ let pendingRecovery='';
 let inventoryReturn='hall';
 let gathering=false;
 let npcReturn='hall', mandatoryStory=false;
-const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-diary','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor','forest-event','forest','forest-area','forest-memories'];
+const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-diary','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor','forest-event','forest','forest-area','forest-memories','sea'];
 let activePage='';
 const show=(name)=>{
   const changed=activePage!==name; activePage=name;
@@ -22,6 +22,7 @@ const show=(name)=>{
   if(name!=='npc'&&profileTimer){clearInterval(profileTimer);profileTimer=null;}
   if(changed){if(name!=='cave')caveOpening++;window.scrollTo({top:0,behavior:'instant'});}
 };
+window.KAGARISO_SEA_BRIDGE={api,show,openHall:()=>openHall()};
 const toast=(message)=>{const box=$('#toast');box.textContent=message;box.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>box.classList.remove('show'),4000);};
 const api=async(path,method='GET',payload)=>{
   if(!API) throw new Error('config.js にAPIのURLを設定してください。');
@@ -34,8 +35,10 @@ const safe=(text)=>String(text??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&l
 // v0.15.3: 図鑑の表示もサーバーの新しいレア度に合わせる。
 const FOREST_MATERIALS=[{"id":"S0046","name":"土","rarity":1,"category":"鉱石・土","sections":[],"source":"森","image":"images/materials/sozai0046.webp","description":"土。森で見つけられる素材。"},{"id":"S0047","name":"腐葉土","rarity":2,"category":"鉱石・土","sections":[],"source":"森","image":"images/materials/sozai0047.webp","description":"腐葉土。森で見つけられる素材。"},{"id":"S0048","name":"みみず","rarity":1,"category":"生き物由来","sections":[],"source":"森","image":"images/materials/sozai0048.webp","description":"みみず。森で見つけられる素材。"},{"id":"S0049","name":"苔","rarity":1,"category":"植物・菌類","sections":[],"source":"森","image":"images/materials/sozai0049.webp","description":"苔。森で見つけられる素材。"},{"id":"S0050","name":"落ちた木の実","rarity":1,"category":"植物・菌類","sections":[],"source":"森","image":"images/materials/sozai0050.webp","description":"落ちた木の実。森で見つけられる素材。"},{"id":"S0051","name":"小枝の束","rarity":1,"category":"木材・繊維","sections":[],"source":"森","image":"images/materials/sozai0051.webp","description":"小枝の束。森で見つけられる素材。"},{"id":"S0052","name":"丈夫な枝","rarity":2,"category":"木材・繊維","sections":[],"source":"森","image":"images/materials/sozai0052.webp","description":"丈夫な枝。森で見つけられる素材。"},{"id":"S0053","name":"木材","rarity":2,"category":"木材・繊維","sections":[],"source":"森","image":"images/materials/sozai0053.webp","description":"木材。森で見つけられる素材。"},{"id":"S0054","name":"葉っぱ","rarity":1,"category":"植物・菌類","sections":[],"source":"森","image":"images/materials/sozai0054.webp","description":"葉っぱ。森で見つけられる素材。"},{"id":"S0055","name":"琥珀色の樹液","rarity":3,"category":"液体・甘味","sections":[],"source":"森","image":"images/materials/sozai0055.webp","description":"琥珀色の樹液。森で見つけられる素材。"},{"id":"S0056","name":"森の赤い木の実","rarity":2,"category":"植物・菌類","sections":[],"source":"森","image":"images/materials/sozai0056.webp","description":"森の赤い木の実。森で見つけられる素材。"},{"id":"S0057","name":"山ぶどう","rarity":3,"category":"植物・菌類","sections":[],"source":"森","image":"images/materials/sozai0057.webp","description":"山ぶどう。森で見つけられる素材。"},{"id":"S0058","name":"野生の木苺","rarity":2,"category":"植物・菌類","sections":[],"source":"森","image":"images/materials/sozai0058.webp","description":"野生の木苺。森で見つけられる素材。"},{"id":"S0059","name":"小鳥の羽根","rarity":2,"category":"生き物由来","sections":[],"source":"森","image":"images/materials/sozai0059.webp","description":"小鳥の羽根。森で見つけられる素材。"},{"id":"S0060","name":"獣の抜け毛","rarity":1,"category":"生き物由来","sections":[],"source":"森","image":"images/materials/sozai0060.webp","description":"獣の抜け毛。森で見つけられる素材。"},{"id":"S0061","name":"鹿の落とし角","rarity":4,"category":"生き物由来","sections":[],"source":"森","image":"images/materials/sozai0061.webp","description":"鹿の落とし角。森で見つけられる素材。"},{"id":"S0062","name":"空っぽの巣","rarity":3,"category":"生き物由来","sections":[],"source":"森","image":"images/materials/sozai0062.webp","description":"空っぽの巣。森で見つけられる素材。"},{"id":"S0063","name":"森の湧き水","rarity":3,"category":"液体・甘味","sections":[],"source":"森","image":"images/materials/sozai0063.webp","description":"森の湧き水。森で見つけられる素材。"},{"id":"S0064","name":"森の蜂蜜","rarity":4,"category":"液体・甘味","sections":[],"source":"森","image":"images/materials/sozai0064.webp","description":"森の蜂蜜。森で見つけられる素材。"},{"id":"S0065","name":"香りのよい若葉","rarity":3,"category":"植物・菌類","sections":[],"source":"森","image":"images/materials/sozai0065.webp","description":"香りのよい若葉。森で見つけられる素材。"},{"id":"S0066","name":"りんご","rarity":2,"category":"植物・菌類","sections":[],"source":"森","image":"images/materials/sozai0066.webp","description":"りんご。森で見つけられる素材。"},{"id":"S0067","name":"小魚","rarity":3,"category":"生き物由来","sections":[],"source":"森","image":"images/materials/sozai0067.webp","description":"小魚。森で見つけられる素材。"},{"id":"S0068","name":"岩魚","rarity":4,"category":"生き物由来","sections":[],"source":"森","image":"images/materials/sozai0068.webp","description":"岩魚。森で見つけられる素材。"},{"id":"S0069","name":"錆びた鉄釘","rarity":3,"category":"落とし物","sections":[],"source":"森","image":"images/materials/sozai0069.webp","description":"錆びた鉄釘。森で見つけられる素材。"},{"id":"S0070","name":"真鍮の歯車","rarity":5,"category":"落とし物","sections":[],"source":"森","image":"images/materials/sozai0070.webp","description":"真鍮の歯車。森で見つけられる素材。"},{"id":"S0071","name":"小さな真鍮の鍵","rarity":5,"category":"落とし物","sections":[],"source":"森","image":"images/materials/sozai0071.webp","description":"小さな真鍮の鍵。森で見つけられる素材。"},{"id":"S0072","name":"星読みの羅針盤","rarity":5,"category":"落とし物","sections":[],"source":"森","image":"images/materials/sozai0072.webp","description":"星読みの羅針盤。森で見つけられる素材。"},{"id":"S0073","name":"夕焼けの色眼鏡","rarity":5,"category":"落とし物","sections":[],"source":"森","image":"images/materials/sozai0073.webp","description":"夕焼けの色眼鏡。森で見つけられる素材。"},{"id":"S0074","name":"おばけの種","rarity":5,"category":"植物・菌類","sections":[],"source":"森","image":"images/materials/sozai0074.webp","description":"おばけの種。森で見つけられる素材。"},{"id":"S0075","name":"雨粒の小瓶","rarity":5,"category":"落とし物","sections":[],"source":"森","image":"images/materials/sozai0075.webp","description":"雨粒の小瓶。森で見つけられる素材。"}];
 const FOREST_AREAS=[{"id":1,"name":"灯りの森","description":"木々の間に小さな灯りが揺れている。森の香りが漂う。","image":"images/backgrounds/forest1.webp","spots":[{"id":"f1-1","name":"木々の周辺","items":["S0051","S0052","S0053","S0055","S0046","C026"]},{"id":"f1-2","name":"草花の群生地","items":["S0046","S0047","S0048","S0049","S0054","S0065","S0074","S0005"]},{"id":"f1-3","name":"実のなる木","items":["S0050","S0056","S0057","S0058","S0066"]},{"id":"f1-4","name":"獣たちの痕跡","items":["S0059","S0060","S0061","S0062","S0064","S0073"]}]},{"id":2,"name":"水辺の小道","description":"澄んだ水が流れ、木橋の向こうから滝の音が聞こえる。","image":"images/backgrounds/forest2.webp","spots":[{"id":"f2-1","name":"川の浅瀬","items":["S0046","S0048","S0063","S0067","S0007"]},{"id":"f2-2","name":"滝つぼ","items":["S0049","S0063","S0068","S0075","S0007"]},{"id":"f2-3","name":"川辺の草むら","items":["S0047","S0048","S0054","S0058","S0065","S0005"]},{"id":"f2-4","name":"木橋の周辺","items":["S0069","S0071","C026","C028","C002"]}]},{"id":3,"name":"朽ちた遺跡","description":"苔むした石壁と古い柱が残る、静かな遺跡。","image":"images/backgrounds/forest3.webp","spots":[{"id":"f3-1","name":"崩れた石壁","items":["S0046","S0049","S0069","S0007","C002"]},{"id":"f3-2","name":"朽ちた建造物","items":["S0051","S0053","S0069","S0070","C026","C028"]},{"id":"f3-3","name":"遺跡の草むら","items":["S0047","S0048","S0049","S0054","S0060","S0065","S0005"]},{"id":"f3-4","name":"古い祭壇の周辺","items":["S0049","S0059","S0072","S0007","C002"]}]}];
+const SEA_ITEMS=window.KAGARISO_SEA_ITEMS||[];
+let seaState=null;
 const FOREST_COMMON=new Set(["C026","C002","S0005","S0007","C028"]);
-const MATERIALS=[...(window.KAGARISO_MATERIALS||[]),...FOREST_MATERIALS].map(m=>['S0039','S0040'].includes(m.id)?{...m,rarity:5}:m);
+const MATERIALS=[...(window.KAGARISO_MATERIALS||[]),...FOREST_MATERIALS,...SEA_ITEMS].map(m=>['S0039','S0040'].includes(m.id)?{...m,rarity:5}:m);
 const materialById=id=>MATERIALS.find(m=>m.id===id);
 const matIcon=(id)=>{const m=materialById(id);return m?`<img class="material-thumb" src="${safe(m.image)}" alt="" loading="lazy" onerror="this.style.display='none'">`:'';};
 
@@ -129,7 +132,7 @@ const HALL_CAVE_DOOR_AREA={x:0.009,y:0.16,width:0.108,height:0.59};
 const positionHallCaveDoor=()=>{
   const image=$('#hall-background'),stage=$('#hall-visual'),door=$('#hall-cave-door');
   if(!image||!stage||!door)return;
-  if(!image.naturalWidth||!image.naturalHeight){door.classList.add('hidden');$('#hall-forest-door')?.classList.add('hidden');return;}
+  if(!image.naturalWidth||!image.naturalHeight){door.classList.add('hidden');$('#hall-forest-door')?.classList.add('hidden');$('#hall-sea-door')?.classList.add('hidden');return;}
   // object-fit:contain、object-position:center の表示位置を再現。
   const stageWidth=stage.clientWidth,stageHeight=stage.clientHeight;
   if(!stageWidth||!stageHeight)return;
@@ -139,6 +142,8 @@ const positionHallCaveDoor=()=>{
   const area=HALL_CAVE_DOOR_AREA;
   const forestDoor=$('#hall-forest-door');
   if(forestDoor){Object.assign(forestDoor.style,{left:`${offsetX+drawnWidth*0.15}px`,top:`${offsetY+drawnHeight*0.29}px`,width:`${drawnWidth*0.11}px`,height:`${drawnHeight*0.42}px`});forestDoor.classList.remove('hidden');}
+  const seaDoor=$('#hall-sea-door');
+  if(seaDoor){Object.assign(seaDoor.style,{left:`${offsetX+drawnWidth*0.747}px`,top:`${offsetY+drawnHeight*0.27}px`,width:`${drawnWidth*0.107}px`,height:`${drawnHeight*0.45}px`});seaDoor.classList.remove('hidden');}
   const left=offsetX+drawnWidth*area.x,top=offsetY+drawnHeight*area.y;
   const width=drawnWidth*area.width,height=drawnHeight*area.height;
   // 背景トリミングで扉が完全に見えない場合は反応させない。
@@ -271,6 +276,9 @@ async function openForest(){
 async function openHall(){const data=await api('/hall');resident=data.resident;$('#user-name').textContent=resident.name;$('#user-bar').classList.remove('hidden');
   updateHallBackground();
   updateForestHall(data.forest);
+  seaState=data.sea||null;
+  $('#sea-door-hint').textContent=seaState?.unlocked&&seaState?.eligible?'海へ':'🔒';
+  $('#hall-sea-door').title=seaState?.unlocked&&seaState?.eligible?'海へ':'緑の扉';
   const paperHere=data.npcs.find(n=>n.id==='paper'&&n.state.location==='hall');
   // ホール専用の表示位置。5体対応の予約枠はCSS側の data-hall-slot=1〜5。
   // 黄色い獣だけがいる現在は中央(3)へ。プロフィール・会話画面には影響しない。
@@ -279,9 +287,11 @@ async function openHall(){const data=await api('/hall');resident=data.resident;$
   paperActor.classList.toggle('hidden',!paperHere);
   if(paperHere){paintPaper('#hall-paper-image',paperHere);$('#hall-paper-label').textContent=paperHere.state.activity==='sleeping'?'黄色い獣はおやすみ中':'黄色い獣に会う';}
   $('#npc-list').innerHTML=data.npcs.map(n=>`<article class="npc-card">${n.id==='paper'&&paperVisual?`<img class="npc-list-portrait" src="${safe(encodeURI(paperImage(paperExpression(n))))}" alt="">`:'<div class="avatar" aria-hidden="true">✦</div>'}<div><strong>${safe(n.name)}</strong><div class="muted">${safe(stateText(n))} · ${safe(n.state.activityLabel)}</div></div><button class="secondary small" data-npc="${safe(n.id)}">詳細を見る</button></article>`).join('');
-  $('#doors').innerHTML=data.hall.doors.map(d=>`<article class="door-card" data-door-card="${safe(d.id)}"><span class="door-glyph">◇</span><div class="door-card-copy"><strong>${safe(d.id==='forest'&&d.status==='available'?'森':d.name)}</strong>${['forest','cave'].includes(d.id)?'':`<div class="muted">${d.status==='available'?'入口の採取ができます':'探索機能は次の開発段階で実装'}</div>`}</div>${d.status==='available'?`<button class="secondary small" data-door="${safe(d.id)}">探索する</button>`:`<span class="tag">${d.id==='forest'?'未解放':'準備中'}</span>`}</article>`).join('');
+  $('#doors').innerHTML=data.hall.doors.map(d=>`<article class="door-card" data-door-card="${safe(d.id)}"><span class="door-glyph">◇</span><div class="door-card-copy"><strong>${safe(d.id==='forest'&&d.status==='available'?'森':d.id==='sea'&&d.status==='available'?'海':d.name)}</strong>${['forest','cave','sea'].includes(d.id)?'':`<div class="muted">${d.status==='available'?'入口の採取ができます':'探索機能は次の開発段階で実装'}</div>`}</div>${d.status==='available'?`<button class="secondary small" data-door="${safe(d.id)}">探索する</button>`:`<span class="tag">${['forest','sea'].includes(d.id)?'未解放':'準備中'}</span>`}</article>`).join('');
   $('#doors').querySelector('[data-door="cave"]')?.addEventListener('click',handler(()=>enterHallCave()));
   $('#doors').querySelector('[data-door="forest"]')?.addEventListener('click',handler(openForest));
+  $('#doors').querySelector('[data-door="sea"]')?.addEventListener('click',handler(()=>window.KAGARISO_SEA.open()));
+  $('#hall-sea-door').onclick=handler(async()=>{if(!seaState?.unlocked||!seaState?.eligible){toast('緑の扉はまだ開かない。');return;}await window.KAGARISO_SEA.open();});
   $('#npc-list').querySelectorAll('[data-npc]').forEach(b=>b.addEventListener('click',handler(()=>openNpc('hall'))));
   if(!data.npcs.length)$('#npc-list').innerHTML='<p class="muted">黄色い獣の姿はまだここにない。洞窟の扉を調べてみよう。</p>';
   show('hall');
@@ -503,7 +513,7 @@ async function openMaterialCatalog(){
  ]);
  const discovered=new Set(discovery.ids||[]);
  const forestReady=Boolean(forestState?.unlocked&&forestState?.seen&&forestState?.eligible);
- const materials=MATERIALS.filter(m=>m.source!=='森'||forestReady).map(m=>({id:m.id,name:m.name,image:m.image,rarity:m.rarity,
+ const materials=MATERIALS.filter(m=>(m.source!=='森'||forestReady)&&(m.source!=='海'||Boolean(seaState?.unlocked&&seaState?.eligible))).map(m=>({id:m.id,name:m.name,image:m.image,rarity:m.rarity,
    category:m.category,description:m.description,kind:'material',source:m.source||'洞窟',found:discovered.has(m.id)}));
  const events=(eventData.items||[]).map(e=>({id:e.id,name:e.name,description:e.description,
    kind:'event',source:e.source||'その他',found:true}));
@@ -549,7 +559,7 @@ async function openMaterialCatalog(){
  // Rebuild options rather than hiding native select options (mobile browsers may expose them).
  const previousSource=sourceSelect.value;
  const sources=new Set(['洞窟','黄色い獣','その他',...entries.map(e=>e.source).filter(Boolean),...(forestReady?['森']:[])]);
- if(!forestReady)sources.delete('森');
+ if(!forestReady)sources.delete('森');if(!seaState?.unlocked||!seaState?.eligible)sources.delete('海');
  sourceSelect.replaceChildren(new Option('すべて','all'),...[...sources].map(source=>new Option(source,source)));
  sourceSelect.value=[...sourceSelect.options].some(o=>o.value===previousSource)?previousSource:'all';
  for(const selector of ['#catalog-filter','#catalog-kind','#catalog-source','#catalog-rarity'])$(selector).onchange=render;
@@ -580,8 +590,8 @@ async function openInventory(from='hall'){
   inventorySortItems=[...serverItems.filter(i=>materialById(i.id)).map(i=>({...i,source:materialById(i.id)?.source||'洞窟',kind:'material'})),...ownedGifts.map(g=>({...g,id:g.itemId,category:'プレゼント',source:g.npcName||'黄色い獣',kind:'gift',rarity:0}))]; // 所持素材と受取済み返礼品を統合
   const sourceSelect=$('#inventory-source');const selectedSource=sourceSelect.value;
   const forestReady=Boolean(forestState?.unlocked&&forestState?.seen&&forestState?.eligible);
-  const sources=new Set(['洞窟','黄色い獣','その他',...inventorySortItems.map(i=>i.source),...(forestReady?['森']:[])]);
-  if(!forestReady)sources.delete('森');
+  const sources=new Set(['洞窟','黄色い獣','その他',...inventorySortItems.map(i=>i.source),...(forestReady?['森']:[]),...(seaState?.unlocked&&seaState?.eligible?['海']:[])]);
+  if(!forestReady)sources.delete('森');if(!seaState?.unlocked||!seaState?.eligible)sources.delete('海');
   sourceSelect.replaceChildren(new Option('すべて','all'),...[...sources].map(source=>new Option(source,source)));
   sourceSelect.value=[...sourceSelect.options].some(o=>o.value===selectedSource)?selectedSource:'all';
   renderInventoryItems();
@@ -1130,7 +1140,7 @@ bind('#cave-map-return',()=>openCave());
 bind('#cave-npc-visit',()=>openNpc('cave'));
 bind('#cave-story-back',async()=>{if(mandatoryStory)throw new Error('最初の物語を最後まで読んでね。');await openCave(selectedCaveSection);});
 bind('#cave-story-done',()=>openCave(activeCaveStory==='rescue'?null:selectedCaveSection));
-bind('#inventory-back',async()=>{if(inventoryReturn==='cave')await openCave(selectedCaveSection);else if(inventoryReturn==='forest-area')showForestArea(forestAreaId);else await openHall();});
+bind('#inventory-back',async()=>{if(inventoryReturn==='cave')await openCave(selectedCaveSection);else if(inventoryReturn==='sea')await window.KAGARISO_SEA.open();else if(inventoryReturn==='forest-area')showForestArea(forestAreaId);else await openHall();});
 $('#inventory-sort').addEventListener('change',renderInventoryItems);
 $('#inventory-source').addEventListener('change',renderInventoryItems);
 for(const [selector,action] of [['#rest-btn','rest'],['#wake-btn','wake']]){bind(selector,async()=>{const data=await api('/npcs/paper/life/action','POST',{action});currentNpc=data.npc;const last=lastLocation;lastLocation=data.npc.state.location;renderNpc(last!==lastLocation);$('#life-action-result').textContent=data.message;$('#life-action-result').classList.remove('hidden');});}
