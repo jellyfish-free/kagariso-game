@@ -1412,6 +1412,7 @@ const appendDonationControls=(form,input,submit)=>{
  form.append(make('−10',v=>v-10),input,make('＋10',v=>v+10),make('最大',()=>Number(input.max)),submit);
 };
 const openAdminEditor=async()=>{
+ $('#admin-pyoro-panel').classList.add('hidden');
  $('#admin-stats-panel').classList.add('hidden');
  $('#admin-quest-panel').classList.add('hidden');
  $('#admin-material-panel').classList.add('hidden');
@@ -1424,6 +1425,7 @@ const openAdminEditor=async()=>{
   const data=await adminApi('/topics?npc=paper');adminTopicsCache=data.topics||[];
   adminSelected=structuredClone(adminTopicsCache.find(t=>t.id===adminSelected?.id)||adminTopicsCache[0]||blankAdminTopic());
   adminEditForm();adminList();show('admin-editor');
+  if($('#admin-npc-target').value==='pyoro')await pyoroAdminShow(pyoroAdminSection);
 };
 $('#admin-topic-search').addEventListener('input',adminList);
 bind('#admin-topic-new',()=>{adminSelected=blankAdminTopic();adminEditForm();adminList();});
@@ -1851,5 +1853,128 @@ const overviewZip=files=>{const enc=new TextEncoder(),parts=[],central=[];let of
 const overviewWorkbook=sheets=>{const ns='http://schemas.openxmlformats.org/spreadsheetml/2006/main',rn='http://schemas.openxmlformats.org/officeDocument/2006/relationships',pn='http://schemas.openxmlformats.org/package/2006/relationships',ct='http://schemas.openxmlformats.org/package/2006/content-types';const head='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';const col=i=>{let s='';for(i++;i;i=Math.floor((i-1)/26))s=String.fromCharCode(65+(i-1)%26)+s;return s;};const files=[['[Content_Types].xml',head+`<Types xmlns="${ct}"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${sheets.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}</Types>`],['_rels/.rels',head+`<Relationships xmlns="${pn}"><Relationship Id="rId1" Type="${rn}/officeDocument" Target="xl/workbook.xml"/></Relationships>`],['xl/workbook.xml',head+`<workbook xmlns="${ns}" xmlns:r="${rn}"><sheets>${sheets.map(([name],i)=>`<sheet name="${overviewXml(name)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')}</sheets></workbook>`],['xl/_rels/workbook.xml.rels',head+`<Relationships xmlns="${pn}">${sheets.map((_,i)=>`<Relationship Id="rId${i+1}" Type="${rn}/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')}<Relationship Id="rId${sheets.length+1}" Type="${rn}/styles" Target="styles.xml"/></Relationships>`],['xl/styles.xml',head+`<styleSheet xmlns="${ns}"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><color rgb="FFFFFFFF"/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF29283C"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`]];sheets.forEach(([name,headers,rows],i)=>{const pref=statsSort.get('総合：'+name),sorted=[...rows];if(pref)sorted.sort((a,b)=>statsCompare(a[pref.col],b[pref.col])*pref.dir);const all=[headers,...sorted],range=`A1:${col(headers.length-1)}${all.length}`;files.push([`xl/worksheets/sheet${i+1}.xml`,head+`<worksheet xmlns="${ns}"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>${headers.map((h,j)=>`<col min="${j+1}" max="${j+1}" width="${Math.min(40,Math.max(12,String(h).length*2+4,j===0?25:12))}" customWidth="1"/>`).join('')}</cols><sheetData>${all.map((r,j)=>`<row r="${j+1}">${r.map((x,k)=>{const ref=col(k)+(j+1);return typeof x==='number'&&Number.isFinite(x)?`<c r="${ref}"><v>${x}</v></c>`:`<c r="${ref}"${j===0?' s="1"':''} t="inlineStr"><is><t xml:space="preserve">${overviewXml(x)}</t></is></c>`;}).join('')}</row>`).join('')}</sheetData><autoFilter ref="${range}"/></worksheet>`]);});return overviewZip(files);};
 const saveOverviewFile=(blob,name)=>{const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000);};
 bind('#overview-excel',()=>{if(!overviewData||!adminToken||!overviewSheets.length)return;const f=overviewData.activity.filters;overviewSheets[0][2].find(r=>r[0]==='出力日時')[1]=jstDate(new Date().toISOString());saveOverviewFile(overviewWorkbook(overviewSheets),`kagariso_総合分析_${f.from||'開始'}-${f.to||'現在'}_${new Date(Date.now()+9*3600000).toISOString().slice(0,19).replace(/[:T]/g,'-')}_JST.xlsx`);});
+
+
+// v0.17.0.9: A dedicated red-beast editor safely coexists with the original paper editor.
+let pyoroAdminSection='topics',pyoroAdminRows=[],pyoroAdminSelected=null;
+const pyoroAdminSections=new Set(['topics','requests','gifts','foods','profile']);
+const pyoroAdminInput=(key,v,multiline=false,opts={})=>{
+ const id='pyoro-field-'+key, label=opts.label||key;
+ if(opts.checkbox)return `<label><input id="${id}" type="checkbox" ${v?'checked':''}> ${safe(label)}</label>`;
+ if(opts.select)return `<label for="${id}">${safe(label)}</label><select id="${id}">${opts.select.map(([val,name])=>`<option value="${safe(val)}" ${val===v?'selected':''}>${safe(name)}</option>`).join('')}</select>`;
+ const settings=opts.number?`type="number" min="${opts.min??1}" max="${opts.max??99}"`:'type="text"';
+ const html=multiline?`<textarea id="${id}" rows="${opts.rows||3}" maxlength="${opts.maxlength||3000}" required>${safe(v??'')}</textarea>`:`<input id="${id}" ${settings} value="${safe(v??'')}" maxlength="${opts.maxlength||500}" required>`;
+ return `<label for="${id}">${safe(label)}</label>${html}`;
+};
+const pyoroAdminValue=(k)=>$('#pyoro-field-'+k).value;
+const pyoroAdminCheckbox=(k)=>$('#pyoro-field-'+k).checked;
+const pyoroAdminFields=()=>{
+ const r=pyoroAdminSelected,el=$('#pyoro-admin-fields');
+ if(!r){el.textContent='設定を選んでください。';$('#pyoro-admin-save').disabled=true;return;}
+ $('#pyoro-admin-save').disabled=false;
+ let html=`<p class="muted tiny">設定ID：${safe(r.id)}</p>`;
+ if(pyoroAdminSection==='topics'){
+  html+=pyoroAdminInput('label',r.label,false,{label:'住人が選ぶ会話'})+pyoroAdminInput('response',r.response,true,{label:'赤い獣の返答',maxlength:320});
+  html+=pyoroAdminInput('enabled',r.enabled,false,{label:'ランダム3択に出す',checkbox:true});
+ }
+ if(pyoroAdminSection==='requests'){
+  html+=pyoroAdminInput('title',r.title,false,{label:'お願いの名前'})+pyoroAdminInput('description',r.description,true,{label:'説明'});
+  html+=pyoroAdminInput('giftKind',r.giftKind,false,{label:'返礼品の種類',select:[['food','食べ物'],['craft','工作'],['decoration','装飾']]});
+  html+=pyoroAdminInput('enabled',r.enabled,false,{label:'お願いの候補として有効',checkbox:true});
+  html+='<h3>必要素材（すでに受注中のお願いは変更できません）</h3>';
+  html+=(r.items||[]).map((x,i)=>`<div class="pyoro-material-admin-row"><input type="text" data-pyoro-material-id="${i}" aria-label="素材ID" value="${safe(x.id)}" maxlength="30" required><input type="number" data-pyoro-material-needed="${i}" aria-label="必要個数" min="1" max="99" value="${Number(x.needed)}" required></div>`).join('');
+ }
+ if(pyoroAdminSection==='gifts'){
+  html+=`<p class="muted tiny">種類：${safe(r.giftKind)}／品質：${safe(r.quality)}（この2項目は変更不可）</p>`;
+  html+=pyoroAdminInput('name',r.name,false,{label:'返礼品名'})+pyoroAdminInput('description',r.description,true,{label:'説明'});
+  html+=pyoroAdminInput('image',r.image,false,{label:'画像パス（images/gifts/pyoro/*.webp）'});
+  html+=`<img src="${safe(r.image)}" alt="返礼品プレビュー" style="display:block;width:150px;max-width:100%;border-radius:12px;margin-top:12px">`;
+ }
+ if(pyoroAdminSection==='foods'){
+  html+=`<p class="muted tiny">区分：${r.kind==='meal'?'ごはん':'おやつ'}（食材ID・区分は変更不可）</p>`;
+  html+=pyoroAdminInput('restore',r.restore,false,{label:'空腹度の回復量',number:true,min:1,max:100});
+  html+=pyoroAdminInput('reply',r.reply,true,{label:'食べたときの返答',maxlength:260});
+  html+=pyoroAdminInput('enabled',r.enabled,false,{label:'この食材を有効にする',checkbox:true});
+ }
+ if(pyoroAdminSection==='profile'){
+  html+=pyoroAdminInput('name',r.name,false,{label:'表示名'})+pyoroAdminInput('description',r.description,true,{label:'プロフィールの説明',maxlength:500});
+  html+=pyoroAdminInput('personality',r.personality,true,{label:'プロフィールの性格',maxlength:600});
+  html+=pyoroAdminInput('prompt',r.prompt,true,{label:'赤い獣のAI人格・口調（黄色い獣とは別）',rows:8,maxlength:3000});
+  html+='<h3>生活リズム（日本時間）</h3>';
+  html+=pyoroAdminInput('hungerMinutes',Math.round(Number(r.hungerIntervalMs||180000)/60000),false,{label:'空腹度が+1になるまで（分）',number:true,min:1,max:60});
+  html+=pyoroAdminInput('sleepStart',r.sleepStart??23,false,{label:'睡眠開始時刻（時）',number:true,min:0,max:23});
+  html+=pyoroAdminInput('sleepEnd',r.sleepEnd??7,false,{label:'起床時刻（時）',number:true,min:0,max:23});
+  html+=pyoroAdminInput('restStart',r.restStart??19,false,{label:'休憩開始時刻（時）',number:true,min:0,max:23});
+  html+=`<p class="muted tiny">現在の生活状態：${safe(r.life?`空腹 ${r.life.hunger} / 体力 ${r.life.energy} / 機嫌 ${r.life.mood} / ${r.life.activity}`:'発見前のため未開始')}。この画面から現在値を初期化しません。</p>`;
+ }
+ el.innerHTML=html;
+};
+const pyoroAdminList=()=>{
+ const list=$('#pyoro-admin-list'),q=$('#pyoro-admin-search').value.trim().toLowerCase();list.replaceChildren();
+ const visible=pyoroAdminRows.filter(r=>`${r.id} ${r.name||r.label||r.title||''}`.toLowerCase().includes(q));
+ $('#pyoro-admin-count').textContent=`${visible.length} / ${pyoroAdminRows.length}件`;
+ visible.forEach(r=>{const b=document.createElement('button');b.className='admin-topic-option';b.type='button';b.textContent=`${r.name||r.label||r.title||r.id} (${r.id})`;
+ if(pyoroAdminSelected?.id===r.id)b.classList.add('admin-selected');b.onclick=()=>{pyoroAdminSelected=structuredClone(r);pyoroAdminFields();pyoroAdminList();};list.append(b);});
+};
+const pyoroAdminLoad=async()=>{
+ const data=await adminApi('/pyoro/config?section='+encodeURIComponent(pyoroAdminSection));
+ if($('#admin-npc-target').value!=='pyoro')return;
+ pyoroAdminRows=data.items||[];
+ pyoroAdminSelected=structuredClone(pyoroAdminRows.find(r=>r.id===pyoroAdminSelected?.id)||pyoroAdminRows[0]||null);
+ $('#pyoro-admin-new-topic').classList.toggle('hidden',pyoroAdminSection!=='topics');
+ $('#pyoro-admin-note').textContent={topics:'話題はランダム3択から表示されます。',requests:'受注中の必要素材・返礼品ジャンルは変更できません。',gifts:'6種類の成功作・失敗作を個別に編集できます。ID・品質・制作確率は固定です。',foods:'赤い獣だけの食材・回復量・返答を編集します。',profile:'赤い獣のプロフィールとAI人格を編集します。現在の生活状態は変更しません。'}[pyoroAdminSection];
+ $('#pyoro-admin-tabs').querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.pyoroSection===pyoroAdminSection));
+ pyoroAdminList();pyoroAdminFields();
+};
+const pyoroAdminShow=async(section='topics')=>{
+ if(!pyoroAdminSections.has(section))return;
+ pyoroAdminSection=section;pyoroAdminSelected=null;
+ for(const id of ['admin-stats-panel','admin-quest-panel','admin-material-panel','admin-conversations-panel','admin-requests-panel','admin-gifts-panel','admin-ai-panel'])$('#'+id).classList.add('hidden');
+ $('#admin-pyoro-panel').classList.remove('hidden');
+ await pyoroAdminLoad();
+};
+$('#admin-npc-target').addEventListener('change',handler(async()=>{
+ if($('#admin-npc-target').value==='pyoro')await pyoroAdminShow('topics');
+ else{await openAdminEditor();}
+}));
+// Prevent the original paper-only editors from running when editing pyoro.
+const pyoroAdminRoute={
+ 'admin-show-dialogue-editor':'topics','admin-show-request-editor':'requests',
+ 'admin-show-gift-editor':'gifts','admin-show-ai-editor':'profile'
+};
+for(const [id,section] of Object.entries(pyoroAdminRoute)){
+ $('#'+id).addEventListener('click',e=>{
+  if($('#admin-npc-target').value!=='pyoro')return;
+  e.stopImmediatePropagation();e.preventDefault();
+  pyoroAdminShow(section).catch(error=>toast(error.message||'読み込めませんでした。'));
+ },true);
+}
+for(const id of ['admin-show-material-editor','admin-show-quest-editor','admin-show-stats']){
+ $('#'+id).addEventListener('click',()=>$('#admin-pyoro-panel').classList.add('hidden'));
+}
+$('#pyoro-admin-tabs').addEventListener('click',handler(async e=>{const section=e.target.closest('[data-pyoro-section]')?.dataset.pyoroSection;if(section)await pyoroAdminShow(section);}));
+$('#pyoro-admin-search').addEventListener('input',pyoroAdminList);
+bind('#pyoro-admin-refresh',pyoroAdminLoad);
+bind('#pyoro-admin-new-topic',()=>{
+ const id='topic_'+Date.now().toString(36);
+ pyoroAdminSelected={id,label:'',response:'',enabled:1};
+ pyoroAdminFields();pyoroAdminList();
+});
+$('#pyoro-admin-form').addEventListener('submit',handler(async e=>{
+ e.preventDefault();if(!pyoroAdminSelected)return;
+ const body={section:pyoroAdminSection,id:pyoroAdminSelected.id};
+ if(pyoroAdminSection==='topics')Object.assign(body,{label:pyoroAdminValue('label'),response:pyoroAdminValue('response'),enabled:pyoroAdminCheckbox('enabled')});
+ if(pyoroAdminSection==='requests')Object.assign(body,{title:pyoroAdminValue('title'),description:pyoroAdminValue('description'),giftKind:pyoroAdminValue('giftKind'),enabled:pyoroAdminCheckbox('enabled'),items:(pyoroAdminSelected.items||[]).map((x,i)=>({id:$(`[data-pyoro-material-id="${i}"]`).value.trim(),needed:Number($(`[data-pyoro-material-needed="${i}"]`).value)}))});
+ if(pyoroAdminSection==='gifts')Object.assign(body,{name:pyoroAdminValue('name'),description:pyoroAdminValue('description'),image:pyoroAdminValue('image')});
+ if(pyoroAdminSection==='foods')Object.assign(body,{restore:Number(pyoroAdminValue('restore')),reply:pyoroAdminValue('reply'),enabled:pyoroAdminCheckbox('enabled')});
+ if(pyoroAdminSection==='profile')Object.assign(body,{name:pyoroAdminValue('name'),description:pyoroAdminValue('description'),personality:pyoroAdminValue('personality'),prompt:pyoroAdminValue('prompt'),hungerMinutes:Number(pyoroAdminValue('hungerMinutes')),sleepStart:Number(pyoroAdminValue('sleepStart')),sleepEnd:Number(pyoroAdminValue('sleepEnd')),restStart:Number(pyoroAdminValue('restStart'))});
+ const b=$('#pyoro-admin-save');b.disabled=true;
+ try{await adminApi('/pyoro/config/save','POST',body);await pyoroAdminLoad();toast('赤い獣の設定を保存しました。');}
+ finally{b.disabled=false;}
+}));
+bind('#pyoro-admin-audit-refresh',async()=>{
+ const {history}=await adminApi('/pyoro/audit');
+ $('#pyoro-admin-audit').replaceChildren(...history.map(x=>{const p=document.createElement('p');p.className='pyoro-audit-row';p.textContent=`${x.created_at} ／ ${x.section} ／ ${x.target_id}`;return p;}));
+});
 
 })();
