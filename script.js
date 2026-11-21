@@ -1338,7 +1338,7 @@ const adminApi=async(path,method='GET',body,overrideToken=null)=>{
   }
   return data;
 };
-const adminReturn=async()=>{if(token)await openHall();else show('auth');};
+const adminReturn=async()=>{clearAdminRecovery();if(token)await openHall();else show('auth');};
 bind('#open-admin-login',async()=>{
   if(adminToken){try{await adminApi('/me');await openAdminEditor();return;}catch{}}
   show('admin-login');
@@ -1359,7 +1359,7 @@ $('#admin-setup-form').addEventListener('submit',handler(async e=>{
     displayName:$('#admin-setup-name').value,password:$('#admin-setup-password').value
   },'');$('#admin-setup-form').reset();toast(result.message);
 }));
-bind('#admin-logout',async()=>{
+bind('#admin-logout',async()=>{clearAdminRecovery();
   try{await adminApi('/logout','POST',{});}finally{adminToken='';clearActivity();clearOverview();statsSeq++;statsData=null;$('#stats-content').replaceChildren();$('#stats-resident').replaceChildren(new Option('全住人',''));$('#stats-scope').textContent='';$('#stats-from').value='';$('#stats-to').value='';statsSort.clear();questData=null;questPlan=[];questDirty=false;sessionStorage.removeItem(ADMIN_SESSION_KEY);show('admin-login');}
 });
 const adminConditionOptions=[['any','条件なし'],['hungry','空腹'],['not_hungry','空腹でない'],['full','満腹'],['sleepy','眠そう'],['resting','休憩中'],['awake','活動中'],['happy','ご機嫌'],['angry','不機嫌'],['sad','悲しい'],['hall','ホール'],['cave','洞窟'],['morning','朝'],['day','昼'],['night','夜'],['affinity3','♡3以上'],['affinity5','♡5以上'],['weather_verified','天気連動（未対応）']];
@@ -1412,6 +1412,7 @@ const appendDonationControls=(form,input,submit)=>{
  form.append(make('−10',v=>v-10),input,make('＋10',v=>v+10),make('最大',()=>Number(input.max)),submit);
 };
 const openAdminEditor=async()=>{
+ clearAdminRecovery();$('#admin-recovery-panel').classList.add('hidden');
  $('#admin-sea-panel').classList.add('hidden');
  $('#admin-pyoro-panel').classList.add('hidden');
  $('#admin-stats-panel').classList.add('hidden');
@@ -2033,6 +2034,56 @@ const renderAdminSea=()=>{
  const btn=$('#admin-sea-enable');btn.disabled=s.discovered;btn.textContent=s.discovered?'発見済み（切替不可）':s.activated?'発見イベントを一時停止する':'発見イベントを有効化する';
 };
 const reloadAdminSea=async()=>{adminSeaState=await adminApi('/sea/difficulty');renderAdminSea();};
+// v0.17.1.7: 管理者による住人復旧コード再発行。
+let adminRecoverySecret='';
+const clearAdminRecovery=()=>{
+  adminRecoverySecret='';
+  $('#admin-recovery-code').textContent='';
+  $('#admin-recovery-code-owner').textContent='';
+  $('#admin-recovery-result').classList.add('hidden');
+};
+const loadAdminRecoveryResidents=async()=>{
+  const data=await adminApi('/residents/recovery');
+  const select=$('#admin-recovery-resident'),selected=select.value;
+  select.replaceChildren(new Option('住人を選択してください',''),...(data.residents||[]).map(r=>new Option(r.name,r.id)));
+  if([...select.options].some(o=>o.value===selected))select.value=selected;
+};
+$('#admin-show-recovery').addEventListener('click',handler(async()=>{
+  clearAdminRecovery();
+  for(const id of ['admin-sea-panel','admin-pyoro-panel','admin-stats-panel','admin-quest-panel','admin-material-panel','admin-conversations-panel','admin-requests-panel','admin-gifts-panel','admin-ai-panel'])$('#'+id).classList.add('hidden');
+  $('#admin-recovery-panel').classList.remove('hidden');
+  $('#admin-recovery-confirm').value='';
+  await loadAdminRecoveryResidents();
+}));
+// 別の管理画面へ移ったら新しいコードを画面・メモリから消す。
+for(const el of document.querySelectorAll('.admin-editor-switch button:not(#admin-show-recovery)')){
+  el.addEventListener('click',()=>{$('#admin-recovery-panel').classList.add('hidden');clearAdminRecovery();},true);
+}
+$('#admin-recovery-resident').addEventListener('change',()=>{$('#admin-recovery-confirm').value='';clearAdminRecovery();});
+bind('#admin-recovery-reload',async()=>{clearAdminRecovery();await loadAdminRecoveryResidents();});
+bind('#admin-recovery-clear',clearAdminRecovery);
+bind('#admin-recovery-copy',async()=>{
+  if(!adminRecoverySecret)throw new Error('コピーできるコードがありません。');
+  await navigator.clipboard.writeText(adminRecoverySecret);toast('新しい復旧コードをコピーしました。');
+});
+$('#admin-recovery-form').addEventListener('submit',handler(async e=>{
+  e.preventDefault();
+  const select=$('#admin-recovery-resident'),confirmationName=$('#admin-recovery-confirm').value.trim();
+  if(!select.value)throw new Error('住人を選択してください。');
+  if(confirmationName!==select.selectedOptions[0].textContent)throw new Error('確認用の住人名が一致しません。');
+  if(!confirm(`${confirmationName} さんの復旧コードを再発行しますか？\n以前のコードは使用できなくなります。`))return;
+  const button=$('#admin-recovery-reissue');button.disabled=true;
+  clearAdminRecovery();
+  try{
+    const result=await adminApi('/residents/recovery/reissue','POST',{residentId:select.value,confirmationName});
+    adminRecoverySecret=result.recoveryCode;
+    $('#admin-recovery-code-owner').textContent=result.resident.name;
+    $('#admin-recovery-code').textContent=adminRecoverySecret;
+    $('#admin-recovery-result').classList.remove('hidden');
+    $('#admin-recovery-confirm').value='';
+    toast('復旧コードを再発行しました。');
+  }finally{button.disabled=false;}
+}));
 bind('#admin-show-sea-editor',async()=>{
  for(const id of ['admin-pyoro-panel','admin-stats-panel','admin-quest-panel','admin-material-panel','admin-conversations-panel','admin-requests-panel','admin-gifts-panel','admin-ai-panel'])$('#'+id).classList.add('hidden');
  $('#admin-sea-panel').classList.remove('hidden');await reloadAdminSea();

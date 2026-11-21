@@ -64,7 +64,7 @@
   }
 </style>
   <script src="data/sea-items.js?v=0.17.0.3" defer></script>
-  <script src="script.js?v=0.17.1.6" defer></script>
+  <script src="script.js?v=0.17.1.7" defer></script>
   <script src="data/sea-game.js?v=0.17.1.5" defer></script>
 <style>
  .admin-npc-selector{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:14px 0 18px;}
@@ -381,7 +381,25 @@
       <div class="admin-npc-selector"><label for="admin-npc-target">管理するNPC</label>
       <select id="admin-npc-target" aria-label="管理するNPC"><option value="paper">黄色い獣（paper）</option><option value="pyoro">赤い獣（pyoro）</option></select>
       <p class="muted tiny">対象NPCのデータだけを編集します。住人データの初期化は行いません。</p></div>
-      <div class="admin-editor-switch"><button id="admin-show-dialogue-editor" class="secondary small" type="button">会話エディター</button><button id="admin-show-request-editor" class="secondary small" type="button">お願いエディター</button><button id="admin-show-gift-editor" class="secondary small" type="button">返礼品エディター</button><button id="admin-show-ai-editor" class="secondary small" type="button">AI人格エディター</button><button id="admin-show-quest-editor" class="secondary small" type="button">クエストエディター</button><button id="admin-show-material-editor" class="secondary small" type="button">素材エディター</button><button id="admin-show-sea-editor" class="secondary small" type="button">海の難易度・発見イベント</button><button id="admin-show-stats" class="secondary small" type="button">管理者ダッシュボード</button></div>
+      <div class="admin-editor-switch"><button id="admin-show-dialogue-editor" class="secondary small" type="button">会話エディター</button><button id="admin-show-request-editor" class="secondary small" type="button">お願いエディター</button><button id="admin-show-gift-editor" class="secondary small" type="button">返礼品エディター</button><button id="admin-show-ai-editor" class="secondary small" type="button">AI人格エディター</button><button id="admin-show-quest-editor" class="secondary small" type="button">クエストエディター</button><button id="admin-show-material-editor" class="secondary small" type="button">素材エディター</button><button id="admin-show-sea-editor" class="secondary small" type="button">海の難易度・発見イベント</button><button id="admin-show-stats" class="secondary small" type="button">管理者ダッシュボード</button><button id="admin-show-recovery" class="secondary small" type="button">住人の復旧コード</button></div>
+      <section id="admin-recovery-panel" class="hidden" aria-label="住人の復旧コード再発行">
+  <h2>住人の復旧コード再発行</h2>
+  <p class="muted">選択した住人の復旧コードを新しくします。住人情報・持ち物・親密度・図鑑・思い出は変更されません。</p>
+  <p class="muted tiny">以前の復旧コードは無効になります。ログイン中の住人はログアウトされません。新しいコードは今回だけ表示されます。</p>
+  <form id="admin-recovery-form" autocomplete="off">
+    <label for="admin-recovery-resident">対象の住人</label>
+    <select id="admin-recovery-resident" required><option value="">住人を読み込んでいます…</option></select>
+    <label for="admin-recovery-confirm">確認のため、選択した住人の名前を正確に入力</label>
+    <input id="admin-recovery-confirm" type="text" autocomplete="off" required maxlength="40" placeholder="住人名を入力">
+    <div class="actions"><button id="admin-recovery-reissue" type="submit" class="primary">新しい復旧コードを発行</button><button type="button" id="admin-recovery-reload" class="secondary">住人一覧を更新</button></div>
+  </form>
+  <div id="admin-recovery-result" class="notice hidden" aria-live="polite">
+    <p>新しい復旧コード：<strong id="admin-recovery-code-owner"></strong></p>
+    <div id="admin-recovery-code" class="secret-code"></div>
+    <p class="muted tiny">このコードを本人へ安全に伝えてください。再表示はできません。</p>
+    <div class="actions"><button id="admin-recovery-copy" type="button" class="secondary">コードをコピー</button><button id="admin-recovery-clear" type="button" class="secondary">表示を閉じる</button></div>
+  </div>
+</section>
       <section id="admin-pyoro-panel" class="hidden" aria-label="赤い獣の設定">
   <h2>赤い獣・個別管理</h2>
   <div class="actions pyoro-admin-tabs" id="pyoro-admin-tabs">
@@ -492,7 +510,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.17.1.6</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.17.1.7</span></footer>
   </div>
 </body>
 </html>
