@@ -23,3 +23,6 @@
 #forest-sections{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 26px}
 #forest-sections button.selected{border-color:#eac38a;background:rgba(234,195,138,.12);color:#f7ddae}
 #forest-area-title{margin-top:18px}
+
+/* v0.16.4.3: 森の採取操作と所持品導線を区切る。採取結果が出ても線の位置を維持する。 */
+#forest-area-page .forest-area-footer{border-top:1px solid var(--line);margin-top:24px;padding-top:24px;}
