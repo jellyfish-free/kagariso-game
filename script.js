@@ -216,12 +216,12 @@ const caveStoryVisualPlan=(storyId,phase,index,preCount,postCount)=>{
       base.paperMode='hidden';
       return base;
     }
-    if((phase==='pre'&&index>=3)||phase==='choice'||phase==='response'||(phase==='post'&&index<postCount-1)){
+    if((phase==='pre'&&index>=3)||phase==='choice'||phase==='response'||(phase==='post'&&index===0)){
       base.still='images/memories/faintPaper.webp';
       base.paperMode='hidden';
       return base;
     }
-    if((phase==='post'&&postCount>0&&index===postCount-1)||phase==='complete'){
+    if((phase==='post'&&index>=1)||phase==='complete'){
       base.background=bgVisual.hall||'images/backgrounds/hall.png';
       base.paperMode='expression';
       return base;
