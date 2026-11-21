@@ -22,3 +22,5 @@
 /* v0.17.1.1: 描画座標と装飾画像を同じ正方形に固定 */
 #sea-page .sea-board{aspect-ratio:1 / 1;}
 #sea-page .sea-board canvas{width:100%;height:100%;aspect-ratio:1 / 1;}
+
+/* v0.17.1.2: リングが画像中心へ入りすぎないよう、描画自体を外周寄りに再調整。 */

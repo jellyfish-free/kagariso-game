@@ -48,18 +48,22 @@ const draw=()=>{
   ctx.clearRect(0,0,w,w);
   const elapsed=Date.now()+clockOffset-a.stageStartMs;
   const deg=(elapsed/a.periodMs*360)%360;
-  // v0.17.1.1 装飾フレームの内周に合わせて、3本の円を同心のまま調整。
-  // 判定は角度で行うため、リングの当たり判定や難易度には影響しない。
-  const ringRadii=[190,145,100];
+  // v0.17.1.2 装飾フレームの外周寄りに3本の輪を寄せ、
+  // 画像中央へ食い込みすぎないよう半径と線幅を再調整。
+  // 判定は角度で行うため、当たり判定や難易度には影響しない。
+  const ringRadii=[198,156,114];
+  const baseLineWidth=19;
+  const activeLineWidth=20;
+  const starLineWidth=22;
   for(let i=0;i<a.rings;i++){
     const radius=ringRadii[i];
-    ctx.beginPath();ctx.arc(mid,mid,radius,0,TWO_PI);ctx.strokeStyle='rgba(222,239,245,.36)';ctx.lineWidth=23;ctx.stroke();
+    ctx.beginPath();ctx.arc(mid,mid,radius,0,TWO_PI);ctx.strokeStyle='rgba(222,239,245,.32)';ctx.lineWidth=baseLineWidth;ctx.stroke();
     if(i===a.stage){
       ctx.beginPath();ctx.arc(mid,mid,radius,(a.blueStart-90)*Math.PI/180,(a.blueStart+a.blueWidth-90)*Math.PI/180);
-      ctx.strokeStyle='#69ddea';ctx.lineWidth=23;ctx.lineCap='round';ctx.stroke();
+      ctx.strokeStyle='#69ddea';ctx.lineWidth=activeLineWidth;ctx.lineCap='round';ctx.stroke();
       if(a.starEnabled){
         ctx.beginPath();ctx.arc(mid,mid,radius,(a.blueStart+a.blueWidth-a.starWidth-90)*Math.PI/180,(a.blueStart+a.blueWidth-90)*Math.PI/180);
-        ctx.strokeStyle='#ffd57c';ctx.lineWidth=25;ctx.stroke();
+        ctx.strokeStyle='#ffd57c';ctx.lineWidth=starLineWidth;ctx.stroke();
         const x=(a.blueStart+a.blueWidth-a.starWidth/2-90)*Math.PI/180;
         ctx.font='21px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#54340c';ctx.fillText('★',mid+radius*Math.cos(x),mid+radius*Math.sin(x));
       }
