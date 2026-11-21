@@ -1,0 +1,20 @@
+/* 神狩荘 v0.17.0.1 海の探索 */
+#sea-page .sea-pier-frame{position:relative;overflow:hidden;border-radius:16px;}
+#sea-scene{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;}
+#sea-page .sea-meter-frame{position:absolute;bottom:0;left:50%;width:64%;max-width:390px;transform:translateX(-50%);height:auto;aspect-ratio:2048/682;background:url('../images/backgrounds/seaFrame.webp') center/100% 100% no-repeat;filter:drop-shadow(0 2px 3px #081e2880);pointer-events:none;}
+#sea-page .sea-meter{position:absolute;left:10.8%;right:10.8%;top:42.3%;height:10.8%;background:#0c2733;border-radius:100px;overflow:hidden;}
+#sea-page .sea-meter i{display:block;height:100%;background:linear-gradient(90deg,#6ed4e9,#d2f8fe);transition:width .4s;border-radius:inherit;}
+#sea-page .sea-bait-panel{border:1px solid #55647b;background:#242c3f;border-radius:14px;padding:14px;margin:16px 0;}
+#sea-page .sea-bait-panel label{display:block;margin-top:10px;cursor:pointer;}
+#sea-page .sea-bait-panel input{width:auto;margin-right:6px;}
+#sea-page .sea-bait-panel small{opacity:.7;}
+#sea-page .sea-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+#sea-page .sea-board{width:min(100%,490px,calc(100dvh - 156px));min-width:210px;margin:0 auto;position:relative;border-radius:18px;overflow:hidden;background:linear-gradient(#04375366,#05324eaa),url('../images/backgrounds/seaMap.webp') center/cover,#0e354e;}
+#sea-page .sea-board::after{content:'';position:absolute;inset:0;z-index:2;pointer-events:none;background:url('../images/backgrounds/fishingFrame.webp') center/contain no-repeat;}
+#sea-page .sea-board canvas{display:block;width:100%;height:auto;touch-action:manipulation;cursor:pointer;position:relative;z-index:1;}
+#sea-page .sea-guide{text-align:center;font-size:12px;margin:8px 0;color:#d0e7ed;}
+#sea-page #sea-game{text-align:center;scroll-margin-top:8px;}
+#sea-page .sea-game-header{display:flex;justify-content:space-between;max-width:490px;margin:0 auto 8px;}
+#sea-page .sea-result{display:flex;gap:12px;align-items:center;margin-top:16px;}
+#sea-page .sea-catch-icon{height:110px;width:110px;object-fit:contain;}
+#sea-page #sea-hint{min-height:1.7em;}
