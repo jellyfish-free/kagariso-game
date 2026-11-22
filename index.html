@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="data/cave-statistics.css?v=0.15.11">
   <link rel="stylesheet" href="data/forest.css?v=0.16.4.3">
   <link rel="stylesheet" href="data/sea.css?v=0.17.1.5">
-  <link rel="stylesheet" href="data/cooking.css?v=0.18.5.6">
+  <link rel="stylesheet" href="data/cooking.css?v=0.18.5.7">
   <link rel="stylesheet" href="data/cave-stills.css?v=0.16.4.4">
   <script src="config.js" defer></script>
   <script src="data/materials.js" defer></script>
@@ -65,8 +65,8 @@
   }
 </style>
   <script src="data/sea-items.js?v=0.17.0.3" defer></script>
-  <script src="script.js?v=0.18.5.4" defer></script>
-  <script src="data/cooking.js?v=0.18.5.6" defer></script>
+  <script src="script.js?v=0.18.5.7" defer></script>
+  <script src="data/cooking.js?v=0.18.5.7" defer></script>
   <script src="data/sea-game.js?v=0.17.1.5" defer></script>
 <style>
  .admin-npc-selector{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:14px 0 18px;}
@@ -220,7 +220,7 @@
       <h2>レシピ</h2><p class="muted tiny">レシピは料理や探索・獣たちとの交流、住人への贈り物で解放されます。調理回数に1日の制限はありません。</p>
       <div class="cooking-toolbar"><select id="cooking-filter" aria-label="料理の種類"><option value="all">すべて</option><option>洞窟</option><option>森</option><option>海</option><option>複合</option><option>特別</option></select><input id="cooking-search" placeholder="料理名を検索" aria-label="料理名を検索"></div>
       <div id="cooking-recipes" class="cooking-recipe-grid" aria-label="レシピ一覧"></div>
-      <div id="cooking-recipe-detail" class="cooking-recipe-detail" hidden aria-live="polite"></div>
+      
     </div>
     <div id="cooking-play" class="hidden">
       <h2 id="cooking-playing-name"></h2><h3 id="cooking-stage-title"></h3>
@@ -233,6 +233,17 @@
     </div>
     <details open><summary>完成した料理（持ち物）</summary><div id="cooking-stock"></div></details>
     <details open><summary>獣たちからの料理のおねだり</summary><p class="muted tiny">既存のお願いと合わせて、1日3件まで。完成した料理を1個渡すと達成できます。</p><button id="cooking-orders-refresh" class="secondary small">お願いを確認する</button><div id="cooking-orders"></div></details>
+  </div>
+</section>
+<section id="cooking-recipe-page" class="page hidden narrow">
+  <nav class="workshop-cooking-nav" aria-label="レシピ詳細から戻る">
+    <button type="button" id="cooking-recipe-back" class="back">← レシピ一覧へ戻る</button>
+    <button type="button" id="cooking-recipe-hall-back" class="back">← ホールへ戻る</button>
+  </nav>
+  <div class="panel">
+    <span class="eyebrow">THE RECIPE</span>
+    <h1>レシピ詳細</h1>
+    <div id="cooking-recipe-detail-content" class="cooking-recipe-detail-content" aria-live="polite"></div>
   </div>
 </section>
 <section id="sea-event-page" class="page hidden narrow"><div class="panel story"><span class="eyebrow">A MEMORY BY THE SEA</span><h1 id="sea-event-title"></h1><img id="sea-event-image" alt="物語の思い出" style="display:block;width:100%;height:auto;border-radius:16px"><div id="sea-event-text" class="scene" style="white-space:pre-line;margin-top:16px"></div><div id="sea-event-choices" class="choice-list"></div><button id="sea-event-next" class="primary">続きを読む →</button></div></section>
@@ -796,7 +807,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.5.6</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.5.7</span></footer>
   </div>
 </body>
 </html>
