@@ -122,3 +122,15 @@
 #cooking-page .cooking-tap-positions{position:absolute;inset:0;pointer-events:none;z-index:4;overflow:visible}
 #cooking-page .cooking-tap-record{position:absolute;top:50%;transform:translate(-50%,-50%);width:23px;height:23px;box-sizing:border-box;border-radius:50%;border:2px solid #fcf6e8;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#142d3b;background:#88e3cf;box-shadow:0 1px 7px #091d2acc;line-height:1}
 #cooking-page .cooking-tap-record.is-miss{background:#dc9a9a;color:#361e27}
+
+/* v0.18.5.15: 打った位置は数字付きの丸ではなく縦点線で示す。
+   左端・右端の位置もゲージ内の同じ基準で描画する。 */
+#cooking-page .cooking-tap-record{
+  top:-5px;bottom:-5px;height:auto;width:0;
+  transform:translateX(-50%);border:0;border-left:3px dashed #a5f2df;
+  border-radius:0;background:none;box-shadow:1px 0 2px rgba(6,27,35,.65);
+  display:block;z-index:5;
+}
+#cooking-page .cooking-tap-record.is-miss{
+  background:none;border-left-color:#f3a1a3;
+}

@@ -70,7 +70,7 @@ const paintList=()=>{
  $('cooking-stock').innerHTML=state.owned.length?state.owned.map(x=>{const r=byId[x.id];return r?`<article class="cooking-food">${img(r)}<div><strong>${safe(r.name)} ×${x.quantity}</strong><div class="muted tiny">回復 ${r.restore} ／ 腹持ち ${r.satietyMinutes}分</div></div><div><button class="secondary small" data-eat="paper:${r.id}">黄色い獣へ</button> <button class="secondary small" data-eat="pyoro:${r.id}">赤色の獣へ</button></div></article>`:'';}).join(''):'<p class="muted">作った料理はまだありません。</p>';
  $('cooking-stock').querySelectorAll('[data-eat]').forEach(b=>b.onclick=()=>feed(...b.dataset.eat.split(':')));
 };
-// v0.18.5.14: タップ位置は工程中ずっと残す。途中更新時はD1の履歴から復元。
+// v0.18.5.15: タップ位置は縦の点線で残す。サーバーにも操作した瞬間の時刻を渡す。
 const tapPercent=t=>{
  if(Number.isFinite(Number(t?.percent)))return Math.max(0,Math.min(100,Number(t.percent)));
  // 旧バージョンの途中記録（時刻のみ）にも対応。
@@ -87,7 +87,7 @@ const paintTapPositions=taps=>{
   const mark=document.createElement('span');
   mark.className='cooking-tap-record '+(tap.hit?'is-hit':'is-miss');
   mark.style.left=tap.position+'%';
-  mark.textContent=String(tap.index);
+  mark.setAttribute('aria-hidden','true');
   mark.title=`${tap.index}回目：${tap.position.toFixed(1)}%／${tap.hit?'成功':'失敗'}`;
   mark.setAttribute('aria-label',mark.title);
   container.append(mark);
@@ -209,7 +209,8 @@ const openKitchen=async()=>{
 $('cooking-recipe-back').addEventListener('click',()=>bridge.show('cooking'));
 $('cooking-recipe-hall-back').addEventListener('click',()=>bridge.openHall());
 $('cooking-filter').addEventListener('change',()=>{if(state)paintList();});$('cooking-search').addEventListener('input',()=>{if(state)paintList();});
-$('cooking-tap-button').onclick=()=>step({action:'tap'});
+// 通信完了時刻ではなく押下した瞬間の時計値を送る（画面のカーソル位置と揃える）。
+$('cooking-tap-button').onclick=()=>{if(busy||session?.game!=='tap')return;const tapAt=Math.round(Date.now()+clockOffset);step({action:'tap',tapAt});};
 const hold=$('cooking-hold-button');
 const doRelease=async()=>{
  if(!holdBusy||holdStartPending||busy)return;
