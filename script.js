@@ -750,13 +750,15 @@ const openPyoroConversation=async()=>{
  $('#pyoro-conversation-scene').textContent=pyoroStateScene(npc);
  $('#pyoro-talk-result').textContent='「……なんだ？ オレに話があるのか？」';
  $('#pyoro-talk-history-details').open=false;
+ $('#pyoro-talk-history-details').classList.add('hidden');
+ $('#pyoro-conversation-result').classList.add('hidden');
  await loadPyoroTalk();
  show('pyoro-conversation');
 };
 bind('#pyoro-talk-open',openPyoroConversation);
 bind('#pyoro-conversation-back',openPyoro);
 bind('#pyoro-conversation-hall',openHall);
-bind('#pyoro-history-shortcut',async()=>{await openPyoroConversation();$('#pyoro-talk-history-details').open=true;$('#pyoro-history-load').click();});
+bind('#pyoro-history-shortcut',async()=>{await openPyoroConversation();$('#pyoro-history-open').click();});
 
 for(const [id,action] of [['#pyoro-rest-btn','rest'],['#pyoro-wake-btn','wake']])bind(id,async()=>{
  const result=await api('/npcs/pyoro/life/action','POST',{action});paintPyoroProfile(result.npc);
@@ -768,6 +770,25 @@ const pyoroReply=r=>{ $('#pyoro-talk-result').textContent=r.response+(r.affinity
 const pyoroAction=async(path,body)=>{if(pyoroBusy)return;pyoroBusy=true;try{const r=await api(path,'POST',body);pyoroReply(r);return r;}finally{pyoroBusy=false;}};
 const loadPyoroTalk=async()=>{const data=await api('/npcs/pyoro/conversation/options');paintPyoroTalkUsage(data.usage);const list=$('#pyoro-talk-options');list.replaceChildren();for(const t of data.choices){const b=document.createElement('button');b.className='secondary';b.textContent=t.label;b.onclick=handler(async()=>{const r=await pyoroAction('/npcs/pyoro/conversation',{choice:t.id});if(r)await loadPyoroTalk();});list.append(b);}};
 $('#pyoro-ai-form').addEventListener('submit',handler(async e=>{e.preventDefault();const field=$('#pyoro-ai-message');const r=await pyoroAction('/npcs/pyoro/ai/chat',{message:field.value});if(r)field.value='';}));
+// v0.18.5: 黄色い獣の呼び名入力と同じ操作。住人ごと・NPCごとにD1保存。
+$('#pyoro-name-form').addEventListener('submit',handler(async e=>{
+ e.preventDefault();
+ const button=$('#pyoro-name-send');button.disabled=true;
+ try{
+   const r=await api('/npcs/pyoro/ai/name','POST',{nickname:$('#pyoro-name-input').value});
+   $('#pyoro-talk-result').textContent=r.response;
+   $('#pyoro-name-input').value='';
+   $('#pyoro-conversation-result').textContent='呼び名を教えました。';
+   $('#pyoro-conversation-result').classList.remove('hidden');
+   toast('赤色の獣に呼び名を教えました。');
+ }finally{button.disabled=false;}
+}));
+bind('#pyoro-conversation-close',openPyoro);
+bind('#pyoro-history-open',async()=>{
+ $('#pyoro-talk-history-details').classList.remove('hidden');
+ $('#pyoro-talk-history-details').open=true;
+ $('#pyoro-history-load').click();
+});
 bind('#pyoro-history-load',async()=>{const data=await api('/npcs/pyoro/history');const list=$('#pyoro-history');list.replaceChildren();for(const r of data.history){const el=document.createElement('p');el.className='scene';el.textContent=`${r.message} → ${r.response}`;list.append(el);}if(!data.history.length)list.textContent='まだ会話の記録はありません。';});
 const renderPyoroFood=data=>{
  const n=data.npc;paintPyoroProfile(n);
