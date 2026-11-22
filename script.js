@@ -14,7 +14,7 @@ let pendingRecovery='';
 let inventoryReturn='hall';
 let gathering=false;
 let npcReturn='hall', mandatoryStory=false;
-const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-diary','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor','forest-event','forest','forest-area','forest-memories','sea','sea-event','pyoro','cooking'];
+const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-diary','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor','forest-event','forest','forest-area','forest-memories','sea','sea-event','pyoro','pyoro-conversation','cooking'];
 let activePage='';
 const show=(name)=>{
   const changed=activePage!==name; activePage=name;
@@ -281,10 +281,10 @@ async function openForest(){
 let seaEventBusy=false;
 const seaEventStory=(kind,e)=>{
  if(kind==='green')return {title:'緑の扉の向こう側',pages:[['greenDoorUnlock.webp','黄色い獣が緑の扉の前で鼻をひくひくさせている。「ねえねえ、なんかね、しょっぱいニオイがする！」'],['greenDoorUnlock.webp','前足が扉に触れると、静かに扉が開いた。その向こうには青い海と桟橋が広がっていた。「わあ！ うみだぁ！」']]};
- if(kind==='meet')return {title:'赤い獣との出会い',pages:[['paperMeetsPyoro.webp','ホールで黄色い獣が嬉しそうにこちらを呼んだ。「ねえねえ！ '+e.finderName+'がね、うみでつったんだって！」'],['paperMeetsPyoro.webp','赤い獣は耳を伏せた。「……つられたんじゃない。ちょっと、ひっかかっただけだ。」黄色い獣は嬉しそうに尻尾を振っている。赤い獣は少し照れながら、こちらへ小さく頷いた。']]};
- return {title:'海から釣れた、へんなもの',pages:[['fishingPyoro.webp','いつもより重い手応え。釣り糸の先から、妙な声が聞こえた。「……っぷ、ぶくぶく……！」'],['fishingPyoro.webp','釣り上げたのは、びしょ濡れの赤い獣だった。「べつに、おぼれてたわけじゃないからな。ちょっと、うみのなかがどうなってるのか、きになっただけだし。」'],['fishingPyoro.webp','赤い獣は水を滴らせながら、こちらをちらりと見上げた。',true],['fishingPyoro.webp','「……なまえ、おしえて。」あなたの名前を繰り返すと、赤い獣は小さな声で「ありがと」と呟いた。'],['paperMeetsPyoro.webp','ホールに連れて帰ると、黄色い獣が駆け寄ってきた。「キミはおよげるの？」赤い獣は目を逸らす。「……ちょっとだけ。」「じゃあ、おともだちだね！」赤い獣は困ったように、それでも小さく笑った。']]};
+ if(kind==='meet')return {title:'赤色の獣との出会い',pages:[['paperMeetsPyoro.webp','ホールで黄色い獣が嬉しそうにこちらを呼んだ。「ねえねえ！ '+e.finderName+'がね、うみでつったんだって！」'],['paperMeetsPyoro.webp','赤色の獣は耳を伏せた。「……つられたんじゃない。ちょっと、ひっかかっただけだ。」黄色い獣は嬉しそうに尻尾を振っている。赤色の獣は少し照れながら、こちらへ小さく頷いた。']]};
+ return {title:'海から釣れた、へんなもの',pages:[['fishingPyoro.webp','いつもより重い手応え。釣り糸の先から、妙な声が聞こえた。「……っぷ、ぶくぶく……！」'],['fishingPyoro.webp','釣り上げたのは、びしょ濡れの赤色の獣だった。「べつに、おぼれてたわけじゃないからな。ちょっと、うみのなかがどうなってるのか、きになっただけだし。」'],['fishingPyoro.webp','赤色の獣は水を滴らせながら、こちらをちらりと見上げた。',true],['fishingPyoro.webp','「……なまえ、おしえて。」あなたの名前を繰り返すと、赤色の獣は小さな声で「ありがと」と呟いた。'],['paperMeetsPyoro.webp','ホールに連れて帰ると、黄色い獣が駆け寄ってきた。「キミはおよげるの？」赤色の獣は目を逸らす。「……ちょっとだけ。」「じゃあ、おともだちだね！」赤色の獣は困ったように、それでも小さく笑った。']]};
 };
-const seaReplies={kind:'「……だいじょうぶ。ちょっとびっくりしただけ。」',tease:'「お、おぼれてないってば！」',dry:'赤い獣は身体を拭いてもらうと、少し安心したように耳を起こした。'};
+const seaReplies={kind:'「……だいじょうぶ。ちょっとびっくりしただけ。」',tease:'「お、おぼれてないってば！」',dry:'赤色の獣は身体を拭いてもらうと、少し安心したように耳を起こした。'};
 function showSeaEvent(kind,e,replay=false){
  const story=seaEventStory(kind,e);let index=0,choice=replay?e.choice:null;
  const next=$('#sea-event-next'),buttons=$('#sea-event-choices');
@@ -315,8 +315,8 @@ async function openHall(){const data=await api('/hall');resident=data.resident;$
   $('#hall-pyoro-actor').onclick=handler(openPyoro);
   paperActor.classList.toggle('hidden',!paperHere);
   if(paperHere){paintPaper('#hall-paper-image',paperHere);$('#hall-paper-label').textContent=paperHere.state.activity==='sleeping'?'黄色い獣はおやすみ中':'黄色い獣に会う';}
-  $('#npc-list').innerHTML=data.npcs.map(n=>`<article class="npc-card">${n.id==='paper'&&paperVisual?`<img class="npc-list-portrait" src="${safe(encodeURI(paperImage(paperExpression(n))))}" alt="">`:n.id==='pyoro'?'<img class="npc-list-portrait" src="images/npc/pyoro/normal.webp" alt="">':'<div class="avatar" aria-hidden="true">✦</div>'}<div><strong>${safe(n.name)}</strong><div class="muted">${safe(stateText(n))} · ${safe(n.state.activityLabel)}</div></div><button class="secondary small" data-npc="${safe(n.id)}">詳細を見る</button></article>`).join('');
-  $('#doors').innerHTML=data.hall.doors.map(d=>`<article class="door-card" data-door-card="${safe(d.id)}"><span class="door-glyph">◇</span><div class="door-card-copy"><strong>${safe(d.id==='forest'&&d.status==='available'?'森':d.id==='sea'&&d.status==='available'?'海':d.id==='unknown'?'正面の扉：台所':d.name)}</strong>${['forest','cave','sea'].includes(d.id)?'':`<div class="muted">${d.id==='unknown'&&d.status==='available'?'料理ができます':d.id==='moon'?'商人が来るのを待っている':d.status==='available'?'入口の採取ができます':'探索機能は次の開発段階で実装'}</div>`}</div>${d.status==='available'?`<button class="secondary small" data-door="${safe(d.id)}">${d.id==='unknown'?'料理する':'探索する'}</button>`:`<span class="tag">${['forest','sea'].includes(d.id)?'未解放':'準備中'}</span>`}</article>`).join('');
+  $('#npc-list').innerHTML=data.npcs.map(n=>`<article class="npc-card">${n.id==='paper'&&paperVisual?`<img class="npc-list-portrait" src="${safe(encodeURI(paperImage(paperExpression(n))))}" alt="">`:n.id==='pyoro'?'<img class="npc-list-portrait" src="images/npc/pyoro/normal.webp" alt="">':'<div class="avatar" aria-hidden="true">✦</div>'}<div><strong>${safe(n.id==='pyoro'?'赤色の獣':n.name)}</strong><div class="muted">${safe(stateText(n))} · ${safe(n.state.activityLabel)}</div></div><button class="secondary small" data-npc="${safe(n.id)}">詳細を見る</button></article>`).join('');
+  $('#doors').innerHTML=data.hall.doors.map(d=>`<article class="door-card" data-door-card="${safe(d.id)}"><span class="door-glyph">◇</span><div class="door-card-copy"><strong>${safe(d.id==='forest'&&d.status==='available'?'森':d.id==='sea'&&d.status==='available'?'海':d.id==='unknown'?(d.status==='available'?'工房':'正面の扉'):d.name)}</strong>${['forest','cave','sea'].includes(d.id)?'':`<div class="muted">${d.id==='unknown'&&d.status==='available'?'料理を作れる工房です':d.id==='moon'?'商人が来るのを待っている':d.status==='available'?'入口の採取ができます':'探索機能は次の開発段階で実装'}</div>`}</div>${d.status==='available'?`<button class="secondary small" data-door="${safe(d.id)}">${d.id==='unknown'?'工房へ':'探索する'}</button>`:`<span class="tag">${['forest','sea'].includes(d.id)?'未解放':'準備中'}</span>`}</article>`).join('');
   $('#doors').querySelector('[data-door="cave"]')?.addEventListener('click',handler(()=>enterHallCave()));
   $('#doors').querySelector('[data-door="forest"]')?.addEventListener('click',handler(openForest));
   $('#doors').querySelector('[data-door="sea"]')?.addEventListener('click',handler(async()=>{if(!await checkSeaEvents())await window.KAGARISO_SEA.open();}));
@@ -628,21 +628,21 @@ async function openInventory(from='hall'){
   renderInventoryItems();
   show('inventory');
 }
-// v0.18.1: 赤い獣も黄色い獣と同じ見せ方。APIやNPC別データは分離したまま。
+// v0.18.1: 赤色の獣も黄色い獣と同じ見せ方。APIやNPC別データは分離したまま。
 let pyoroProfile=null,pyoroProfileTimer=null,pyoroLastLocation='';
 const pyoroStateScene=n=>{
  const state=n.state||{};
- if(state.activity==='sleeping')return '赤い獣はホールの片隅で小さく丸まり、すうすうと眠っている。時おり耳がぴくりと動く。';
- if(state.hunger>75)return '赤い獣はおなかを押さえ、こちらの様子をちらちらうかがっている。……どうやら、おなかが空いたらしい。';
- if(state.activity==='resting')return '赤い獣はホールのソファで、少し警戒しながらもゆっくり休んでいる。';
- if(state.energy<40)return '赤い獣は少し疲れているようで、ホールの隅に座って静かにあくびをしている。';
- if(state.mood<35)return '赤い獣は耳を伏せ、足元をじっと見つめている。少し落ち着かない様子だ。';
- return '赤い獣はホールのあちこちを興味深そうに見て回っている。こちらに気づくと、少しだけ目をそらした。';
+ if(state.activity==='sleeping')return '赤色の獣はホールの片隅で小さく丸まり、すうすうと眠っている。時おり耳がぴくりと動く。';
+ if(state.hunger>75)return '赤色の獣はおなかを押さえ、こちらの様子をちらちらうかがっている。……どうやら、おなかが空いたらしい。';
+ if(state.activity==='resting')return '赤色の獣はホールのソファで、少し警戒しながらもゆっくり休んでいる。';
+ if(state.energy<40)return '赤色の獣は少し疲れているようで、ホールの隅に座って静かにあくびをしている。';
+ if(state.mood<35)return '赤色の獣は耳を伏せ、足元をじっと見つめている。少し落ち着かない様子だ。';
+ return '赤色の獣はホールのあちこちを興味深そうに見て回っている。こちらに気づくと、少しだけ目をそらした。';
 };
 const paintPyoroProfile=(n,moved=false)=>{
  if(!n)return;
  pyoroProfile=n;
- $('#pyoro-name').textContent=n.name;
+ $('#pyoro-name').textContent='赤色の獣';
  $('#pyoro-hearts').textContent='♥'.repeat(n.affinity)+'♡'.repeat(10-n.affinity);
  $('#pyoro-relationship').textContent=`あなたとの関係：${n.relationship}`;
  $('#pyoro-relationship-detail').textContent=`${n.relationship}（好感度 ${n.affinity}/10・${n.affinityPoints}pt）`;
@@ -657,17 +657,18 @@ const paintPyoroProfile=(n,moved=false)=>{
  }).join('');
  $('#pyoro-scene').textContent=pyoroStateScene(n);
  const notice=$('#pyoro-move-notice');
- if(moved){notice.textContent=`赤い獣は${st.locationLabel||'ホール'}へ移動しました。`;notice.classList.remove('hidden');}
+ if(moved){notice.textContent=`赤色の獣は${st.locationLabel||'ホール'}へ移動しました。`;notice.classList.remove('hidden');}
  $('#pyoro-talk-open').disabled=st.activity==='sleeping';
- $('#pyoro-talk-open').title=st.activity==='sleeping'?'赤い獣は眠っています。':'';
+ $('#pyoro-talk-open').title=st.activity==='sleeping'?'赤色の獣は眠っています。':'';
  $('#pyoro-rest-btn').disabled=st.activity!=='awake';
  $('#pyoro-wake-btn').disabled=st.activity!=='sleeping'||n.affinity<3;
 };
 const pyoroOpenSubview=(name)=>{
  $('#pyoro-subview').classList.remove('hidden');
- const names={talk:'赤い獣と話す',feeding:'ごはん・おやつ',requests:'赤い獣のお願い',gifts:'受けとったプレゼント',diary:'日記',words:'言葉を教える'};
+ const names={talk:'赤色の獣と話す',feeding:'ごはん・おやつ',requests:'赤色の獣のお願い',gifts:'受けとったプレゼント',diary:'日記',words:'言葉を教える'};
  $('#pyoro-subview-title').textContent=names[name]||'';
  for(const el of document.querySelectorAll('#pyoro-subview .pyoro-detail-panel'))el.classList.toggle('hidden',el.id!=='pyoro-panel-'+name);
+ show('pyoro');
  $('#pyoro-subview').scrollIntoView({block:'start',behavior:'smooth'});
 };
 async function openPyoro(){
@@ -691,8 +692,23 @@ async function openPyoro(){
    try{const {npc:updated}=await api('/npcs/pyoro');const moved=pyoroLastLocation!==updated.state.location;pyoroLastLocation=updated.state.location;paintPyoroProfile(updated,moved);}catch{}
  },15000);
 }
-for(const [id,screen] of [['#pyoro-talk-open','talk'],['#pyoro-requests-open','requests'],['#pyoro-gifts-open','gifts'],['#pyoro-diary-open','diary'],['#pyoro-feeding-open','feeding'],['#pyoro-words-open','words']])bind(id,()=>{pyoroOpenSubview(screen);if(screen==='diary')loadPyoroDiary(true).catch(e=>toast(e.message));});
-bind('#pyoro-history-shortcut',()=>{pyoroOpenSubview('talk');$('#pyoro-talk-history-details').open=true;$('#pyoro-history-load').click();});
+for(const [id,screen] of [['#pyoro-requests-open','requests'],['#pyoro-gifts-open','gifts'],['#pyoro-diary-open','diary'],['#pyoro-feeding-open','feeding'],['#pyoro-words-open','words']])bind(id,()=>{pyoroOpenSubview(screen);if(screen==='diary')loadPyoroDiary(true).catch(e=>toast(e.message));});
+const openPyoroConversation=async()=>{
+ const {npc}=await api('/npcs/pyoro');
+ paintPyoroProfile(npc);
+ const background=$('#pyoro-conversation-background');
+ applyImageFallback(background,hallBackgroundFiles(hallBackgroundName()),'pyoroConversationBackground');
+ $('#pyoro-conversation-image').src='images/npc/pyoro/normal.webp';
+ $('#pyoro-conversation-scene').textContent=pyoroStateScene(npc);
+ $('#pyoro-talk-result').textContent='「……なんだ？ オレに話があるのか？」';
+ $('#pyoro-talk-history-details').open=false;
+ await loadPyoroTalk();
+ show('pyoro-conversation');
+};
+bind('#pyoro-talk-open',openPyoroConversation);
+bind('#pyoro-conversation-back',openPyoro);
+bind('#pyoro-conversation-hall',openHall);
+bind('#pyoro-history-shortcut',async()=>{await openPyoroConversation();$('#pyoro-talk-history-details').open=true;$('#pyoro-history-load').click();});
 bind('#pyoro-subview-back',()=>{$('#pyoro-subview').classList.add('hidden');$('#pyoro-profile-more').open=false;$('#pyoro-page .npc-heading').scrollIntoView({block:'start',behavior:'smooth'});});
 for(const [id,action] of [['#pyoro-rest-btn','rest'],['#pyoro-wake-btn','wake']])bind(id,async()=>{
  const result=await api('/npcs/pyoro/life/action','POST',{action});paintPyoroProfile(result.npc);
@@ -700,7 +716,7 @@ for(const [id,action] of [['#pyoro-rest-btn','rest'],['#pyoro-wake-btn','wake']]
 });
 let pyoroBusy=false;
 const paintPyoroTalkUsage=u=>{$('#pyoro-ai-usage').textContent=`今日のAI会話：${u.used} / ${u.limit}回`;};
-const pyoroReply=r=>{ $('#pyoro-talk-result').textContent=r.response+(r.affinityChange?`（親密度 +${r.affinityChange}pt）`:'');paintPyoroProfile(r.npc);paintPyoroTalkUsage(r.usage);};
+const pyoroReply=r=>{ $('#pyoro-talk-result').textContent=r.response+(r.affinityChange?`（親密度 +${r.affinityChange}pt）`:'');paintPyoroProfile(r.npc);$('#pyoro-conversation-scene').textContent=pyoroStateScene(r.npc);paintPyoroTalkUsage(r.usage);};
 const pyoroAction=async(path,body)=>{if(pyoroBusy)return;pyoroBusy=true;try{const r=await api(path,'POST',body);pyoroReply(r);return r;}finally{pyoroBusy=false;}};
 const loadPyoroTalk=async()=>{const data=await api('/npcs/pyoro/conversation/options');paintPyoroTalkUsage(data.usage);const list=$('#pyoro-talk-options');list.replaceChildren();for(const t of data.choices){const b=document.createElement('button');b.className='secondary';b.textContent=t.label;b.onclick=handler(async()=>{const r=await pyoroAction('/npcs/pyoro/conversation',{choice:t.id});if(r)await loadPyoroTalk();});list.append(b);}};
 $('#pyoro-ai-form').addEventListener('submit',handler(async e=>{e.preventDefault();const field=$('#pyoro-ai-message');const r=await pyoroAction('/npcs/pyoro/ai/chat',{message:field.value});if(r)field.value='';}));
@@ -748,7 +764,7 @@ async function loadPyoroRequests(){
       card.append(row);
     }
     const actions=document.createElement('div');actions.className='actions';
-    const report=document.createElement('button');report.className='primary small';report.textContent='赤い獣に報告する';report.disabled=!complete;report.onclick=handler(()=>pyoroRequestUpdate('/npcs/pyoro/requests/resolve',{requestId:req.id,action:'report'}));
+    const report=document.createElement('button');report.className='primary small';report.textContent='赤色の獣に報告する';report.disabled=!complete;report.onclick=handler(()=>pyoroRequestUpdate('/npcs/pyoro/requests/resolve',{requestId:req.id,action:'report'}));
     const cancel=document.createElement('button');cancel.className='secondary small';cancel.textContent='取り消す';cancel.onclick=handler(async()=>{if(confirm('お願いを取り消しますか？ 預けた素材は持ち物に戻ります。'))await pyoroRequestUpdate('/npcs/pyoro/requests/resolve',{requestId:req.id,action:'cancel'});});
     actions.append(report,cancel);card.append(actions);active.append(card);
   }
@@ -1341,7 +1357,7 @@ function showForestArea(id){
 for(const a of FOREST_AREAS)bind('#forest-area-'+a.id,()=>showForestArea(a.id));
 bind('#forest-area-hall',openHall);bind('#forest-inventory',()=>openInventory('forest-area'));
 
-async function openForestMemories(){const {forest}=await api('/forest/status');if(forest.unlocked&&forest.seen&&forest.eligible){const e=await api('/sea/events');const list=$('#sea-memory-buttons');list.replaceChildren();for(const [kind,label,seen] of [['green','緑の扉の向こう側',e.greenSeen],[e.isFinder?'discover':'meet',e.isFinder?'海から釣れた、へんなもの':'赤い獣との出会い',e.encounterSeen]])if(seen){const b=document.createElement('button');b.className='secondary';b.textContent=label+' →';b.onclick=()=>showSeaEvent(kind,e,true);list.append(b);}$('#sea-memories').classList.toggle('hidden',!list.childElementCount);show('forest-memories');}else toast('まだ思い出はありません。');}
+async function openForestMemories(){const {forest}=await api('/forest/status');if(forest.unlocked&&forest.seen&&forest.eligible){const e=await api('/sea/events');const list=$('#sea-memory-buttons');list.replaceChildren();for(const [kind,label,seen] of [['green','緑の扉の向こう側',e.greenSeen],[e.isFinder?'discover':'meet',e.isFinder?'海から釣れた、へんなもの':'赤色の獣との出会い',e.encounterSeen]])if(seen){const b=document.createElement('button');b.className='secondary';b.textContent=label+' →';b.onclick=()=>showSeaEvent(kind,e,true);list.append(b);}$('#sea-memories').classList.toggle('hidden',!list.childElementCount);show('forest-memories');}else toast('まだ思い出はありません。');}
 bind('#forest-memory',openForestMemories);
 bind('#forest-memories-back',openHall);
 bind('#forest-memory-cave',async()=>{await openCave();if(activePage==='cave'){$('#cave-history').closest('details').open=true;$('#cave-history').scrollIntoView({block:'nearest'});}});
@@ -1919,7 +1935,7 @@ const renderOverview=()=>{
  const forestOdds=forest.areas.flatMap(a=>a.spots.flatMap(sp=>{const rows=forestRows.filter(r=>r.area_id===a.id&&r.spot_id===sp.id),n=statsSum(rows,'hits'),normal=sp.groups.normal,rare=sp.groups.rare,sum=normal.reduce((v,m)=>v+m.value,0);let survival=1;const odds=new Map();for(const m of rare){odds.set(m.id,survival*m.value/100);survival*=1-m.value/100;}for(const m of normal)odds.set(m.id,sum?survival*m.value/sum:0);const ids=new Set([...odds.keys(),...rows.map(r=>r.item_id)]);return [...ids].map(id=>[a.name,sp.name,forest.catalog.find(m=>m.id===id)?.name||id,((odds.get(id)||0)*100).toFixed(2)+'%',n?(100*statsSum(rows.filter(r=>r.item_id===id),'hits')/n).toFixed(2)+'%':'—',n]);}));
  overviewSheets.push(['森・素材別',['素材','レア度','獲得個数','獲得回数'],forestMat],['森・区画別',['区画','採取回数','獲得個数'],forestAreas],['森・採取場所別',['区画','採取場所','採取回数','獲得個数'],forestSpots],['森・設定と実績',['区画','採取場所','素材','現在の設定率','記録上の獲得率','採取回数'],forestOdds]);
  const seaNames=new Map(d.residents.map(r=>[r.id,r.name]));
- const foodRows=food.foods.map(x=>[x.npcId==='paper'?'黄色い獣':'赤い獣',x.name,x.kind==='meal'?'ごはん':'おやつ',x.restore,x.enabled?'有効':'無効']);
+ const foodRows=food.foods.map(x=>[x.npcId==='paper'?'黄色い獣':'赤色の獣',x.name,x.kind==='meal'?'ごはん':'おやつ',x.restore,x.enabled?'有効':'無効']);
  overviewSheets.push(['食材の回復量（現在）',['NPC','食材','区分','空腹度の回復','状態'],foodRows]);
  overviewSheets.push(['海・釣り概要',['項目','回数'],[
  ['挑戦',sea.summary.attempts],['成功',sea.summary.won],['失敗',sea.summary.lost],['中断',sea.summary.cancelled],['進行中',sea.summary.active],['みみず使用挑戦',sea.summary.worm],['挑戦住人数',sea.summary.uniqueResidents],
@@ -1962,7 +1978,7 @@ const pyoroAdminFields=()=>{
  $('#pyoro-admin-save').disabled=false;
  let html=`<p class="muted tiny">設定ID：${safe(r.id)}</p>`;
  if(pyoroAdminSection==='topics'){
-  html+=pyoroAdminInput('label',r.label,false,{label:'住人が選ぶ会話'})+pyoroAdminInput('response',r.response,true,{label:'赤い獣の返答',maxlength:320});
+  html+=pyoroAdminInput('label',r.label,false,{label:'住人が選ぶ会話'})+pyoroAdminInput('response',r.response,true,{label:'赤色の獣の返答',maxlength:320});
   html+=pyoroAdminInput('enabled',r.enabled,false,{label:'ランダム3択に出す',checkbox:true});
  }
  if(pyoroAdminSection==='requests'){
@@ -1987,7 +2003,7 @@ const pyoroAdminFields=()=>{
  if(pyoroAdminSection==='profile'){
   html+=pyoroAdminInput('name',r.name,false,{label:'表示名'})+pyoroAdminInput('description',r.description,true,{label:'プロフィールの説明',maxlength:500});
   html+=pyoroAdminInput('personality',r.personality,true,{label:'プロフィールの性格',maxlength:600});
-  html+=pyoroAdminInput('prompt',r.prompt,true,{label:'赤い獣のAI人格・口調（黄色い獣とは別）',rows:8,maxlength:3000});
+  html+=pyoroAdminInput('prompt',r.prompt,true,{label:'赤色の獣のAI人格・口調（黄色い獣とは別）',rows:8,maxlength:3000});
   html+='<h3>生活リズム（日本時間）</h3>';
   html+=pyoroAdminInput('hungerMinutes',Math.round(Number(r.hungerIntervalMs||180000)/60000),false,{label:'空腹度が+1になるまで（分）',number:true,min:1,max:60});
   html+=pyoroAdminInput('sleepStart',r.sleepStart??23,false,{label:'睡眠開始時刻（時）',number:true,min:0,max:23});
@@ -2010,7 +2026,7 @@ const pyoroAdminLoad=async()=>{
  pyoroAdminRows=data.items||[];
  pyoroAdminSelected=structuredClone(pyoroAdminRows.find(r=>r.id===pyoroAdminSelected?.id)||pyoroAdminRows[0]||null);
  $('#pyoro-admin-new-topic').classList.toggle('hidden',pyoroAdminSection!=='topics');
- $('#pyoro-admin-note').textContent={topics:'話題はランダム3択から表示されます。',requests:'受注中の必要素材・返礼品ジャンルは変更できません。',gifts:'6種類の成功作・失敗作を個別に編集できます。ID・品質・制作確率は固定です。',foods:'赤い獣だけの食材・回復量・返答を編集します。',profile:'赤い獣のプロフィールとAI人格を編集します。現在の生活状態は変更しません。'}[pyoroAdminSection];
+ $('#pyoro-admin-note').textContent={topics:'話題はランダム3択から表示されます。',requests:'受注中の必要素材・返礼品ジャンルは変更できません。',gifts:'6種類の成功作・失敗作を個別に編集できます。ID・品質・制作確率は固定です。',foods:'赤色の獣だけの食材・回復量・返答を編集します。',profile:'赤色の獣のプロフィールとAI人格を編集します。現在の生活状態は変更しません。'}[pyoroAdminSection];
  $('#pyoro-admin-tabs').querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.pyoroSection===pyoroAdminSection));
  pyoroAdminList();pyoroAdminFields();
 };
@@ -2057,7 +2073,7 @@ $('#pyoro-admin-form').addEventListener('submit',handler(async e=>{
  if(pyoroAdminSection==='foods')Object.assign(body,{restore:Number(pyoroAdminValue('restore')),reply:pyoroAdminValue('reply'),enabled:pyoroAdminCheckbox('enabled')});
  if(pyoroAdminSection==='profile')Object.assign(body,{name:pyoroAdminValue('name'),description:pyoroAdminValue('description'),personality:pyoroAdminValue('personality'),prompt:pyoroAdminValue('prompt'),hungerMinutes:Number(pyoroAdminValue('hungerMinutes')),sleepStart:Number(pyoroAdminValue('sleepStart')),sleepEnd:Number(pyoroAdminValue('sleepEnd')),restStart:Number(pyoroAdminValue('restStart'))});
  const b=$('#pyoro-admin-save');b.disabled=true;
- try{await adminApi('/pyoro/config/save','POST',body);await pyoroAdminLoad();toast('赤い獣の設定を保存しました。');}
+ try{await adminApi('/pyoro/config/save','POST',body);await pyoroAdminLoad();toast('赤色の獣の設定を保存しました。');}
  finally{b.disabled=false;}
 }));
 bind('#pyoro-admin-audit-refresh',async()=>{
@@ -2175,7 +2191,7 @@ $('#admin-sea-form').addEventListener('submit',handler(async(event)=>{
 bind('#admin-sea-enable',async()=>{
  if(!adminSeaState||adminSeaState.discovered)return;
  const activate=!adminSeaState.activated;
- const question=activate?`赤い獣の発見を有効化します。現在 ${adminSeaState.progress}/${adminSeaState.target} 回です。住人が次の有効タップで発見する可能性があります。よろしいですか？`:'発見イベントを一時停止しますか？ 進捗は残ります。';
+ const question=activate?`赤色の獣の発見を有効化します。現在 ${adminSeaState.progress}/${adminSeaState.target} 回です。住人が次の有効タップで発見する可能性があります。よろしいですか？`:'発見イベントを一時停止しますか？ 進捗は残ります。';
  if(!window.confirm(question))return;
  const b=$('#admin-sea-enable');b.disabled=true;
  try{adminSeaState=await adminApi('/sea/discovery/switch','POST',{enable:activate});renderAdminSea();toast(activate?'発見イベントを有効にしました。':'発見イベントを停止しました。');}
