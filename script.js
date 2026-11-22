@@ -14,7 +14,7 @@ let pendingRecovery='';
 let inventoryReturn='hall';
 let gathering=false;
 let npcReturn='hall', mandatoryStory=false;
-const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-diary','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor','forest-event','forest','forest-area','forest-memories','sea','sea-event','pyoro','pyoro-conversation','pyoro-words','pyoro-word-history','pyoro-diary','pyoro-gifts','cooking'];
+const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-diary','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor','forest-event','forest','forest-area','forest-memories','sea','sea-event','pyoro','pyoro-conversation','pyoro-feeding','pyoro-requests','pyoro-words','pyoro-word-history','pyoro-diary','pyoro-gifts','cooking'];
 let activePage='';
 const show=(name)=>{
   const changed=activePage!==name; activePage=name;
@@ -136,7 +136,7 @@ const HALL_CAVE_DOOR_AREA={x:0.009,y:0.16,width:0.108,height:0.59};
 const positionHallCaveDoor=()=>{
   const image=$('#hall-background'),stage=$('#hall-visual'),door=$('#hall-cave-door');
   if(!image||!stage||!door)return;
-  if(!image.naturalWidth||!image.naturalHeight){door.classList.add('hidden');$('#hall-forest-door')?.classList.add('hidden');$('#hall-sea-door')?.classList.add('hidden');return;}
+  if(!image.naturalWidth||!image.naturalHeight){door.classList.add('hidden');$('#hall-forest-door')?.classList.add('hidden');$('#hall-sea-door')?.classList.add('hidden');$('#hall-front-door')?.classList.add('hidden');return;}
   // object-fit:contain、object-position:center の表示位置を再現。
   const stageWidth=stage.clientWidth,stageHeight=stage.clientHeight;
   if(!stageWidth||!stageHeight)return;
@@ -148,6 +148,13 @@ const positionHallCaveDoor=()=>{
   if(forestDoor){Object.assign(forestDoor.style,{left:`${offsetX+drawnWidth*0.15}px`,top:`${offsetY+drawnHeight*0.29}px`,width:`${drawnWidth*0.11}px`,height:`${drawnHeight*0.42}px`});forestDoor.classList.remove('hidden');}
   const seaDoor=$('#hall-sea-door');
   if(seaDoor){Object.assign(seaDoor.style,{left:`${offsetX+drawnWidth*0.747}px`,top:`${offsetY+drawnHeight*0.27}px`,width:`${drawnWidth*0.107}px`,height:`${drawnHeight*0.45}px`});seaDoor.classList.remove('hidden');}
+  // v0.18.4 赤い扉（解放後は工房）も画像の拡縮に追従。
+  const frontDoor=$('#hall-front-door');
+  if(frontDoor){
+    const zone={x:0.308,y:0.297,width:0.080,height:0.42};
+    Object.assign(frontDoor.style,{left:`${offsetX+drawnWidth*zone.x}px`,top:`${offsetY+drawnHeight*zone.y}px`,width:`${drawnWidth*zone.width}px`,height:`${drawnHeight*zone.height}px`});
+    frontDoor.classList.toggle('hidden',!frontCookingUnlocked);
+  }
   const left=offsetX+drawnWidth*area.x,top=offsetY+drawnHeight*area.y;
   const width=drawnWidth*area.width,height=drawnHeight*area.height;
   // 背景トリミングで扉が完全に見えない場合は反応させない。
@@ -303,6 +310,9 @@ async function openHall(){const data=await api('/hall');resident=data.resident;$
   updateForestHall(data.forest);
   seaState=data.sea||null;
   frontCookingUnlocked=!!data.frontUnlocked;
+  $('#hall-front-door').title=frontCookingUnlocked?'工房へ':'正面の扉';
+  $('#hall-front-door').setAttribute('aria-label',frontCookingUnlocked?'工房へ移動する':'正面の扉');
+  $('#front-door-hint').textContent=frontCookingUnlocked?'工房へ':'正面の扉';
   $('#sea-door-hint').textContent=seaState?.unlocked&&seaState?.eligible?'海へ':'🔒';
   $('#hall-sea-door').title=seaState?.unlocked&&seaState?.eligible?'海へ':'緑の扉';
   const paperHere=data.npcs.find(n=>n.id==='paper'&&n.state.location==='hall');
@@ -317,11 +327,12 @@ async function openHall(){const data=await api('/hall');resident=data.resident;$
   paperActor.classList.toggle('hidden',!paperHere);
   if(paperHere){paintPaper('#hall-paper-image',paperHere);$('#hall-paper-label').textContent=paperHere.state.activity==='sleeping'?'黄色い獣はおやすみ中':'黄色い獣に会う';}
   $('#npc-list').innerHTML=data.npcs.map(n=>`<article class="npc-card">${n.id==='paper'&&paperVisual?`<img class="npc-list-portrait" src="${safe(encodeURI(paperImage(paperExpression(n))))}" alt="">`:n.id==='pyoro'?`<img class="npc-list-portrait" src="${safe(encodeURI(pyoroImage(pyoroExpression(n))))}" alt="">`:'<div class="avatar" aria-hidden="true">✦</div>'}<div><strong>${safe(n.id==='pyoro'?'赤色の獣':n.name)}</strong><div class="muted">${safe(stateText(n))} · ${safe(n.state.activityLabel)}</div></div><button class="secondary small" data-npc="${safe(n.id)}">詳細を見る</button></article>`).join('');
-  $('#doors').innerHTML=data.hall.doors.map(d=>`<article class="door-card" data-door-card="${safe(d.id)}"><span class="door-glyph">◇</span><div class="door-card-copy"><strong>${safe(d.id==='forest'&&d.status==='available'?'森':d.id==='sea'&&d.status==='available'?'海':d.id==='unknown'?(d.status==='available'?'工房':'正面の扉'):d.name)}</strong>${['forest','cave','sea'].includes(d.id)?'':`<div class="muted">${d.id==='unknown'&&d.status==='available'?'料理を作れる工房です':d.id==='moon'?'商人が来るのを待っている':d.status==='available'?'入口の採取ができます':'探索機能は次の開発段階で実装'}</div>`}</div>${d.status==='available'?`<button class="secondary small" data-door="${safe(d.id)}">${d.id==='unknown'?'工房へ':'探索する'}</button>`:`<span class="tag">${['forest','sea'].includes(d.id)?'未解放':'準備中'}</span>`}</article>`).join('');
+  $('#doors').innerHTML=data.hall.doors.map(d=>`<article class="door-card" data-door-card="${safe(d.id)}"><span class="door-glyph">◇</span><div class="door-card-copy"><strong>${safe(d.id==='forest'&&d.status==='available'?'森':d.id==='sea'&&d.status==='available'?'海':d.id==='unknown'?(d.status==='available'?'工房':'正面の扉'):d.name)}</strong>${['forest','cave','sea'].includes(d.id)||(d.id==='unknown'&&d.status==='available')?'':`<div class="muted">${d.id==='moon'?'商人が来るのを待っている':d.status==='available'?'入口の採取ができます':'探索機能は次の開発段階で実装'}</div>`}</div>${d.status==='available'?`<button class="secondary small" data-door="${safe(d.id)}">${d.id==='unknown'?'工房へ':'探索する'}</button>`:`<span class="tag">${['forest','sea'].includes(d.id)?'未解放':'準備中'}</span>`}</article>`).join('');
   $('#doors').querySelector('[data-door="cave"]')?.addEventListener('click',handler(()=>enterHallCave()));
   $('#doors').querySelector('[data-door="forest"]')?.addEventListener('click',handler(openForest));
   $('#doors').querySelector('[data-door="sea"]')?.addEventListener('click',handler(async()=>{if(!await checkSeaEvents())await window.KAGARISO_SEA.open();}));
   $('#doors').querySelector('[data-door="unknown"]')?.addEventListener('click',handler(()=>window.KAGARISO_COOKING.open()));
+  $('#hall-front-door').onclick=handler(async()=>{if(!frontCookingUnlocked){toast('まだ正面の扉は開かない。');return;}await window.KAGARISO_COOKING.open();});
   $('#hall-sea-door').onclick=handler(async()=>{if(!seaState?.unlocked||!seaState?.eligible){toast('緑の扉はまだ開かない。');return;}if(!await checkSeaEvents())await window.KAGARISO_SEA.open();});
   $('#npc-list').querySelectorAll('[data-npc]').forEach(b=>b.addEventListener('click',handler(()=>b.dataset.npc==='pyoro'?openPyoro():openNpc('hall'))));
   if(!data.npcs.length)$('#npc-list').innerHTML='<p class="muted">黄色い獣の姿はまだここにない。洞窟の扉を調べてみよう。</p>';
@@ -698,14 +709,6 @@ const paintPyoroProfile=(n,moved=false)=>{
  $('#pyoro-rest-btn').disabled=st.activity!=='awake';
  $('#pyoro-wake-btn').disabled=st.activity!=='sleeping'||n.affinity<3;
 };
-const pyoroOpenSubview=(name)=>{
- $('#pyoro-subview').classList.remove('hidden');
- const names={talk:'赤色の獣と話す',feeding:'ごはん・おやつ',requests:'赤色の獣のお願い',gifts:'受けとったプレゼント',diary:'日記',words:'言葉を教える'};
- $('#pyoro-subview-title').textContent=names[name]||'';
- for(const el of document.querySelectorAll('#pyoro-subview .pyoro-detail-panel'))el.classList.toggle('hidden',el.id!=='pyoro-panel-'+name);
- show('pyoro');
- $('#pyoro-subview').scrollIntoView({block:'start',behavior:'smooth'});
-};
 async function openPyoro(){
  const {npc}=await api('/npcs/pyoro');
  pyoroLastLocation=npc.state.location;
@@ -713,7 +716,6 @@ async function openPyoro(){
  $('#pyoro-move-notice').classList.add('hidden');
  $('#pyoro-life-action-result').classList.add('hidden');
  $('#pyoro-profile-more').open=false;
- $('#pyoro-subview').classList.add('hidden');
  paintPyoroProfile(npc);
  $('#pyoro-talk-result').textContent='';$('#pyoro-feed-result').textContent='';
  $('#pyoro-history').replaceChildren();$('#pyoro-interactions').replaceChildren();
@@ -727,7 +729,10 @@ async function openPyoro(){
    try{const {npc:updated}=await api('/npcs/pyoro');const moved=pyoroLastLocation!==updated.state.location;pyoroLastLocation=updated.state.location;paintPyoroProfile(updated,moved);}catch{}
  },15000);
 }
-for(const [id,screen] of [['#pyoro-requests-open','requests'],['#pyoro-feeding-open','feeding']])bind(id,()=>pyoroOpenSubview(screen));
+bind('#pyoro-requests-open',async()=>{await loadPyoroRequests();show('pyoro-requests');});
+bind('#pyoro-requests-back',openPyoro);
+bind('#pyoro-feeding-open',async()=>{$('#pyoro-feed-result').classList.add('hidden');await loadPyoroFood();show('pyoro-feeding');});
+bind('#pyoro-feeding-back',()=>show('pyoro-conversation'));
 bind('#pyoro-words-open',async()=>{await loadPyoroWords();show('pyoro-words');});
 bind('#pyoro-words-back',()=>show('pyoro-conversation'));
 bind('#pyoro-word-history-open',async()=>{await loadPyoroWords();show('pyoro-word-history');});
@@ -752,13 +757,13 @@ bind('#pyoro-talk-open',openPyoroConversation);
 bind('#pyoro-conversation-back',openPyoro);
 bind('#pyoro-conversation-hall',openHall);
 bind('#pyoro-history-shortcut',async()=>{await openPyoroConversation();$('#pyoro-talk-history-details').open=true;$('#pyoro-history-load').click();});
-bind('#pyoro-subview-back',()=>{$('#pyoro-subview').classList.add('hidden');$('#pyoro-profile-more').open=false;$('#pyoro-page .npc-heading').scrollIntoView({block:'start',behavior:'smooth'});});
+
 for(const [id,action] of [['#pyoro-rest-btn','rest'],['#pyoro-wake-btn','wake']])bind(id,async()=>{
  const result=await api('/npcs/pyoro/life/action','POST',{action});paintPyoroProfile(result.npc);
  const el=$('#pyoro-life-action-result');el.textContent=result.message;el.classList.remove('hidden');
 });
 let pyoroBusy=false;
-const paintPyoroTalkUsage=u=>{$('#pyoro-ai-usage').textContent=`今日のAI会話：${u.used} / ${u.limit}回`;};
+const paintPyoroTalkUsage=u=>{$('#pyoro-ai-remaining').textContent=`自由に話しかける（${u.used}/${u.limit}回）`;$('#pyoro-ai-usage').textContent='';};
 const pyoroReply=r=>{ $('#pyoro-talk-result').textContent=r.response+(r.affinityChange?`（親密度 +${r.affinityChange}pt）`:'');paintPyoroProfile(r.npc);paintPyoro('#pyoro-conversation-image',r.npc,pyoroReplyExpression(r.response));$('#pyoro-conversation-scene').textContent=pyoroStateScene(r.npc);paintPyoroTalkUsage(r.usage);};
 const pyoroAction=async(path,body)=>{if(pyoroBusy)return;pyoroBusy=true;try{const r=await api(path,'POST',body);pyoroReply(r);return r;}finally{pyoroBusy=false;}};
 const loadPyoroTalk=async()=>{const data=await api('/npcs/pyoro/conversation/options');paintPyoroTalkUsage(data.usage);const list=$('#pyoro-talk-options');list.replaceChildren();for(const t of data.choices){const b=document.createElement('button');b.className='secondary';b.textContent=t.label;b.onclick=handler(async()=>{const r=await pyoroAction('/npcs/pyoro/conversation',{choice:t.id});if(r)await loadPyoroTalk();});list.append(b);}};
@@ -766,9 +771,12 @@ $('#pyoro-ai-form').addEventListener('submit',handler(async e=>{e.preventDefault
 bind('#pyoro-history-load',async()=>{const data=await api('/npcs/pyoro/history');const list=$('#pyoro-history');list.replaceChildren();for(const r of data.history){const el=document.createElement('p');el.className='scene';el.textContent=`${r.message} → ${r.response}`;list.append(el);}if(!data.history.length)list.textContent='まだ会話の記録はありません。';});
 const renderPyoroFood=data=>{
  const n=data.npc;paintPyoroProfile(n);
+ paintPyoro('#pyoro-feeding-image',n);
+ $('#pyoro-feeding-condition').textContent=n?.state?.activity==='sleeping'?'眠っている':(n?.state?.hunger>=60?'おなかがすいている':'赤色の獣');
+ $('#pyoro-feeding-activity').textContent=[n?.state?.locationLabel,n?.state?.activityLabel].filter(Boolean).join(' · ');
  const list=$('#pyoro-feed-list');list.replaceChildren();
  if(!data.canFeed){list.textContent=n.state.activity==='sleeping'?'眠っています。':'おなかいっぱいです。';return;}
- for(const kind of ['meal','snack']){const h=document.createElement('h3');h.textContent=kind==='meal'?'ごはん':'おやつ';list.append(h);const items=data.items.filter(x=>x.kind===kind);if(!items.length){const p=document.createElement('p');p.textContent='渡せる素材がありません。';list.append(p);}for(const item of items){const b=document.createElement('button');b.className='secondary';b.textContent=`${item.name} ×${item.quantity}（空腹 -${item.restore}）`;b.onclick=handler(async()=>{if(pyoroBusy)return;pyoroBusy=true;try{const r=await api('/npcs/pyoro/feeding','POST',{itemId:item.id});$('#pyoro-feed-result').textContent=r.message+(r.affinityChange?`（親密度 +${r.affinityChange}pt）`:'');renderPyoroFood(r);paintPyoro('#pyoro-profile-image',r.npc,r.expression||'happy');}finally{pyoroBusy=false;}});list.append(b);}}
+ for(const kind of ['meal','snack']){const h=document.createElement('h3');h.textContent=kind==='meal'?'ごはん':'おやつ';list.append(h);const items=data.items.filter(x=>x.kind===kind);if(!items.length){const p=document.createElement('p');p.textContent='渡せる素材がありません。';list.append(p);}for(const item of items){const b=document.createElement('button');b.className='secondary';b.textContent=`${item.name} ×${item.quantity}（空腹 -${item.restore}）`;b.onclick=handler(async()=>{if(pyoroBusy)return;pyoroBusy=true;try{const r=await api('/npcs/pyoro/feeding','POST',{itemId:item.id});$('#pyoro-feed-result').textContent=r.message+(r.affinityChange?`（親密度 +${r.affinityChange}pt）`:'');$('#pyoro-feed-result').classList.remove('hidden');renderPyoroFood(r);paintPyoro('#pyoro-profile-image',r.npc,r.expression||'happy');}finally{pyoroBusy=false;}});list.append(b);}}
 };
 const loadPyoroFood=async()=>{const data=await api('/npcs/pyoro/feeding');renderPyoroFood(data);};
 
