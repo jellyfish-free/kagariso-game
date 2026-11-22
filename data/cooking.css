@@ -117,3 +117,8 @@
 #cooking-page .cooking-tap-button{display:block;width:100%;max-width:none;min-height:76px;touch-action:manipulation;user-select:none;-webkit-user-select:none}
 
 /* v0.18.5.13: 切る工程はゲージを動かしたまま3回タップ（進捗表示は既存の結果欄） */
+
+/* v0.18.5.14: トン・トン・トンッのタップ位置をゲーム中に番号付きで保持 */
+#cooking-page .cooking-tap-positions{position:absolute;inset:0;pointer-events:none;z-index:4;overflow:visible}
+#cooking-page .cooking-tap-record{position:absolute;top:50%;transform:translate(-50%,-50%);width:23px;height:23px;box-sizing:border-box;border-radius:50%;border:2px solid #fcf6e8;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#142d3b;background:#88e3cf;box-shadow:0 1px 7px #091d2acc;line-height:1}
+#cooking-page .cooking-tap-record.is-miss{background:#dc9a9a;color:#361e27}

@@ -70,6 +70,29 @@ const paintList=()=>{
  $('cooking-stock').innerHTML=state.owned.length?state.owned.map(x=>{const r=byId[x.id];return r?`<article class="cooking-food">${img(r)}<div><strong>${safe(r.name)} ×${x.quantity}</strong><div class="muted tiny">回復 ${r.restore} ／ 腹持ち ${r.satietyMinutes}分</div></div><div><button class="secondary small" data-eat="paper:${r.id}">黄色い獣へ</button> <button class="secondary small" data-eat="pyoro:${r.id}">赤色の獣へ</button></div></article>`:'';}).join(''):'<p class="muted">作った料理はまだありません。</p>';
  $('cooking-stock').querySelectorAll('[data-eat]').forEach(b=>b.onclick=()=>feed(...b.dataset.eat.split(':')));
 };
+// v0.18.5.14: タップ位置は工程中ずっと残す。途中更新時はD1の履歴から復元。
+const tapPercent=t=>{
+ if(Number.isFinite(Number(t?.percent)))return Math.max(0,Math.min(100,Number(t.percent)));
+ // 旧バージョンの途中記録（時刻のみ）にも対応。
+ if(!Number.isFinite(Number(t?.at))||!Number.isFinite(Number(session?.stageMs)))return null;
+ const elapsed=Math.max(0,Number(t.at)-Number(session.stageMs));
+ const leg=Math.floor(elapsed/TAP_ONE_WAY_MS),phase=(elapsed%TAP_ONE_WAY_MS)/TAP_ONE_WAY_MS;
+ return Math.max(0,Math.min(100,(leg%2===0?phase:1-phase)*100));
+};
+const paintTapPositions=taps=>{
+ const container=$('cooking-tap-positions');if(!container)return;
+ const valid=(Array.isArray(taps)?taps:[]).slice(0,3).map((t,i)=>({...t,index:i+1,position:tapPercent(t)})).filter(t=>t.position!==null);
+ container.replaceChildren();
+ for(const tap of valid){
+  const mark=document.createElement('span');
+  mark.className='cooking-tap-record '+(tap.hit?'is-hit':'is-miss');
+  mark.style.left=tap.position+'%';
+  mark.textContent=String(tap.index);
+  mark.title=`${tap.index}回目：${tap.position.toFixed(1)}%／${tap.hit?'成功':'失敗'}`;
+  mark.setAttribute('aria-label',mark.title);
+  container.append(mark);
+ }
+};
 const gameTitles={tap:'切る・炒める・焼く',hold:'煮る・混ぜる：長押しして離す',card:'盛り付け：同じ絵柄を3枚集める',finish:'完成！'};
 const symbols={chest:'🎁',gem:'💎',coin:'🪙'};
 const renderCards=()=>{const cards=fullDeck||session.cards||[];$('cooking-card-grid').innerHTML=Array.from({length:12},(_,i)=>`<button class="cooking-card" data-index="${i}" ${cards[i]?'disabled':''}>${cards[i]?symbols[cards[i]]:'❔'}</button>`).join('');$('cooking-card-grid').querySelectorAll('.cooking-card:not([disabled])').forEach(b=>b.onclick=()=>step({action:'draw',index:Number(b.dataset.index)}));};
@@ -84,6 +107,7 @@ const renderStage=()=>{
  for(const n of ['tap','hold','card','finish'])$('cooking-'+n).classList.toggle('hidden',session.game!==n);
  $('cooking-stage-result').textContent='';
  if(session.game==='tap')$('cooking-stage-result').textContent=`${Number(session.tapCount||0)} / 3 回タップ　（成功 ${Number(session.tapHits||0)} 回）`;
+ if(session.game==='tap')paintTapPositions(session.revealed);else paintTapPositions([]);
  if(session.game==='card')renderCards();
  if(session.game==='hold'){
   holdReleased=false;
@@ -133,6 +157,8 @@ const step=async action=>{
    renderStage();
    $('cooking-stage-result').textContent=`${r.tapSuccess?'トンッ！ 成功！':'トンッ！ あと少し！'}　${session.tapCount} / 3 回（成功 ${session.tapHits} 回）`;
   }else if(r.completedStep){
+   // 第3タップは工程が切り替わっても結果表示中の印を残す。
+   if(r.tapPositions)paintTapPositions(r.tapPositions);
    $('cooking-stage-result').textContent=r.success?'成功！':'ちょっと失敗。でも完成はできるよ。';
    if(session.game==='finish')scheduleCompletion(500);else scheduleStageAdvance(700,session);
   }else if(session.game==='card')renderCards();
