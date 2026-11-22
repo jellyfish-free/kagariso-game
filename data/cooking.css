@@ -98,3 +98,14 @@
 #cooking-page .cooking-completion-actions button{width:100%;margin:0;min-width:0}
 #cooking-page #cooking-stage-title:empty{display:none}
 @media(max-width:350px){#cooking-page .cooking-completion-actions{gap:6px}#cooking-page .cooking-completion-actions button{padding-inline:5px;font-size:.8rem}}
+
+/* v0.18.5.11：煮る・混ぜる工程の長押しゲージ。サーバーの成功範囲0.85～2.4秒に対応 */
+#cooking-page .cooking-hold-guide{margin:12px 0 14px}
+#cooking-page .cooking-hold-meter{position:relative;isolation:isolate;width:100%;height:30px;overflow:hidden;background:#233249;border:1px solid #65738c;border-radius:100px;box-sizing:border-box;margin:12px 0 4px}
+#cooking-page .cooking-hold-success-zone{position:absolute;z-index:1;left:24.2857%;width:44.2857%;inset-block:0;background:rgba(107,218,210,.4);border-inline:1px solid rgba(161,245,236,.65);box-sizing:border-box}
+#cooking-page .cooking-hold-fill{position:absolute;z-index:2;inset-block:0;left:0;width:0;background:linear-gradient(90deg,#f1c989,#f6dfad);border-radius:inherit;opacity:.9;transition:none}
+#cooking-page .cooking-hold-cursor{position:absolute;z-index:3;top:0;bottom:0;left:0;width:4px;transform:translateX(-50%);background:#fff4d8;box-shadow:0 0 7px rgba(255,234,184,.9);pointer-events:none}
+#cooking-page .cooking-hold-legend{display:flex;justify-content:space-between;gap:8px;margin-bottom:18px;color:#b9c6d2;font-size:.76rem}
+#cooking-page .cooking-hold-legend span:nth-child(2){color:#98e6dc}
+#cooking-page .cooking-hold-meter.is-success{border-color:#81ecdc;box-shadow:0 0 0 2px rgba(103,226,208,.2)}
+#cooking-page .cooking-hold-button{width:100%;max-width:none;min-height:76px;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;cursor:pointer}

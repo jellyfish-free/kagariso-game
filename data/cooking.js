@@ -5,6 +5,28 @@ const $=id=>document.getElementById(id),safe=s=>String(s??'').replace(/[&<>"']/g
 let selectedRecipeId=null,lastCompletedRecipeId=null;
 let state=null,session=null,busy=false,fullDeck=null,holdBusy=false,holdStartPending=false,holdWantRelease=false,clockOffset=0,anim=0,autoCompleting=false,completionTimer=0;
 const TAP_ONE_WAY_MS=2500,TAP_TOTAL_MS=TAP_ONE_WAY_MS*2*3;
+// Workerの長押し成功範囲 (850～2400ms) に合わせて、3.5秒でゲージ最大。
+const HOLD_MAX_MS=3500,HOLD_SUCCESS_START_MS=850,HOLD_SUCCESS_END_MS=2400;
+let holdMeterRaf=0,holdActivePointer=null,holdReleased=false;
+const stopHoldMeter=()=>{cancelAnimationFrame(holdMeterRaf);holdMeterRaf=0;};
+const updateHoldMeter=()=>{
+ const meter=$('cooking-hold-meter'),fill=$('cooking-hold-fill'),cursor=$('cooking-hold-cursor');
+ if(!meter||!fill||!cursor)return;
+ const holdMs=Number(session?.holdStartMs||0);
+ const elapsed=holdMs>0?Math.max(0,Date.now()+clockOffset-holdMs):0;
+ const pct=Math.min(100,Math.max(0,elapsed/HOLD_MAX_MS*100));
+ fill.style.width=pct+'%';cursor.style.left=pct+'%';meter.setAttribute('aria-valuenow',String(Math.round(pct)));
+ meter.classList.toggle('is-success',elapsed>=HOLD_SUCCESS_START_MS&&elapsed<=HOLD_SUCCESS_END_MS);
+};
+const paintHoldMeter=()=>{
+ stopHoldMeter();
+ const frame=()=>{
+  if(!session||session.game!=='hold'||holdReleased)return;
+  updateHoldMeter();holdMeterRaf=requestAnimationFrame(frame);
+ };
+ frame();
+};
+
 const jumpToGame=()=>requestAnimationFrame(()=>{const el=$('cooking-playing-name');if(el&&!$('cooking-play').classList.contains('hidden')){el.scrollIntoView({block:'start',behavior:'instant'});}});
 const api=async(p,body)=>{const a=Date.now(),r=await bridge.api('/cooking/'+p,body?'POST':'GET',body),b=Date.now();if(r.session?.serverNow)clockOffset=r.session.serverNow-(a+b)/2;return r;};
 const notice=s=>{const el=$('cooking-message');el.textContent=s||'';el.hidden=!s;};
@@ -52,6 +74,7 @@ const gameTitles={tap:'切る・炒める・焼く',hold:'煮る・混ぜる：�
 const symbols={chest:'🎁',gem:'💎',coin:'🪙'};
 const renderCards=()=>{const cards=fullDeck||session.cards||[];$('cooking-card-grid').innerHTML=Array.from({length:12},(_,i)=>`<button class="cooking-card" data-index="${i}" ${cards[i]?'disabled':''}>${cards[i]?symbols[cards[i]]:'❔'}</button>`).join('');$('cooking-card-grid').querySelectorAll('.cooking-card:not([disabled])').forEach(b=>b.onclick=()=>step({action:'draw',index:Number(b.dataset.index)}));};
 const renderStage=()=>{
+ stopHoldMeter();
  if(!session)return;
  if(session.game==='finish'){finalizeCooking();return;}
  $('cooking-completion').classList.add('hidden');
@@ -61,6 +84,12 @@ const renderStage=()=>{
  for(const n of ['tap','hold','card','finish'])$('cooking-'+n).classList.toggle('hidden',session.game!==n);
  $('cooking-next').classList.add('hidden');$('cooking-stage-result').textContent='';
  if(session.game==='card')renderCards();
+ if(session.game==='hold'){
+  holdReleased=false;
+  $('cooking-hold-button').textContent=session.holdStarted?'離して判定する':'ここを長押し';
+  updateHoldMeter();
+  if(session.holdStarted)paintHoldMeter();
+ }
  if(session.game==='tap'){
   cancelAnimationFrame(anim);$('cooking-target').style.left=(session.targetMs/TAP_ONE_WAY_MS*100)+'%';
   const paint=()=>{
@@ -80,7 +109,7 @@ const renderStage=()=>{
 const refresh=async()=>{state=await api('status');session=state.active;paintList();if(session){fullDeck=null;renderStage();jumpToGame();}else{$('cooking-play').classList.add('hidden');$('cooking-library').classList.remove('hidden');}};
 const start=async recipeId=>{if(busy)return;busy=true;try{const r=await api('start',{recipeId});session=r.session;fullDeck=null;bridge.show('cooking');renderStage();jumpToGame();}catch(e){notice(e.message);if(bridge.show)bridge.show('cooking');}finally{busy=false;}};
 const step=async action=>{
- if(busy||!session)return;busy=true;cancelAnimationFrame(anim);
+ if(busy||!session)return;busy=true;cancelAnimationFrame(anim);if(session.game==='hold')stopHoldMeter();
  try{
   const r=await api('step',{sessionId:session.id,...action});session=r.session;
   if(r.prize){fullDeck=r.allCards;$('cooking-card').classList.remove('hidden');$('cooking-tap').classList.add('hidden');$('cooking-hold').classList.add('hidden');renderCards();$('cooking-stage-result').textContent=`${({chest:'大当たり！ 宝箱',gem:'中当たり！ 宝石',coin:'小当たり！ コイン'})[r.prize]}の3枚が揃った！ ほかのカードも全部公開！`;if(session.game==='finish')scheduleCompletion(1300);else $('cooking-next').classList.remove('hidden');}
@@ -135,9 +164,34 @@ $('cooking-recipe-hall-back').addEventListener('click',()=>bridge.openHall());
 $('cooking-filter').addEventListener('change',()=>{if(state)paintList();});$('cooking-search').addEventListener('input',()=>{if(state)paintList();});
 $('cooking-tap-button').onclick=()=>step({action:'tap'});
 const hold=$('cooking-hold-button');
-hold.addEventListener('pointerdown',async e=>{if(busy||holdBusy)return;e.preventDefault();holdBusy=true;holdWantRelease=false;holdStartPending=true;try{hold.setPointerCapture(e.pointerId);}catch{}try{if(!session.holdStarted){const r=await api('step',{sessionId:session.id,action:'hold-start'});session=r.session;}hold.textContent='長押し中……';}catch(err){notice(err.message);holdBusy=false;}finally{holdStartPending=false;}if(holdWantRelease)doRelease();});
-const doRelease=async()=>{if(!holdBusy)return;holdBusy=false;holdWantRelease=false;await step({action:'hold-end'});};
-hold.addEventListener('pointerup',e=>{e.preventDefault();holdWantRelease=true;if(!holdStartPending&&!busy)doRelease();});hold.addEventListener('pointercancel',()=>{holdWantRelease=true;if(!holdStartPending&&!busy)doRelease();});
+const doRelease=async()=>{
+ if(!holdBusy||holdStartPending||busy)return;
+ holdBusy=false;holdWantRelease=false;holdActivePointer=null;holdReleased=true;
+ stopHoldMeter();updateHoldMeter();hold.textContent='判定中……';
+ await step({action:'hold-end'});
+};
+hold.addEventListener('pointerdown',async e=>{
+ if(busy||holdBusy||!session||session.game!=='hold')return;
+ e.preventDefault();holdBusy=true;holdWantRelease=false;holdReleased=false;holdStartPending=true;holdActivePointer=e.pointerId;
+ try{hold.setPointerCapture(e.pointerId);}catch{}
+ try{
+  if(!session.holdStarted){const r=await api('step',{sessionId:session.id,action:'hold-start'});session=r.session;}
+  hold.textContent='水色の範囲で離そう';paintHoldMeter();
+ }catch(err){notice(err.message);holdBusy=false;holdActivePointer=null;stopHoldMeter();hold.textContent='ここを長押し';}
+ finally{holdStartPending=false;}
+ if(holdWantRelease)doRelease();
+});
+const releaseHold=e=>{
+ if(!holdBusy||holdActivePointer!==e.pointerId)return;
+ e.preventDefault();holdWantRelease=true;
+ if(!holdStartPending)doRelease();
+};
+hold.addEventListener('pointerup',releaseHold);
+hold.addEventListener('pointercancel',releaseHold);
+hold.addEventListener('lostpointercapture',e=>{if(holdBusy&&holdActivePointer===e.pointerId){holdWantRelease=true;if(!holdStartPending)doRelease();}});
+// 再読み込み後、サーバーで長押し開始済みならそのまま離して判定できる。
+hold.addEventListener('click',e=>{if(session?.game==='hold'&&session.holdStarted&&!holdBusy&&!busy){e.preventDefault();holdBusy=true;holdStartPending=false;doRelease();}});
+
 $('cooking-next').onclick=()=>{fullDeck=null;renderStage();};
 $('cooking-completion-back').onclick=()=>{$('cooking-completion').classList.add('hidden');$('cooking-library').classList.remove('hidden');$('cooking-library').scrollIntoView({block:'start',behavior:'instant'});};
 $('cooking-completion-again').onclick=async()=>{if(busy||autoCompleting||!lastCompletedRecipeId)return;const recipe=state?.recipes?.find(r=>r.id===lastCompletedRecipeId);if(!recipe)return;const missing=missingIngredients(recipe);if(missing.length){notice(missingLabel(recipe)+' 不足');$('cooking-completion').classList.add('hidden');selectedRecipeId=recipe.id;renderRecipeDetail();bridge.show('cooking-recipe');return;}await start(recipe.id);};
