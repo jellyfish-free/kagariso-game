@@ -1,0 +1,1803 @@
+[
+  {
+    "id": "cook0001",
+    "name": "焼き洞窟キノコ",
+    "category": "洞窟",
+    "ingredients": [
+      {
+        "id": "C008",
+        "name": "洞窟キノコ",
+        "quantity": 2
+      }
+    ],
+    "steps": [
+      "tap"
+    ],
+    "satietyMinutes": 60,
+    "restore": 27,
+    "image": "images/cooking/cook0001.webp",
+    "unlock": {
+      "kind": "initial"
+    },
+    "unlockDescription": "最初から解放済み"
+  },
+  {
+    "id": "cook0002",
+    "name": "洞窟キノコのスープ",
+    "category": "洞窟",
+    "ingredients": [
+      {
+        "id": "C008",
+        "name": "洞窟キノコ",
+        "quantity": 2
+      },
+      {
+        "id": "S0006",
+        "name": "水",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "tap",
+      "hold"
+    ],
+    "satietyMinutes": 120,
+    "restore": 50,
+    "image": "images/cooking/cook0002.webp",
+    "unlock": {
+      "kind": "craft",
+      "recipe": "cook0001",
+      "count": 2
+    },
+    "unlockDescription": "焼き洞窟キノコを累計2回調理する"
+  },
+  {
+    "id": "cook0003",
+    "name": "岩陰豆の煮込み",
+    "category": "洞窟",
+    "ingredients": [
+      {
+        "id": "C009",
+        "name": "岩陰の豆",
+        "quantity": 3
+      },
+      {
+        "id": "S0006",
+        "name": "水",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "tap",
+      "hold"
+    ],
+    "satietyMinutes": 120,
+    "restore": 50,
+    "image": "images/cooking/cook0003.webp",
+    "unlock": {
+      "kind": "craft",
+      "recipe": "cook0001",
+      "count": 4
+    },
+    "unlockDescription": "焼き洞窟キノコを累計4回調理する"
+  },
+  {
+    "id": "cook0004",
+    "name": "白い根菜の丸焼き",
+    "category": "洞窟",
+    "ingredients": [
+      {
+        "id": "C010",
+        "name": "白い根菜",
+        "quantity": 2
+      }
+    ],
+    "steps": [
+      "tap"
+    ],
+    "satietyMinutes": 90,
+    "restore": 27,
+    "image": "images/cooking/cook0004.webp",
+    "unlock": {
+      "kind": "initial"
+    },
+    "unlockDescription": "最初から解放済み"
+  },
+  {
+    "id": "cook0005",
+    "name": "地底野菜の煮物",
+    "category": "洞窟",
+    "ingredients": [
+      {
+        "id": "C010",
+        "name": "白い根菜",
+        "quantity": 2
+      },
+      {
+        "id": "C009",
+        "name": "岩陰の豆",
+        "quantity": 1
+      },
+      {
+        "id": "S0006",
+        "name": "水",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "tap",
+      "hold"
+    ],
+    "satietyMinutes": 120,
+    "restore": 50,
+    "image": "images/cooking/cook0005.webp",
+    "unlock": {
+      "kind": "combo",
+      "recipes": [
+        "cook0003",
+        "cook0004"
+      ]
+    },
+    "unlockDescription": "岩陰豆の煮込み・白い根菜の丸焼きをそれぞれ完成させる"
+  },
+  {
+    "id": "cook0006",
+    "name": "洞窟鳥のゆで卵",
+    "category": "洞窟",
+    "ingredients": [
+      {
+        "id": "C014",
+        "name": "洞窟鳥の卵",
+        "quantity": 1
+      },
+      {
+        "id": "S0006",
+        "name": "水",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "hold"
+    ],
+    "satietyMinutes": 60,
+    "restore": 27,
+    "image": "images/cooking/cook0006.webp",
+    "unlock": {
+      "kind": "initial"
+    },
+    "unlockDescription": "最初から解放済み"
+  },
+  {
+    "id": "cook0007",
+    "name": "キノコのオムレツ",
+    "category": "洞窟",
+    "ingredients": [
+      {
+        "id": "C014",
+        "name": "洞窟鳥の卵",
+        "quantity": 2
+      },
+      {
+        "id": "C008",
+        "name": "洞窟キノコ",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "tap",
+      "hold"
+    ],
+    "satietyMinutes": 180,
+    "restore": 50,
+    "image": "images/cooking/cook0007.webp",
+    "unlock": {
+      "kind": "combo",
+      "recipes": [
+        "cook0001",
+        "cook0006"
+      ]
+    },
+    "unlockDescription": "焼き洞窟キノコ・洞窟鳥のゆで卵をそれぞれ完成させる"
+  },
+  {
+    "id": "cook0008",
+    "name": "岩蜜の根菜グラッセ",
+    "category": "洞窟",
+    "ingredients": [
+      {
+        "id": "C010",
+        "name": "白い根菜",
+        "quantity": 2
+      },
+      {
+        "id": "C021",
+        "name": "岩蜜",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "tap",
+      "hold"
+    ],
+    "satietyMinutes": 120,
+    "restore": 50,
+    "image": "images/cooking/cook0008.webp",
+    "unlock": {
+      "kind": "craft",
+      "recipe": "cook0004",
+      "count": 3
+    },
+    "unlockDescription": "白い根菜の丸焼きを累計3回調理する"
+  },
+  {
+    "id": "cook0009",
+    "name": "地底の具だくさんスープ",
+    "category": "洞窟",
+    "ingredients": [
+      {
+        "id": "C008",
+        "name": "洞窟キノコ",
+        "quantity": 2
+      },
+      {
+        "id": "C010",
+        "name": "白い根菜",
+        "quantity": 1
+      },
+      {
+        "id": "C009",
+        "name": "岩陰の豆",
+        "quantity": 1
+      },
+      {
+        "id": "S0006",
+        "name": "水",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "tap",
+      "hold"
+    ],
+    "satietyMinutes": 150,
+    "restore": 50,
+    "image": "images/cooking/cook0009.webp",
+    "unlock": {
+      "kind": "combo",
+      "recipes": [
+        "cook0002",
+        "cook0003",
+        "cook0005"
+      ]
+    },
+    "unlockDescription": "洞窟キノコのスープ・岩陰豆の煮込み・地底野菜の煮物をそれぞれ完成させる"
+  },
+  {
+    "id": "cook0010",
+    "name": "地底果汁の冷たいジュース",
+    "category": "洞窟",
+    "ingredients": [
+      {
+        "id": "C022",
+        "name": "甘い地底果汁",
+        "quantity": 2
+      },
+      {
+        "id": "C024",
+        "name": "いつまでも冷たい水",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "hold"
+    ],
+    "satietyMinutes": 25,
+    "restore": 27,
+    "image": "images/cooking/cook0010.webp",
+    "unlock": {
+      "kind": "all",
+      "rules": [
+        {
+          "kind": "craft",
+          "recipe": "cook0002",
+          "count": 3
+        },
+        {
+          "kind": "discoverMaterial",
+          "item": "C024"
+        }
+      ]
+    },
+    "unlockDescription": "洞窟キノコのスープを累計3回調理する ＋ 特定の素材を発見する（いつまでも冷たい水）"
+  },
+  {
+    "id": "cook0011",
+    "name": "森の木の実盛り合わせ",
+    "category": "森",
+    "ingredients": [
+      {
+        "id": "S0050",
+        "name": "落ちた木の実",
+        "quantity": 2
+      },
+      {
+        "id": "S0056",
+        "name": "森の赤い木の実",
+        "quantity": 2
+      }
+    ],
+    "steps": [
+      "card"
+    ],
+    "satietyMinutes": 75,
+    "restore": 27,
+    "image": "images/cooking/cook0011.webp",
+    "unlock": {
+      "kind": "initial"
+    },
+    "unlockDescription": "最初から解放済み"
+  },
+  {
+    "id": "cook0012",
+    "name": "野草のサラダ",
+    "category": "森",
+    "ingredients": [
+      {
+        "id": "S0036",
+        "name": "食べられそうな草",
+        "quantity": 2
+      },
+      {
+        "id": "S0065",
+        "name": "香りのよい若葉",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "card"
+    ],
+    "satietyMinutes": 60,
+    "restore": 27,
+    "image": "images/cooking/cook0012.webp",
+    "unlock": {
+      "kind": "initial"
+    },
+    "unlockDescription": "最初から解放済み"
+  },
+  {
+    "id": "cook0013",
+    "name": "焼きりんご",
+    "category": "森",
+    "ingredients": [
+      {
+        "id": "S0066",
+        "name": "りんご",
+        "quantity": 1
+      },
+      {
+        "id": "S0064",
+        "name": "森の蜂蜜",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "tap"
+    ],
+    "satietyMinutes": 75,
+    "restore": 27,
+    "image": "images/cooking/cook0013.webp",
+    "unlock": {
+      "kind": "discoverMaterial",
+      "item": "S0064"
+    },
+    "unlockDescription": "特定の素材を発見する（森の蜂蜜）"
+  },
+  {
+    "id": "cook0014",
+    "name": "森のフルーツサラダ",
+    "category": "森",
+    "ingredients": [
+      {
+        "id": "S0066",
+        "name": "りんご",
+        "quantity": 1
+      },
+      {
+        "id": "S0058",
+        "name": "野生の木苺",
+        "quantity": 2
+      },
+      {
+        "id": "S0057",
+        "name": "山ぶどう",
+        "quantity": 2
+      }
+    ],
+    "steps": [
+      "card"
+    ],
+    "satietyMinutes": 75,
+    "restore": 27,
+    "image": "images/cooking/cook0014.webp",
+    "unlock": {
+      "kind": "craft",
+      "recipe": "cook0011",
+      "count": 3
+    },
+    "unlockDescription": "森の木の実盛り合わせを累計3回調理する"
+  },
+  {
+    "id": "cook0015",
+    "name": "木苺の蜂蜜ジャム",
+    "category": "森",
+    "ingredients": [
+      {
+        "id": "S0058",
+        "name": "野生の木苺",
+        "quantity": 3
+      },
+      {
+        "id": "S0064",
+        "name": "森の蜂蜜",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "hold"
+    ],
+    "satietyMinutes": 60,
+    "restore": 27,
+    "image": "images/cooking/cook0015.webp",
+    "unlock": {
+      "kind": "combo",
+      "recipes": [
+        "cook0013",
+        "cook0014"
+      ]
+    },
+    "unlockDescription": "焼きりんご・森のフルーツサラダをそれぞれ完成させる"
+  },
+  {
+    "id": "cook0016",
+    "name": "山ぶどうのジャム",
+    "category": "森",
+    "ingredients": [
+      {
+        "id": "S0057",
+        "name": "山ぶどう",
+        "quantity": 3
+      },
+      {
+        "id": "S0064",
+        "name": "森の蜂蜜",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "hold"
+    ],
+    "satietyMinutes": 60,
+    "restore": 27,
+    "image": "images/cooking/cook0016.webp",
+    "unlock": {
+      "kind": "craft",
+      "recipe": "cook0014",
+      "count": 2
+    },
+    "unlockDescription": "森のフルーツサラダを累計2回調理する"
+  },
+  {
+    "id": "cook0017",
+    "name": "蜂蜜りんごのコンポート",
+    "category": "森",
+    "ingredients": [
+      {
+        "id": "S0066",
+        "name": "りんご",
+        "quantity": 2
+      },
+      {
+        "id": "S0064",
+        "name": "森の蜂蜜",
+        "quantity": 1
+      },
+      {
+        "id": "S0063",
+        "name": "森の湧き水",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "hold"
+    ],
+    "satietyMinutes": 90,
+    "restore": 27,
+    "image": "images/cooking/cook0017.webp",
+    "unlock": {
+      "kind": "combo",
+      "recipes": [
+        "cook0013",
+        "cook0016"
+      ]
+    },
+    "unlockDescription": "焼きりんご・山ぶどうのジャムをそれぞれ完成させる"
+  },
+  {
+    "id": "cook0018",
+    "name": "森のハーブティー",
+    "category": "森",
+    "ingredients": [
+      {
+        "id": "S0065",
+        "name": "香りのよい若葉",
+        "quantity": 2
+      },
+      {
+        "id": "S0063",
+        "name": "森の湧き水",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "hold"
+    ],
+    "satietyMinutes": 30,
+    "restore": 27,
+    "image": "images/cooking/cook0018.webp",
+    "unlock": {
+      "kind": "initial"
+    },
+    "unlockDescription": "最初から解放済み"
+  },
+  {
+    "id": "cook0019",
+    "name": "山ぶどうジュース",
+    "category": "森",
+    "ingredients": [
+      {
+        "id": "S0057",
+        "name": "山ぶどう",
+        "quantity": 3
+      },
+      {
+        "id": "S0063",
+        "name": "森の湧き水",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "hold"
+    ],
+    "satietyMinutes": 25,
+    "restore": 27,
+    "image": "images/cooking/cook0019.webp",
+    "unlock": {
+      "kind": "craft",
+      "recipe": "cook0018",
+      "count": 4
+    },
+    "unlockDescription": "森のハーブティーを累計4回調理する"
+  },
+  {
+    "id": "cook0020",
+    "name": "森のベリースムージー",
+    "category": "森",
+    "ingredients": [
+      {
+        "id": "S0058",
+        "name": "野生の木苺",
+        "quantity": 2
+      },
+      {
+        "id": "S0056",
+        "name": "森の赤い木の実",
+        "quantity": 2
+      },
+      {
+        "id": "S0064",
+        "name": "森の蜂蜜",
+        "quantity": 1
+      },
+      {
+        "id": "S0063",
+        "name": "森の湧き水",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "hold"
+    ],
+    "satietyMinutes": 40,
+    "restore": 27,
+    "image": "images/cooking/cook0020.webp",
+    "unlock": {
+      "kind": "combo",
+      "recipes": [
+        "cook0015",
+        "cook0019"
+      ]
+    },
+    "unlockDescription": "木苺の蜂蜜ジャム・山ぶどうジュースをそれぞれ完成させる"
+  },
+  {
+    "id": "cook0021",
+    "name": "小魚の串焼き",
+    "category": "海",
+    "ingredients": [
+      {
+        "id": "S0067",
+        "name": "小魚",
+        "quantity": 3
+      },
+      {
+        "id": "S0051",
+        "name": "小枝の束",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "tap",
+      "hold"
+    ],
+    "satietyMinutes": 180,
+    "restore": 50,
+    "image": "images/cooking/cook0021.webp",
+    "unlock": {
+      "kind": "initial"
+    },
+    "unlockDescription": "最初から解放済み"
+  },
+  {
+    "id": "cook0022",
+    "name": "岩魚の炭火焼き",
+    "category": "海",
+    "ingredients": [
+      {
+        "id": "S0068",
+        "name": "岩魚",
+        "quantity": 1
+      },
+      {
+        "id": "S0008",
+        "name": "石炭",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "tap",
+      "hold"
+    ],
+    "satietyMinutes": 180,
+    "restore": 50,
+    "image": "images/cooking/cook0022.webp",
+    "unlock": {
+      "kind": "craft",
+      "recipe": "cook0021",
+      "count": 3
+    },
+    "unlockDescription": "小魚の串焼きを累計3回調理する"
+  },
+  {
+    "id": "cook0023",
+    "name": "アオシズクの香草焼き",
+    "category": "海",
+    "ingredients": [
+      {
+        "id": "S0076",
+        "name": "アオシズク",
+        "quantity": 1
+      },
+      {
+        "id": "S0065",
+        "name": "香りのよい若葉",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "tap",
+      "hold"
+    ],
+    "satietyMinutes": 180,
+    "restore": 50,
+    "image": "images/cooking/cook0023.webp",
+    "unlock": {
+      "kind": "discoverMaterial",
+      "item": "S0076"
+    },
+    "unlockDescription": "特定の素材を発見する（アオシズク）"
+  },
+  {
+    "id": "cook0024",
+    "name": "アカヒレの煮付け",
+    "category": "海",
+    "ingredients": [
+      {
+        "id": "S0077",
+        "name": "アカヒレ",
+        "quantity": 1
+      },
+      {
+        "id": "S0006",
+        "name": "水",
+        "quantity": 1
+      },
+      {
+        "id": "C021",
+        "name": "岩蜜",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "tap",
+      "hold"
+    ],
+    "satietyMinutes": 180,
+    "restore": 50,
+    "image": "images/cooking/cook0024.webp",
+    "unlock": {
+      "kind": "discoverMaterial",
+      "item": "S0077"
+    },
+    "unlockDescription": "特定の素材を発見する（アカヒレ）"
+  },
+  {
+    "id": "cook0025",
+    "name": "縞ウロコの野菜蒸し",
+    "category": "海",
+    "ingredients": [
+      {
+        "id": "S0078",
+        "name": "縞ウロコ",
+        "quantity": 1
+      },
+      {
+        "id": "C010",
+        "name": "白い根菜",
+        "quantity": 1
+      },
+      {
+        "id": "S0054",
+        "name": "葉っぱ",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "tap",
+      "hold"
+    ],
+    "satietyMinutes": 180,
+    "restore": 50,
+    "image": "images/cooking/cook0025.webp",
+    "unlock": {
+      "kind": "combo",
+      "recipes": [
+        "cook0004",
+        "cook0023"
+      ]
+    },
+    "unlockDescription": "白い根菜の丸焼き・アオシズクの香草焼きをそれぞれ完成させる"
+  },
+  {
+    "id": "cook0026",
+    "name": "コハク魚の蜂蜜焼き",
+    "category": "海",
+    "ingredients": [
+      {
+        "id": "S0079",
+        "name": "コハク魚",
+        "quantity": 1
+      },
+      {
+        "id": "S0064",
+        "name": "森の蜂蜜",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "tap",
+      "hold"
+    ],
+    "satietyMinutes": 180,
+    "restore": 50,
+    "image": "images/cooking/cook0026.webp",
+    "unlock": {
+      "kind": "craft",
+      "recipe": "cook0023",
+      "count": 3
+    },
+    "unlockDescription": "アオシズクの香草焼きを累計3回調理する"
+  },
+  {
+    "id": "cook0027",
+    "name": "ギンスズの魚介スープ",
+    "category": "海",
+    "ingredients": [
+      {
+        "id": "S0080",
+        "name": "ギンスズ",
+        "quantity": 1
+      },
+      {
+        "id": "S0107",
+        "name": "海藻",
+        "quantity": 1
+      },
+      {
+        "id": "S0006",
+        "name": "水",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "tap",
+      "hold"
+    ],
+    "satietyMinutes": 150,
+    "restore": 50,
+    "image": "images/cooking/cook0027.webp",
+    "unlock": {
+      "kind": "discoverMaterial",
+      "item": "S0107"
+    },
+    "unlockDescription": "特定の素材を発見する（海藻）"
+  },
+  {
+    "id": "cook0028",
+    "name": "ハナビレの彩りサラダ",
+    "category": "海",
+    "ingredients": [
+      {
+        "id": "S0081",
+        "name": "ハナビレ",
+        "quantity": 1
+      },
+      {
+        "id": "S0065",
+        "name": "香りのよい若葉",
+        "quantity": 1
+      },
+      {
+        "id": "S0056",
+        "name": "森の赤い木の実",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "tap",
+      "card"
+    ],
+    "satietyMinutes": 100,
+    "restore": 50,
+    "image": "images/cooking/cook0028.webp",
+    "unlock": {
+      "kind": "combo",
+      "recipes": [
+        "cook0012",
+        "cook0023"
+      ]
+    },
+    "unlockDescription": "野草のサラダ・アオシズクの香草焼きをそれぞれ完成させる"
+  },
+  {
+    "id": "cook0029",
+    "name": "空トビウオの炭火焼き",
+    "category": "海",
+    "ingredients": [
+      {
+        "id": "S0085",
+        "name": "空トビウオ",
+        "quantity": 1
+      },
+      {
+        "id": "S0008",
+        "name": "石炭",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "tap",
+      "hold"
+    ],
+    "satietyMinutes": 180,
+    "restore": 50,
+    "image": "images/cooking/cook0029.webp",
+    "unlock": {
+      "kind": "craft",
+      "recipe": "cook0022",
+      "count": 4
+    },
+    "unlockDescription": "岩魚の炭火焼きを累計4回調理する"
+  },
+  {
+    "id": "cook0030",
+    "name": "ひかりイカの姿焼き",
+    "category": "海",
+    "ingredients": [
+      {
+        "id": "S0086",
+        "name": "ひかりイカ",
+        "quantity": 1
+      },
+      {
+        "id": "C021",
+        "name": "岩蜜",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "tap",
+      "hold"
+    ],
+    "satietyMinutes": 180,
+    "restore": 50,
+    "image": "images/cooking/cook0030.webp",
+    "unlock": {
+      "kind": "discoverMaterial",
+      "item": "S0086"
+    },
+    "unlockDescription": "特定の素材を発見する（ひかりイカ）"
+  },
+  {
+    "id": "cook0031",
+    "name": "あかつきだこの串焼き",
+    "category": "海",
+    "ingredients": [
+      {
+        "id": "S0087",
+        "name": "あかつきだこ",
+        "quantity": 1
+      },
+      {
+        "id": "S0051",
+        "name": "小枝の束",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "tap",
+      "hold"
+    ],
+    "satietyMinutes": 180,
+    "restore": 50,
+    "image": "images/cooking/cook0031.webp",
+    "unlock": {
+      "kind": "craft",
+      "recipe": "cook0021",
+      "count": 7
+    },
+    "unlockDescription": "小魚の串焼きを累計7回調理する"
+  },
+  {
+    "id": "cook0032",
+    "name": "コモレビえびの香草焼き",
+    "category": "海",
+    "ingredients": [
+      {
+        "id": "S0089",
+        "name": "コモレビえび",
+        "quantity": 2
+      },
+      {
+        "id": "S0065",
+        "name": "香りのよい若葉",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "tap",
+      "hold"
+    ],
+    "satietyMinutes": 180,
+    "restore": 50,
+    "image": "images/cooking/cook0032.webp",
+    "unlock": {
+      "kind": "combo",
+      "recipes": [
+        "cook0018",
+        "cook0030"
+      ]
+    },
+    "unlockDescription": "森のハーブティー・ひかりイカの姿焼きをそれぞれ完成させる"
+  },
+  {
+    "id": "cook0033",
+    "name": "いわかくれがにのスープ",
+    "category": "海",
+    "ingredients": [
+      {
+        "id": "S0090",
+        "name": "いわかくれがに",
+        "quantity": 1
+      },
+      {
+        "id": "S0107",
+        "name": "海藻",
+        "quantity": 1
+      },
+      {
+        "id": "S0063",
+        "name": "森の湧き水",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "tap",
+      "hold"
+    ],
+    "satietyMinutes": 150,
+    "restore": 50,
+    "image": "images/cooking/cook0033.webp",
+    "unlock": {
+      "kind": "combo",
+      "recipes": [
+        "cook0027",
+        "cook0029"
+      ]
+    },
+    "unlockDescription": "ギンスズの魚介スープ・空トビウオの炭火焼きをそれぞれ完成させる"
+  },
+  {
+    "id": "cook0034",
+    "name": "つきホタテの貝焼き",
+    "category": "海",
+    "ingredients": [
+      {
+        "id": "S0091",
+        "name": "つきホタテ",
+        "quantity": 2
+      },
+      {
+        "id": "S0008",
+        "name": "石炭",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "tap",
+      "hold"
+    ],
+    "satietyMinutes": 180,
+    "restore": 50,
+    "image": "images/cooking/cook0034.webp",
+    "unlock": {
+      "kind": "craft",
+      "recipe": "cook0026",
+      "count": 3
+    },
+    "unlockDescription": "コハク魚の蜂蜜焼きを累計3回調理する"
+  },
+  {
+    "id": "cook0035",
+    "name": "ほしうにの卵蒸し",
+    "category": "海",
+    "ingredients": [
+      {
+        "id": "S0092",
+        "name": "ほしうに",
+        "quantity": 1
+      },
+      {
+        "id": "C014",
+        "name": "洞窟鳥の卵",
+        "quantity": 2
+      },
+      {
+        "id": "S0006",
+        "name": "水",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "tap",
+      "hold"
+    ],
+    "satietyMinutes": 180,
+    "restore": 50,
+    "image": "images/cooking/cook0035.webp",
+    "unlock": {
+      "kind": "combo",
+      "recipes": [
+        "cook0006",
+        "cook0034"
+      ]
+    },
+    "unlockDescription": "洞窟鳥のゆで卵・つきホタテの貝焼きをそれぞれ完成させる"
+  },
+  {
+    "id": "cook0036",
+    "name": "森と海のごちそう鍋",
+    "category": "複合",
+    "ingredients": [
+      {
+        "id": "S0067",
+        "name": "小魚",
+        "quantity": 2
+      },
+      {
+        "id": "C008",
+        "name": "洞窟キノコ",
+        "quantity": 2
+      },
+      {
+        "id": "C010",
+        "name": "白い根菜",
+        "quantity": 2
+      },
+      {
+        "id": "S0063",
+        "name": "森の湧き水",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "tap",
+      "hold",
+      "card"
+    ],
+    "satietyMinutes": 240,
+    "restore": 78,
+    "image": "images/cooking/cook0036.webp",
+    "unlock": {
+      "kind": "all",
+      "rules": [
+        {
+          "kind": "combo",
+          "recipes": [
+            "cook0009",
+            "cook0027"
+          ]
+        },
+        {
+          "kind": "category",
+          "category": "海",
+          "count": 3
+        }
+      ]
+    },
+    "unlockDescription": "地底の具だくさんスープ・ギンスズの魚介スープをそれぞれ完成させる ＋ 海料理を3種類完成させる"
+  },
+  {
+    "id": "cook0037",
+    "name": "海鮮オムレツ",
+    "category": "複合",
+    "ingredients": [
+      {
+        "id": "C014",
+        "name": "洞窟鳥の卵",
+        "quantity": 2
+      },
+      {
+        "id": "S0089",
+        "name": "コモレビえび",
+        "quantity": 1
+      },
+      {
+        "id": "S0086",
+        "name": "ひかりイカ",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "tap",
+      "hold"
+    ],
+    "satietyMinutes": 180,
+    "restore": 50,
+    "image": "images/cooking/cook0037.webp",
+    "unlock": {
+      "kind": "combo",
+      "recipes": [
+        "cook0007",
+        "cook0030"
+      ]
+    },
+    "unlockDescription": "キノコのオムレツ・ひかりイカの姿焼きをそれぞれ完成させる"
+  },
+  {
+    "id": "cook0038",
+    "name": "魚とキノコの包み焼き",
+    "category": "複合",
+    "ingredients": [
+      {
+        "id": "S0068",
+        "name": "岩魚",
+        "quantity": 1
+      },
+      {
+        "id": "C008",
+        "name": "洞窟キノコ",
+        "quantity": 2
+      },
+      {
+        "id": "S0054",
+        "name": "葉っぱ",
+        "quantity": 2
+      }
+    ],
+    "steps": [
+      "tap",
+      "hold",
+      "card"
+    ],
+    "satietyMinutes": 240,
+    "restore": 78,
+    "image": "images/cooking/cook0038.webp",
+    "unlock": {
+      "kind": "all",
+      "rules": [
+        {
+          "kind": "combo",
+          "recipes": [
+            "cook0022",
+            "cook0025"
+          ]
+        },
+        {
+          "kind": "craft",
+          "recipe": "cook0001",
+          "count": 5
+        }
+      ]
+    },
+    "unlockDescription": "岩魚の炭火焼き・縞ウロコの野菜蒸しをそれぞれ完成させる ＋ 焼き洞窟キノコを累計5回調理する"
+  },
+  {
+    "id": "cook0039",
+    "name": "海藻と豆のサラダ",
+    "category": "複合",
+    "ingredients": [
+      {
+        "id": "S0107",
+        "name": "海藻",
+        "quantity": 2
+      },
+      {
+        "id": "C009",
+        "name": "岩陰の豆",
+        "quantity": 2
+      },
+      {
+        "id": "S0065",
+        "name": "香りのよい若葉",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "tap",
+      "card"
+    ],
+    "satietyMinutes": 120,
+    "restore": 50,
+    "image": "images/cooking/cook0039.webp",
+    "unlock": {
+      "kind": "combo",
+      "recipes": [
+        "cook0003",
+        "cook0028"
+      ]
+    },
+    "unlockDescription": "岩陰豆の煮込み・ハナビレの彩りサラダをそれぞれ完成させる"
+  },
+  {
+    "id": "cook0040",
+    "name": "森の蜂蜜入り果実飴",
+    "category": "複合",
+    "ingredients": [
+      {
+        "id": "S0064",
+        "name": "森の蜂蜜",
+        "quantity": 2
+      },
+      {
+        "id": "C021",
+        "name": "岩蜜",
+        "quantity": 1
+      },
+      {
+        "id": "S0058",
+        "name": "野生の木苺",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "card"
+    ],
+    "satietyMinutes": 90,
+    "restore": 27,
+    "image": "images/cooking/cook0040.webp",
+    "unlock": {
+      "kind": "all",
+      "rules": [
+        {
+          "kind": "combo",
+          "recipes": [
+            "cook0015",
+            "cook0008"
+          ]
+        },
+        {
+          "kind": "gift",
+          "count": 3
+        }
+      ]
+    },
+    "unlockDescription": "木苺の蜂蜜ジャム・岩蜜の根菜グラッセをそれぞれ完成させる ＋ 住人へ累計3回贈り物をする"
+  },
+  {
+    "id": "cook0041",
+    "name": "地底と森のミックスジュース",
+    "category": "複合",
+    "ingredients": [
+      {
+        "id": "C022",
+        "name": "甘い地底果汁",
+        "quantity": 1
+      },
+      {
+        "id": "S0066",
+        "name": "りんご",
+        "quantity": 1
+      },
+      {
+        "id": "S0058",
+        "name": "野生の木苺",
+        "quantity": 2
+      }
+    ],
+    "steps": [
+      "hold"
+    ],
+    "satietyMinutes": 40,
+    "restore": 27,
+    "image": "images/cooking/cook0041.webp",
+    "unlock": {
+      "kind": "all",
+      "rules": [
+        {
+          "kind": "combo",
+          "recipes": [
+            "cook0010",
+            "cook0014"
+          ]
+        },
+        {
+          "kind": "giftPeople",
+          "count": 2
+        }
+      ]
+    },
+    "unlockDescription": "地底果汁の冷たいジュース・森のフルーツサラダをそれぞれ完成させる ＋ 異なる住人2人に贈り物をする"
+  },
+  {
+    "id": "cook0042",
+    "name": "海鮮と根菜のシチュー",
+    "category": "複合",
+    "ingredients": [
+      {
+        "id": "S0091",
+        "name": "つきホタテ",
+        "quantity": 1
+      },
+      {
+        "id": "C010",
+        "name": "白い根菜",
+        "quantity": 2
+      },
+      {
+        "id": "C008",
+        "name": "洞窟キノコ",
+        "quantity": 2
+      },
+      {
+        "id": "S0063",
+        "name": "森の湧き水",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "tap",
+      "hold",
+      "card"
+    ],
+    "satietyMinutes": 240,
+    "restore": 78,
+    "image": "images/cooking/cook0042.webp",
+    "unlock": {
+      "kind": "all",
+      "rules": [
+        {
+          "kind": "combo",
+          "recipes": [
+            "cook0035",
+            "cook0033"
+          ]
+        },
+        {
+          "kind": "category",
+          "category": "洞窟",
+          "count": 5
+        }
+      ]
+    },
+    "unlockDescription": "ほしうにの卵蒸し・いわかくれがにのスープをそれぞれ完成させる ＋ 洞窟料理を5種類完成させる"
+  },
+  {
+    "id": "cook0043",
+    "name": "獣たちのお弁当",
+    "category": "複合",
+    "ingredients": [
+      {
+        "id": "C014",
+        "name": "洞窟鳥の卵",
+        "quantity": 2
+      },
+      {
+        "id": "S0067",
+        "name": "小魚",
+        "quantity": 2
+      },
+      {
+        "id": "S0066",
+        "name": "りんご",
+        "quantity": 1
+      },
+      {
+        "id": "S0054",
+        "name": "葉っぱ",
+        "quantity": 2
+      }
+    ],
+    "steps": [
+      "tap",
+      "hold",
+      "card"
+    ],
+    "satietyMinutes": 300,
+    "restore": 78,
+    "image": "images/cooking/cook0043.webp",
+    "unlock": {
+      "kind": "all",
+      "rules": [
+        {
+          "kind": "combo",
+          "recipes": [
+            "cook0037",
+            "cook0014"
+          ]
+        },
+        {
+          "kind": "talk",
+          "npc": "paper",
+          "count": 20
+        },
+        {
+          "kind": "talk",
+          "npc": "pyoro",
+          "count": 10
+        }
+      ]
+    },
+    "unlockDescription": "海鮮オムレツ・森のフルーツサラダをそれぞれ完成させる ＋ 黄色い獣に累計20回話しかける ＋ 赤い獣に累計10回話しかける"
+  },
+  {
+    "id": "cook0044",
+    "name": "星降るゼリー",
+    "category": "特別",
+    "ingredients": [
+      {
+        "id": "S0088",
+        "name": "にじくらげ",
+        "quantity": 1
+      },
+      {
+        "id": "C022",
+        "name": "甘い地底果汁",
+        "quantity": 1
+      },
+      {
+        "id": "C020",
+        "name": "夜光の雫",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "card"
+    ],
+    "satietyMinutes": 75,
+    "restore": 18,
+    "image": "images/cooking/cook0044.webp",
+    "unlock": {
+      "kind": "all",
+      "rules": [
+        {
+          "kind": "discoverMaterial",
+          "item": "S0088"
+        },
+        {
+          "kind": "category",
+          "category": "森",
+          "count": 4
+        }
+      ]
+    },
+    "unlockDescription": "特定の素材を発見する（にじくらげ） ＋ 森料理を4種類完成させる"
+  },
+  {
+    "id": "cook0045",
+    "name": "月明かりのカルパッチョ",
+    "category": "特別",
+    "ingredients": [
+      {
+        "id": "S0094",
+        "name": "つきあかりうお",
+        "quantity": 1
+      },
+      {
+        "id": "S0065",
+        "name": "香りのよい若葉",
+        "quantity": 1
+      },
+      {
+        "id": "C020",
+        "name": "夜光の雫",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "tap",
+      "card"
+    ],
+    "satietyMinutes": 150,
+    "restore": 50,
+    "image": "images/cooking/cook0045.webp",
+    "unlock": {
+      "kind": "all",
+      "rules": [
+        {
+          "kind": "combo",
+          "recipes": [
+            "cook0023",
+            "cook0028"
+          ]
+        },
+        {
+          "kind": "talk",
+          "npc": "pyoro",
+          "count": 30
+        }
+      ]
+    },
+    "unlockDescription": "アオシズクの香草焼き・ハナビレの彩りサラダをそれぞれ完成させる ＋ 赤い獣に累計30回話しかける"
+  },
+  {
+    "id": "cook0046",
+    "name": "虹色の海鮮盛り合わせ",
+    "category": "特別",
+    "ingredients": [
+      {
+        "id": "S0095",
+        "name": "にじひれたい",
+        "quantity": 1
+      },
+      {
+        "id": "S0100",
+        "name": "きんもようえび",
+        "quantity": 1
+      },
+      {
+        "id": "S0099",
+        "name": "しろがねだこ",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "tap",
+      "hold",
+      "card"
+    ],
+    "satietyMinutes": 240,
+    "restore": 78,
+    "image": "images/cooking/cook0046.webp",
+    "unlock": {
+      "kind": "all",
+      "rules": [
+        {
+          "kind": "combo",
+          "recipes": [
+            "cook0037",
+            "cook0038"
+          ]
+        },
+        {
+          "kind": "giftPeople",
+          "count": 3
+        }
+      ]
+    },
+    "unlockDescription": "海鮮オムレツ・魚とキノコの包み焼きをそれぞれ完成させる ＋ 異なる住人3人に贈り物をする"
+  },
+  {
+    "id": "cook0047",
+    "name": "星海のマグロの大皿盛り",
+    "category": "特別",
+    "ingredients": [
+      {
+        "id": "S0116",
+        "name": "星海のマグロ",
+        "quantity": 1
+      },
+      {
+        "id": "S0107",
+        "name": "海藻",
+        "quantity": 2
+      },
+      {
+        "id": "S0065",
+        "name": "香りのよい若葉",
+        "quantity": 2
+      }
+    ],
+    "steps": [
+      "tap",
+      "hold",
+      "card"
+    ],
+    "satietyMinutes": 300,
+    "restore": 78,
+    "image": "images/cooking/cook0047.webp",
+    "unlock": {
+      "kind": "all",
+      "rules": [
+        {
+          "kind": "discoverMaterial",
+          "item": "S0116"
+        },
+        {
+          "kind": "totalCraft",
+          "count": 35
+        }
+      ]
+    },
+    "unlockDescription": "特定の素材を発見する（星海のマグロ） ＋ 料理を累計35回調理する"
+  },
+  {
+    "id": "cook0048",
+    "name": "おやすみスープ",
+    "category": "特別",
+    "ingredients": [
+      {
+        "id": "C012",
+        "name": "眠り茸",
+        "quantity": 1
+      },
+      {
+        "id": "C010",
+        "name": "白い根菜",
+        "quantity": 1
+      },
+      {
+        "id": "S0063",
+        "name": "森の湧き水",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "tap",
+      "hold"
+    ],
+    "satietyMinutes": 180,
+    "restore": 50,
+    "image": "images/cooking/cook0048.webp",
+    "unlock": {
+      "kind": "all",
+      "rules": [
+        {
+          "kind": "combo",
+          "recipes": [
+            "cook0003",
+            "cook0018"
+          ]
+        },
+        {
+          "kind": "talk",
+          "npc": "pyoro",
+          "count": 50
+        }
+      ]
+    },
+    "unlockDescription": "岩陰豆の煮込み・森のハーブティーをそれぞれ完成させる ＋ 赤い獣に累計50回話しかける"
+  },
+  {
+    "id": "cook0049",
+    "name": "夢見る果実ゼリー",
+    "category": "特別",
+    "ingredients": [
+      {
+        "id": "S0097",
+        "name": "ゆめみくらげ",
+        "quantity": 1
+      },
+      {
+        "id": "S0058",
+        "name": "野生の木苺",
+        "quantity": 2
+      },
+      {
+        "id": "S0064",
+        "name": "森の蜂蜜",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "card"
+    ],
+    "satietyMinutes": 90,
+    "restore": 18,
+    "image": "images/cooking/cook0049.webp",
+    "unlock": {
+      "kind": "all",
+      "rules": [
+        {
+          "kind": "discoverMaterial",
+          "item": "S0097"
+        },
+        {
+          "kind": "gift",
+          "count": 10
+        }
+      ]
+    },
+    "unlockDescription": "特定の素材を発見する（ゆめみくらげ） ＋ 住人へ累計10回贈り物をする"
+  },
+  {
+    "id": "cook0050",
+    "name": "真夜中の星空ドリンク",
+    "category": "特別",
+    "ingredients": [
+      {
+        "id": "C020",
+        "name": "夜光の雫",
+        "quantity": 1
+      },
+      {
+        "id": "C022",
+        "name": "甘い地底果汁",
+        "quantity": 2
+      },
+      {
+        "id": "C024",
+        "name": "いつまでも冷たい水",
+        "quantity": 1
+      }
+    ],
+    "steps": [
+      "hold"
+    ],
+    "satietyMinutes": 45,
+    "restore": 18,
+    "image": "images/cooking/cook0050.webp",
+    "unlock": {
+      "kind": "all",
+      "rules": [
+        {
+          "kind": "combo",
+          "recipes": [
+            "cook0041",
+            "cook0044"
+          ]
+        },
+        {
+          "kind": "talk",
+          "npc": "paper",
+          "count": 50
+        },
+        {
+          "kind": "talk",
+          "npc": "pyoro",
+          "count": 30
+        }
+      ]
+    },
+    "unlockDescription": "地底と森のミックスジュース・星降るゼリーをそれぞれ完成させる ＋ 黄色い獣に累計50回話しかける ＋ 赤い獣に累計30回話しかける"
+  }
+]
