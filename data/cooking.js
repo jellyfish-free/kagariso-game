@@ -8,7 +8,7 @@ const notice=s=>{$('cooking-message').textContent=s||'';};
 const img=r=>`<img loading="lazy" src="${safe(r.image)}" alt="" onerror="this.style.display='none'">`;
 const paintList=()=>{
  const category=$('cooking-filter').value,search=$('cooking-search').value.trim().toLowerCase();
- $('cooking-progress').textContent=`料理図鑑：${state.completedCount} / ${state.total} 種類`; $('cooking-moon').textContent=state.moonUnlocked?'🌙 月の扉が解放された！':'誰かが50種類すべての料理を作ると、月の扉が解放される。';
+ $('cooking-progress').textContent=`レシピ：${state.completedCount} / ${state.total} 種類`; $('cooking-moon').textContent=state.moonUnlocked?'🌙 月の扉が解放された！':'';
  $('cooking-recipes').innerHTML=state.recipes.filter(r=>(category==='all'||r.category===category)&&r.name.toLowerCase().includes(search)).map(r=>`<article class="cooking-recipe"><div class="cooking-image">${r.unlocked?img(r):'🔒'}</div><div class="cooking-info"><strong>${safe(r.name)}</strong><div class="muted tiny">${safe(r.category)} ／ ${r.steps.length}工程 ／ ${r.completed?'完成済み':'未完成'} ／ 調理 ${r.times}回</div><p class="muted tiny">${r.unlocked?r.ingredients.map(m=>`${safe(m.name)} ${m.owned}/${m.quantity}`).join('・'):'解放条件：'+safe(r.condition)}</p></div><button class="secondary small" data-cook="${r.id}" ${!r.unlocked||r.ingredients.some(m=>m.owned<m.quantity)||!!state.active?'disabled':''}>料理する</button></article>`).join('');
  $('cooking-recipes').querySelectorAll('[data-cook]:not([disabled])').forEach(b=>b.onclick=()=>start(b.dataset.cook));
  const byId=Object.fromEntries(state.recipes.map(r=>[r.id,r]));
@@ -60,7 +60,16 @@ const feed=async(npc,recipe)=>{
  const r=state.recipes.find(x=>x.id===recipe);if(busy||!confirm(`${npc==='paper'?'黄色い獣':'赤色の獣'}に「${r?.name}」を食べさせますか？`))return;
  busy=true;try{const v=await api('feed',{npcId:npc,recipeId:recipe});await refresh();notice(`${v.message} 腹持ち ${v.satietyMinutes}分`);}catch(e){notice(e.message);}finally{busy=false;}
 };
-const open=async()=>{if(await bridge.checkEvents())return;bridge.show('cooking');notice('');await refresh();if(!state.visited){$('cooking-first').classList.remove('hidden');await api('visit',{});state.visited=true;}};
+// 工房TOPでは料理の通信を行わない。料理を選んだときだけ台所を読み込む。
+const open=async()=>{if(await bridge.checkEvents())return;cancelAnimationFrame(anim);bridge.show('workshop');};
+const openKitchen=async()=>{
+ if(await bridge.checkEvents())return;
+ bridge.show('cooking');notice('');
+ try{
+  await refresh();
+  if(!state.visited){$('cooking-first').classList.remove('hidden');await api('visit',{});state.visited=true;}
+ }catch(e){notice(e.message||'料理データを読み込めませんでした。');}
+};
 $('cooking-orders-refresh').addEventListener('click',loadOrders);
 $('cooking-filter').addEventListener('change',()=>{if(state)paintList();});$('cooking-search').addEventListener('input',()=>{if(state)paintList();});
 $('cooking-tap-button').onclick=()=>step({action:'tap'});
@@ -71,6 +80,9 @@ hold.addEventListener('pointerup',e=>{e.preventDefault();holdWantRelease=true;if
 $('cooking-next').onclick=()=>{fullDeck=null;renderStage();};
 $('cooking-finish-button').onclick=async()=>{if(busy||!session)return;busy=true;try{const r=await api('finish',{sessionId:session.id});await refresh();notice(`「${r.name}」を${r.quantity}個作った！${r.moonUnlocked?' 🌙 月の扉が解放された！':''}`);}catch(e){notice(e.message);}finally{busy=false;}};
 $('cooking-cancel').onclick=async()=>{if(busy||!session||!confirm('調理を中断する？ 素材は消費されないよ。'))return;busy=true;try{await api('cancel',{sessionId:session.id});await refresh();notice('調理を中断したよ。');}catch(e){notice(e.message);}finally{busy=false;}};
-$('cooking-back').onclick=()=>{cancelAnimationFrame(anim);bridge.openHall();};
-window.KAGARISO_COOKING={open};
+$('workshop-enter-cooking').addEventListener('click',openKitchen);
+$('workshop-back-hall').addEventListener('click',()=>{cancelAnimationFrame(anim);bridge.openHall();});
+$('cooking-back').onclick=()=>{cancelAnimationFrame(anim);bridge.show('workshop');};
+$('cooking-hall-back').onclick=()=>{cancelAnimationFrame(anim);bridge.openHall();};
+window.KAGARISO_COOKING={open,openKitchen};
 })();

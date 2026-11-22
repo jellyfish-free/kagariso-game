@@ -15,3 +15,22 @@
 #cooking-page .cooking-hold-button{min-height:100px;touch-action:none;user-select:none;-webkit-user-select:none}
 #cooking-page #cooking-stage-result{min-height:2em}
 @media(max-width:600px){#cooking-page .cooking-recipe{flex-wrap:wrap}#cooking-page .cooking-recipe>button{margin-left:auto}}
+
+/* v0.18.5.4 工房から台所へ移る2段階の画面構成 */
+#workshop-page .workshop-hero,#cooking-page .workshop-hero{width:100%;height:auto;aspect-ratio:1670/942;object-fit:cover;border-radius:14px;display:block;margin:14px 0 20px}
+#workshop-page .workshop-choices{display:grid;gap:14px}
+#workshop-page .workshop-choice{width:100%;box-sizing:border-box;border:1px solid rgba(206,191,167,.32);background:rgba(29,29,48,.75);border-radius:13px;padding:12px;display:flex;align-items:center;gap:14px;text-align:left;color:inherit}
+#workshop-page button.workshop-choice{cursor:pointer}
+#workshop-page button.workshop-choice:hover,#workshop-page button.workshop-choice:focus-visible{border-color:#e4bb84;background:rgba(71,59,75,.65)}
+#workshop-page .workshop-choice img{flex:0 0 116px;width:116px;max-width:35%;aspect-ratio:16/9;border-radius:9px;object-fit:cover}
+#workshop-page .workshop-choice-text{display:flex;flex:1;min-width:0;flex-direction:column;gap:6px}
+#workshop-page .workshop-choice-text strong{font-size:1.07rem}
+#workshop-page .workshop-choice-text small{font-size:.78rem;opacity:.75;line-height:1.5}
+#workshop-page .workshop-choice-disabled{opacity:.67}
+#workshop-page .workshop-coming-soon{white-space:nowrap;font-size:.76rem;border:1px solid currentColor;border-radius:8px;padding:6px}
+#cooking-page .workshop-cooking-nav{display:flex;gap:8px 24px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+#cooking-page .workshop-cooking-nav .back{margin:0}
+/* 「レシピ：n / 50 種類」は枠や背景を付けない */
+#cooking-page .cooking-progress-plain{margin:16px 0 20px;padding:0;border:0;background:none;box-shadow:none;color:inherit;font-size:1rem}
+#cooking-page #cooking-moon:empty{display:none}
+@media(max-width:480px){#workshop-page .workshop-choice{gap:9px;padding:10px}#workshop-page .workshop-choice img{width:88px;flex-basis:88px}#workshop-page .workshop-choice-text strong{font-size:1rem}}
