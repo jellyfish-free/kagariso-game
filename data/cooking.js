@@ -12,7 +12,7 @@ const paintList=()=>{
  $('cooking-recipes').innerHTML=state.recipes.filter(r=>(category==='all'||r.category===category)&&r.name.toLowerCase().includes(search)).map(r=>`<article class="cooking-recipe"><div class="cooking-image">${r.unlocked?img(r):'🔒'}</div><div class="cooking-info"><strong>${safe(r.name)}</strong><div class="muted tiny">${safe(r.category)} ／ ${r.steps.length}工程 ／ ${r.completed?'完成済み':'未完成'} ／ 調理 ${r.times}回</div><p class="muted tiny">${r.unlocked?r.ingredients.map(m=>`${safe(m.name)} ${m.owned}/${m.quantity}`).join('・'):'解放条件：'+safe(r.condition)}</p></div><button class="secondary small" data-cook="${r.id}" ${!r.unlocked||r.ingredients.some(m=>m.owned<m.quantity)||!!state.active?'disabled':''}>料理する</button></article>`).join('');
  $('cooking-recipes').querySelectorAll('[data-cook]:not([disabled])').forEach(b=>b.onclick=()=>start(b.dataset.cook));
  const byId=Object.fromEntries(state.recipes.map(r=>[r.id,r]));
- $('cooking-stock').innerHTML=state.owned.length?state.owned.map(x=>{const r=byId[x.id];return r?`<article class="cooking-food">${img(r)}<div><strong>${safe(r.name)} ×${x.quantity}</strong><div class="muted tiny">回復 ${r.restore} ／ 腹持ち ${r.satietyMinutes}分</div></div><div><button class="secondary small" data-eat="paper:${r.id}">黄色い獣へ</button> <button class="secondary small" data-eat="pyoro:${r.id}">赤い獣へ</button></div></article>`:'';}).join(''):'<p class="muted">作った料理はまだありません。</p>';
+ $('cooking-stock').innerHTML=state.owned.length?state.owned.map(x=>{const r=byId[x.id];return r?`<article class="cooking-food">${img(r)}<div><strong>${safe(r.name)} ×${x.quantity}</strong><div class="muted tiny">回復 ${r.restore} ／ 腹持ち ${r.satietyMinutes}分</div></div><div><button class="secondary small" data-eat="paper:${r.id}">黄色い獣へ</button> <button class="secondary small" data-eat="pyoro:${r.id}">赤色の獣へ</button></div></article>`:'';}).join(''):'<p class="muted">作った料理はまだありません。</p>';
  $('cooking-stock').querySelectorAll('[data-eat]').forEach(b=>b.onclick=()=>feed(...b.dataset.eat.split(':')));
 };
 const gameTitles={tap:'切る・炒める・焼く：タイミングよくタップ',hold:'煮る・混ぜる：長押しして離す',card:'盛り付け：同じ絵柄を3枚集める',finish:'完成！'};
@@ -35,7 +35,7 @@ const loadOrders=async()=>{
  try{
   const data=await api('orders');
   $('cooking-orders').innerHTML=['paper','pyoro'].map(npc=>{
-   const d=data[npc],name=npc==='paper'?'黄色い獣':'赤い獣';
+   const d=data[npc],name=npc==='paper'?'黄色い獣':'赤色の獣';
    return `<section class="cooking-order-npc"><h3>${name}のお願い</h3><p class="muted tiny">今日の受注 ${d.acceptedToday} / ${d.dailyLimit} 件</p>
      ${d.active.map(x=>`<div class="cooking-order"><strong>${safe(x.name)}を食べたい！</strong><div class="actions"><button class="primary small" data-order-done="${x.id}">料理を渡す</button><button class="secondary small" data-order-cancel="${x.id}">取り消す</button></div></div>`).join('')||'<p class="muted tiny">受注中の料理はありません。</p>'}
      ${d.canAccept?d.offers.map(x=>`<div class="cooking-order"><span>${safe(x.name)}</span> <button class="secondary small" data-order-accept="${npc}:${x.recipeId}">引き受ける</button></div>`).join(''):'<p class="muted tiny">今日の受注上限か同時受注上限に達しています。</p>'}</section>`;
@@ -57,7 +57,7 @@ const step=async action=>{
  }catch(e){notice(e.message);if(session?.game==='tap')renderStage();}finally{busy=false;}
 };
 const feed=async(npc,recipe)=>{
- const r=state.recipes.find(x=>x.id===recipe);if(busy||!confirm(`${npc==='paper'?'黄色い獣':'赤い獣'}に「${r?.name}」を食べさせますか？`))return;
+ const r=state.recipes.find(x=>x.id===recipe);if(busy||!confirm(`${npc==='paper'?'黄色い獣':'赤色の獣'}に「${r?.name}」を食べさせますか？`))return;
  busy=true;try{const v=await api('feed',{npcId:npc,recipeId:recipe});await refresh();notice(`${v.message} 腹持ち ${v.satietyMinutes}分`);}catch(e){notice(e.message);}finally{busy=false;}
 };
 const open=async()=>{if(await bridge.checkEvents())return;bridge.show('cooking');notice('');await refresh();if(!state.visited){$('cooking-first').classList.remove('hidden');await api('visit',{});state.visited=true;}};
