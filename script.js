@@ -14,7 +14,7 @@ let pendingRecovery='';
 let inventoryReturn='hall';
 let gathering=false;
 let npcReturn='hall', mandatoryStory=false;
-const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-diary','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor','forest-event','forest','forest-area','forest-memories','sea','sea-event','pyoro','pyoro-conversation','pyoro-feeding','pyoro-requests','pyoro-words','pyoro-word-history','pyoro-diary','pyoro-gifts','cooking'];
+const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-diary','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor','forest-event','forest','forest-area','forest-memories','sea','sea-event','pyoro','pyoro-conversation','pyoro-history','pyoro-feeding','pyoro-requests','pyoro-words','pyoro-word-history','pyoro-diary','pyoro-gifts','cooking'];
 let activePage='';
 const show=(name)=>{
   const changed=activePage!==name; activePage=name;
@@ -718,11 +718,10 @@ async function openPyoro(){
  $('#pyoro-profile-more').open=false;
  paintPyoroProfile(npc);
  $('#pyoro-talk-result').textContent='';$('#pyoro-feed-result').textContent='';
- $('#pyoro-history').replaceChildren();$('#pyoro-interactions').replaceChildren();
+ $('#pyoro-interactions').replaceChildren();
  pyoroDiaryEntries=[];pyoroDiaryIndex=0;pyoroDiaryHasMore=false;
- await loadPyoroTalk();await loadPyoroFood();
- await Promise.all([loadPyoroRequests(),loadPyoroGifts(),loadPyoroWords()]);
  show('pyoro');
+ // v0.18.5.2: 会話・食事・お願い・贈り物・言葉帳は各ページで必要になったときだけ取得する。
  if(pyoroProfileTimer)clearInterval(pyoroProfileTimer);
  pyoroProfileTimer=setInterval(async()=>{
    if(document.hidden||activePage!=='pyoro')return;
@@ -742,15 +741,13 @@ bind('#pyoro-diary-back',openPyoro);
 bind('#pyoro-gifts-open',async()=>{await loadPyoroGifts();show('pyoro-gifts');});
 bind('#pyoro-gifts-back',openPyoro);
 const openPyoroConversation=async()=>{
- const {npc}=await api('/npcs/pyoro');
+ const npc=pyoroProfile||(await api('/npcs/pyoro')).npc;
  paintPyoroProfile(npc);
  const background=$('#pyoro-conversation-background');
  applyImageFallback(background,hallBackgroundFiles(hallBackgroundName()),'pyoroConversationBackground');
  paintPyoro('#pyoro-conversation-image',npc);
  $('#pyoro-conversation-scene').textContent=pyoroStateScene(npc);
  $('#pyoro-talk-result').textContent='「……なんだ？ オレに話があるのか？」';
- $('#pyoro-talk-history-details').open=false;
- $('#pyoro-talk-history-details').classList.add('hidden');
  $('#pyoro-conversation-result').classList.add('hidden');
  await loadPyoroTalk();
  show('pyoro-conversation');
@@ -758,7 +755,7 @@ const openPyoroConversation=async()=>{
 bind('#pyoro-talk-open',openPyoroConversation);
 bind('#pyoro-conversation-back',openPyoro);
 bind('#pyoro-conversation-hall',openHall);
-bind('#pyoro-history-shortcut',async()=>{await openPyoroConversation();$('#pyoro-history-open').click();});
+bind('#pyoro-history-shortcut',()=>openPyoroHistory('pyoro'));
 
 for(const [id,action] of [['#pyoro-rest-btn','rest'],['#pyoro-wake-btn','wake']])bind(id,async()=>{
  const result=await api('/npcs/pyoro/life/action','POST',{action});paintPyoroProfile(result.npc);
@@ -785,12 +782,49 @@ $('#pyoro-name-form').addEventListener('submit',handler(async e=>{
  }finally{button.disabled=false;}
 }));
 bind('#pyoro-conversation-close',openPyoro);
-bind('#pyoro-history-open',async()=>{
- $('#pyoro-talk-history-details').classList.remove('hidden');
- $('#pyoro-talk-history-details').open=true;
- $('#pyoro-history-load').click();
-});
-bind('#pyoro-history-load',async()=>{const data=await api('/npcs/pyoro/history');const list=$('#pyoro-history');list.replaceChildren();for(const r of data.history){const el=document.createElement('p');el.className='scene';el.textContent=`${r.message} → ${r.response}`;list.append(el);}if(!data.history.length)list.textContent='まだ会話の記録はありません。';});
+// v0.18.5.2: 黄色い獣と同様の独立会話履歴。最新20件ずつを表示。
+let pyoroHistoryReturn='pyoro-conversation',pyoroHistoryRecords=[];
+const switchPyoroHistoryTab=(ai)=>{
+ for(const [kind,active] of [['ai',ai],['choice',!ai]]){
+  const button=$('#pyoro-history-tab-'+kind);
+  button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));
+  $('#pyoro-history-'+kind+'-panel').classList.toggle('hidden',!active);
+ }
+};
+const renderPyoroHistory=()=>{
+ for(const kind of ['ai','choice']){
+  const list=$('#pyoro-history-'+kind+'-list');list.replaceChildren();
+  const records=pyoroHistoryRecords.filter(r=>kind==='ai'?r.kind==='ai':r.kind!=='ai').slice(0,20);
+  for(const record of records){
+   const item=document.createElement('article');item.className='history-entry';
+   const time=document.createElement('time');time.textContent=jstDate(record.created_at);
+   const message=document.createElement('p');message.textContent=record.message||'';
+   const answer=document.createElement('p');answer.textContent='赤色の獣：'+(record.response||'');
+   item.append(time,message,answer);list.append(item);
+  }
+  if(!records.length)list.textContent='まだ会話の記録はありません。';
+ }
+};
+const openPyoroHistory=async(origin='pyoro-conversation')=>{
+ pyoroHistoryReturn=origin;
+ $('#pyoro-history-back').textContent=origin==='pyoro'?'← プロフィールへ':'← お話に戻る';
+ switchPyoroHistoryTab(true);
+ show('pyoro-history');
+ $('#pyoro-history-ai-list').textContent='読み込み中…';
+ $('#pyoro-history-choice-list').textContent='読み込み中…';
+ try{
+  const data=await api('/npcs/pyoro/history');
+  pyoroHistoryRecords=Array.isArray(data.history)?data.history:[];
+  renderPyoroHistory();
+ }catch(error){
+  $('#pyoro-history-ai-list').textContent='履歴を読み込めませんでした。 '+error.message;
+  $('#pyoro-history-choice-list').textContent='履歴を読み込めませんでした。';
+ }
+};
+bind('#pyoro-history-open',()=>openPyoroHistory('pyoro-conversation'));
+bind('#pyoro-history-back',()=>pyoroHistoryReturn==='pyoro'?show('pyoro'):show('pyoro-conversation'));
+bind('#pyoro-history-tab-ai',()=>switchPyoroHistoryTab(true));
+bind('#pyoro-history-tab-choice',()=>switchPyoroHistoryTab(false));
 const renderPyoroFood=data=>{
  const n=data.npc;paintPyoroProfile(n);
  paintPyoro('#pyoro-feeding-image',n);

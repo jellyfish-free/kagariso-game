@@ -65,7 +65,7 @@
   }
 </style>
   <script src="data/sea-items.js?v=0.17.0.3" defer></script>
-  <script src="script.js?v=0.18.5.1" defer></script>
+  <script src="script.js?v=0.18.5.2" defer></script>
   <script src="data/cooking.js?v=0.18.2" defer></script>
   <script src="data/sea-game.js?v=0.17.1.5" defer></script>
 <style>
@@ -130,6 +130,21 @@
 #pyoro-conversation-close{width:100%;margin-top:15px}
 #pyoro-name-form input{width:100%}
 #pyoro-conversation-page .section-top h2{font-size:21px}
+</style>
+
+<style>
+/* v0.18.5.2: 黄色い獣の言葉帳と同じフォーム間隔・サイズ */
+#pyoro-words-page #pyoro-word-form{display:block}
+#pyoro-words-page #pyoro-word-form label{display:block;margin:16px 0 7px;font-size:inherit}
+#pyoro-words-page #pyoro-word-form input,
+#pyoro-words-page #pyoro-word-form textarea{
+ display:block;width:100%;max-width:100%;box-sizing:border-box;
+ background:#191b2d;color:var(--ink);border:1px solid var(--line);
+ border-radius:8px;padding:12px;font:inherit;line-height:1.6;
+}
+#pyoro-words-page #pyoro-word-form textarea{min-height:72px;resize:vertical}
+#pyoro-words-page #pyoro-word-form button[type=submit]{display:block;width:100%;margin-top:20px}
+#pyoro-words-page #pyoro-word-history-open{width:auto}
 </style>
 </head>
 <body>
@@ -347,6 +362,19 @@
 </section>
 
 <!-- v0.18.4: 赤色の獣の食事とお願いは独立画面 -->
+<!-- v0.18.5.2: 黄色い獣と同じ独立した会話履歴画面 -->
+<section id="pyoro-history-page" class="page hidden narrow">
+  <button id="pyoro-history-back" type="button" class="back">← お話に戻る</button>
+  <div class="panel">
+    <span class="eyebrow">MEMORIES</span><h1>赤色の獣との会話履歴</h1>
+    <div class="tabs" role="group" aria-label="会話の種類">
+      <button id="pyoro-history-tab-ai" type="button" class="tab active" aria-pressed="true">自由会話</button>
+      <button id="pyoro-history-tab-choice" type="button" class="tab" aria-pressed="false">選択式会話</button>
+    </div>
+    <section id="pyoro-history-ai-panel"><h2>自由会話の履歴（最新20件）</h2><div id="pyoro-history-ai-list"></div></section>
+    <section id="pyoro-history-choice-panel" class="hidden"><h2>選択式の履歴（最新20件）</h2><div id="pyoro-history-choice-list"></div></section>
+  </div>
+</section>
 <section id="pyoro-feeding-page" class="page hidden narrow">
   <button id="pyoro-feeding-back" class="back" type="button">← お話に戻る</button>
   <div class="panel">
@@ -388,7 +416,7 @@
         <textarea id="pyoro-meaning" maxlength="120" rows="2" required placeholder="例：がんばった人にかける言葉"></textarea>
         <label for="pyoro-usage">どんなときに使う？（120文字まで）</label>
         <textarea id="pyoro-usage" maxlength="120" rows="2" required placeholder="例：おしごとが終わったとき"></textarea>
-        <p class="muted tiny">教えた言葉は赤色の獣の言葉帳に記録されます。個人情報は入力しないでね。</p>
+        <p class="muted tiny">教えた内容と住人名は、全住人が見られる言葉帳・学習履歴に記録されます。個人情報は入力しないでね。</p>
         <button type="submit" class="primary">赤色の獣に教える</button>
       </form>
       <button id="pyoro-word-history-open" type="button" class="secondary">言葉帳・学習履歴を見る</button>
@@ -463,10 +491,7 @@
       </form>
       <div id="pyoro-ai-result" class="notice hidden" role="status" aria-live="polite"></div>
       <button id="pyoro-history-open" type="button" class="secondary small">会話の履歴を見る</button>
-      <details id="pyoro-talk-history-details" class="hidden"><summary>会話の思い出</summary>
-        <button id="pyoro-history-load" class="secondary small" type="button">履歴を更新</button>
-        <div id="pyoro-history" class="choice-list"></div>
-      </details>
+
     </section>
     <div class="conversation-word-action"><button id="pyoro-words-open" type="button" class="secondary">言葉を教える・言葉帳を見る</button></div>
     <details id="pyoro-name-details"><summary>名前・呼び名を教える</summary>
@@ -747,7 +772,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.5.1</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.5.2</span></footer>
   </div>
 </body>
 </html>
