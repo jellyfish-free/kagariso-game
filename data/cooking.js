@@ -3,7 +3,9 @@
 const bridge=window.KAGARISO_COOKING_BRIDGE;if(!bridge)return;
 const $=id=>document.getElementById(id),safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let selectedRecipeId=null;
-let state=null,session=null,busy=false,fullDeck=null,holdBusy=false,holdStartPending=false,holdWantRelease=false,clockOffset=0,anim=0;
+let state=null,session=null,busy=false,fullDeck=null,holdBusy=false,holdStartPending=false,holdWantRelease=false,clockOffset=0,anim=0,autoCompleting=false,completionTimer=0;
+const TAP_ONE_WAY_MS=2500,TAP_TOTAL_MS=TAP_ONE_WAY_MS*2*3;
+const jumpToGame=()=>requestAnimationFrame(()=>{const el=$('cooking-playing-name');if(el&&!$('cooking-play').classList.contains('hidden')){el.scrollIntoView({block:'start',behavior:'instant'});}});
 const api=async(p,body)=>{const a=Date.now(),r=await bridge.api('/cooking/'+p,body?'POST':'GET',body),b=Date.now();if(r.session?.serverNow)clockOffset=r.session.serverNow-(a+b)/2;return r;};
 const notice=s=>{const el=$('cooking-message');el.textContent=s||'';el.hidden=!s;};
 const img=r=>`<img loading="lazy" src="${safe(r.image)}" alt="" onerror="this.style.display='none'">`;
@@ -46,11 +48,13 @@ const paintList=()=>{
  $('cooking-stock').innerHTML=state.owned.length?state.owned.map(x=>{const r=byId[x.id];return r?`<article class="cooking-food">${img(r)}<div><strong>${safe(r.name)} ×${x.quantity}</strong><div class="muted tiny">回復 ${r.restore} ／ 腹持ち ${r.satietyMinutes}分</div></div><div><button class="secondary small" data-eat="paper:${r.id}">黄色い獣へ</button> <button class="secondary small" data-eat="pyoro:${r.id}">赤色の獣へ</button></div></article>`:'';}).join(''):'<p class="muted">作った料理はまだありません。</p>';
  $('cooking-stock').querySelectorAll('[data-eat]').forEach(b=>b.onclick=()=>feed(...b.dataset.eat.split(':')));
 };
-const gameTitles={tap:'切る・炒める・焼く：タイミングよくタップ',hold:'煮る・混ぜる：長押しして離す',card:'盛り付け：同じ絵柄を3枚集める',finish:'完成！'};
+const gameTitles={tap:'切る・炒める・焼く',hold:'煮る・混ぜる：長押しして離す',card:'盛り付け：同じ絵柄を3枚集める',finish:'完成！'};
 const symbols={chest:'🎁',gem:'💎',coin:'🪙'};
 const renderCards=()=>{const cards=fullDeck||session.cards||[];$('cooking-card-grid').innerHTML=Array.from({length:12},(_,i)=>`<button class="cooking-card" data-index="${i}" ${cards[i]?'disabled':''}>${cards[i]?symbols[cards[i]]:'❔'}</button>`).join('');$('cooking-card-grid').querySelectorAll('.cooking-card:not([disabled])').forEach(b=>b.onclick=()=>step({action:'draw',index:Number(b.dataset.index)}));};
 const renderStage=()=>{
  if(!session)return;
+ if(session.game==='finish'){finalizeCooking();return;}
+ $('cooking-completion').classList.add('hidden');
  $('cooking-play').classList.remove('hidden');$('cooking-library').classList.add('hidden');
  $('cooking-playing-name').textContent=state.recipes.find(r=>r.id===session.recipeId)?.name||'料理';
  $('cooking-stage-title').textContent=`工程 ${Math.min(session.stage+1,session.steps.length)} / ${session.steps.length}：${gameTitles[session.game]}`;
@@ -58,8 +62,19 @@ const renderStage=()=>{
  $('cooking-next').classList.add('hidden');$('cooking-stage-result').textContent='';
  if(session.game==='card')renderCards();
  if(session.game==='tap'){
-  cancelAnimationFrame(anim);$('cooking-target').style.left=(session.targetMs/2500*100)+'%';
-  const paint=()=>{if(session?.game!=='tap')return;$('cooking-marker').style.left=Math.max(0,Math.min(100,(Date.now()+clockOffset-session.stageMs)/2500*100))+'%';anim=requestAnimationFrame(paint);};paint();
+  cancelAnimationFrame(anim);$('cooking-target').style.left=(session.targetMs/TAP_ONE_WAY_MS*100)+'%';
+  const paint=()=>{
+   if(session?.game!=='tap')return;
+   if(busy){anim=requestAnimationFrame(paint);return;}
+   const elapsed=Math.max(0,Date.now()+clockOffset-session.stageMs);
+   const leg=Math.floor(elapsed/TAP_ONE_WAY_MS);
+   const phase=(elapsed%TAP_ONE_WAY_MS)/TAP_ONE_WAY_MS;
+   const position=leg%2===0?phase:1-phase;
+   $('cooking-marker').style.left=(Math.max(0,Math.min(100,position*100)))+'%';
+   $('cooking-laps').textContent='残り'+Math.max(0,3-Math.floor(elapsed/(TAP_ONE_WAY_MS*2)))+'往復';
+   if(elapsed>=TAP_TOTAL_MS){step({action:'tap'});return;}
+   anim=requestAnimationFrame(paint);
+  };paint();
  }
 };
 const loadOrders=async()=>{
@@ -76,16 +91,43 @@ const loadOrders=async()=>{
   $('cooking-orders').querySelectorAll('[data-order-cancel]').forEach(b=>b.onclick=async()=>{if(!confirm('お願いを取り消しますか？'))return;try{const r=await api('orders/resolve',{orderId:b.dataset.orderCancel,action:'cancel'});notice(r.message);await refresh();}catch(e){notice(e.message);}});
  }catch(e){$('cooking-orders').textContent=e.message;}
 };
-const refresh=async()=>{state=await api('status');session=state.active;paintList();await loadOrders();if(session){fullDeck=null;renderStage();}else{$('cooking-play').classList.add('hidden');$('cooking-library').classList.remove('hidden');}};
-const start=async recipeId=>{if(busy)return;busy=true;try{const r=await api('start',{recipeId});session=r.session;fullDeck=null;bridge.show('cooking');renderStage();}catch(e){notice(e.message);if(bridge.show)bridge.show('cooking');}finally{busy=false;}};
+const refresh=async()=>{state=await api('status');session=state.active;paintList();await loadOrders();if(session){fullDeck=null;renderStage();jumpToGame();}else{$('cooking-play').classList.add('hidden');$('cooking-library').classList.remove('hidden');}};
+const start=async recipeId=>{if(busy)return;busy=true;try{const r=await api('start',{recipeId});session=r.session;fullDeck=null;bridge.show('cooking');renderStage();jumpToGame();}catch(e){notice(e.message);if(bridge.show)bridge.show('cooking');}finally{busy=false;}};
 const step=async action=>{
  if(busy||!session)return;busy=true;cancelAnimationFrame(anim);
  try{
   const r=await api('step',{sessionId:session.id,...action});session=r.session;
-  if(r.prize){fullDeck=r.allCards;$('cooking-card').classList.remove('hidden');$('cooking-tap').classList.add('hidden');$('cooking-hold').classList.add('hidden');renderCards();$('cooking-stage-result').textContent=`${({chest:'大当たり！ 宝箱',gem:'中当たり！ 宝石',coin:'小当たり！ コイン'})[r.prize]}の3枚が揃った！ ほかのカードも全部公開！`;$('cooking-next').classList.remove('hidden');}
-  else if(r.completedStep){$('cooking-stage-result').textContent=r.success?'成功！':'ちょっと失敗。でも完成はできるよ。';$('cooking-next').classList.remove('hidden');}
+  if(r.prize){fullDeck=r.allCards;$('cooking-card').classList.remove('hidden');$('cooking-tap').classList.add('hidden');$('cooking-hold').classList.add('hidden');renderCards();$('cooking-stage-result').textContent=`${({chest:'大当たり！ 宝箱',gem:'中当たり！ 宝石',coin:'小当たり！ コイン'})[r.prize]}の3枚が揃った！ ほかのカードも全部公開！`;if(session.game==='finish')scheduleCompletion(1300);else $('cooking-next').classList.remove('hidden');}
+  else if(r.completedStep){$('cooking-stage-result').textContent=r.success?'成功！':'ちょっと失敗。でも完成はできるよ。';if(session.game==='finish')scheduleCompletion(350);else $('cooking-next').classList.remove('hidden');}
   else if(session.game==='card')renderCards();
  }catch(e){notice(e.message);if(session?.game==='tap')renderStage();}finally{busy=false;}
+};
+// 最終工程終了後は専用の完成操作ボタンを挟まずに、既存のfinish APIで一度だけ保存する。
+const scheduleCompletion=delay=>{
+ clearTimeout(completionTimer);
+ completionTimer=setTimeout(()=>{completionTimer=0;finalizeCooking();},delay);
+};
+const finalizeCooking=async()=>{
+ if(autoCompleting||!session||session.game!=='finish')return;
+ autoCompleting=true;clearTimeout(completionTimer);completionTimer=0;cancelAnimationFrame(anim);
+ const finishedSessionId=session.id;
+ try{
+  const r=await api('finish',{sessionId:finishedSessionId});
+  session=null;
+  await refresh();
+  $('cooking-play').classList.add('hidden');$('cooking-library').classList.add('hidden');
+  $('cooking-completion-name').textContent=r.name;
+  $('cooking-completion-quantity').textContent=`× ${r.quantity} 個`;
+  const photo=$('cooking-completion-image');photo.hidden=!r.image;
+  if(r.image){photo.src=r.image;photo.onerror=()=>{photo.hidden=true;};}
+  $('cooking-completion').classList.remove('hidden');
+  notice(r.moonUnlocked?'🌙 月の扉が解放された！':'');
+  requestAnimationFrame(()=>$('cooking-completion-title').scrollIntoView({block:'start',behavior:'instant'}));
+ }catch(e){
+  notice('完成処理を確認できませんでした：'+e.message);
+  // 途中で通信が切れたときも保存済みか確認可能。連打で二重送信しない。
+  try{await refresh();}catch{}
+ }finally{autoCompleting=false;}
 };
 const feed=async(npc,recipe)=>{
  const r=state.recipes.find(x=>x.id===recipe);if(busy||!confirm(`${npc==='paper'?'黄色い獣':'赤色の獣'}に「${r?.name}」を食べさせますか？`))return;
@@ -95,7 +137,7 @@ const feed=async(npc,recipe)=>{
 const open=async()=>{if(await bridge.checkEvents())return;cancelAnimationFrame(anim);bridge.show('workshop');};
 const openKitchen=async()=>{
  if(await bridge.checkEvents())return;
- bridge.show('cooking');notice('');
+ bridge.show('cooking');$('cooking-completion').classList.add('hidden');notice('');
  try{
   await refresh();
   if(!state.visited){$('cooking-first').classList.remove('hidden');await api('visit',{});state.visited=true;}
@@ -111,8 +153,8 @@ hold.addEventListener('pointerdown',async e=>{if(busy||holdBusy)return;e.prevent
 const doRelease=async()=>{if(!holdBusy)return;holdBusy=false;holdWantRelease=false;await step({action:'hold-end'});};
 hold.addEventListener('pointerup',e=>{e.preventDefault();holdWantRelease=true;if(!holdStartPending&&!busy)doRelease();});hold.addEventListener('pointercancel',()=>{holdWantRelease=true;if(!holdStartPending&&!busy)doRelease();});
 $('cooking-next').onclick=()=>{fullDeck=null;renderStage();};
-$('cooking-finish-button').onclick=async()=>{if(busy||!session)return;busy=true;try{const r=await api('finish',{sessionId:session.id});await refresh();notice(`「${r.name}」を${r.quantity}個作った！${r.moonUnlocked?' 🌙 月の扉が解放された！':''}`);}catch(e){notice(e.message);}finally{busy=false;}};
-$('cooking-cancel').onclick=async()=>{if(busy||!session||!confirm('調理を中断する？ 素材は消費されないよ。'))return;busy=true;try{await api('cancel',{sessionId:session.id});await refresh();notice('調理を中断したよ。');}catch(e){notice(e.message);}finally{busy=false;}};
+$('cooking-completion-back').onclick=()=>{$('cooking-completion').classList.add('hidden');$('cooking-library').classList.remove('hidden');$('cooking-library').scrollIntoView({block:'start',behavior:'instant'});};
+$('cooking-cancel').onclick=async()=>{if(busy||autoCompleting||!session||session.game==='finish'||!confirm('調理を中断する？ 素材は消費されないよ。'))return;busy=true;try{await api('cancel',{sessionId:session.id});await refresh();notice('調理を中断したよ。');}catch(e){notice(e.message);}finally{busy=false;}};
 $('workshop-enter-cooking').addEventListener('click',openKitchen);
 $('workshop-back-hall').addEventListener('click',()=>{cancelAnimationFrame(anim);bridge.openHall();});
 $('cooking-back').onclick=()=>{cancelAnimationFrame(anim);bridge.show('workshop');};
