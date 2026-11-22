@@ -2,15 +2,40 @@
 (()=>{'use strict';
 const bridge=window.KAGARISO_COOKING_BRIDGE;if(!bridge)return;
 const $=id=>document.getElementById(id),safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let selectedRecipeId=null;
 let state=null,session=null,busy=false,fullDeck=null,holdBusy=false,holdStartPending=false,holdWantRelease=false,clockOffset=0,anim=0;
 const api=async(p,body)=>{const a=Date.now(),r=await bridge.api('/cooking/'+p,body?'POST':'GET',body),b=Date.now();if(r.session?.serverNow)clockOffset=r.session.serverNow-(a+b)/2;return r;};
-const notice=s=>{$('cooking-message').textContent=s||'';};
+const notice=s=>{const el=$('cooking-message');el.textContent=s||'';el.hidden=!s;};
 const img=r=>`<img loading="lazy" src="${safe(r.image)}" alt="" onerror="this.style.display='none'">`;
+// レシピは4列のアイコン一覧で表示。選択した料理の詳しい情報は別欄へ出す。
+const renderRecipeDetail=()=>{
+ const el=$('cooking-recipe-detail');
+ const recipe=state?.recipes?.find(r=>r.id===selectedRecipeId);
+ if(!recipe){el.hidden=true;el.replaceChildren();return;}
+ const locked=!recipe.unlocked;
+ const ingredients=Array.isArray(recipe.ingredients)?recipe.ingredients:[];
+ const lacks=ingredients.some(m=>Number(m.owned)<Number(m.quantity));
+ el.hidden=false;
+ el.innerHTML=`<div class="cooking-detail-head"><div class="cooking-detail-image">${recipe.unlocked?img(recipe):'<span aria-hidden="true">🔒</span>'}</div><div><h3>${safe(recipe.name)}</h3><p class="muted tiny">${safe(recipe.category)} ／ ${recipe.steps.length}工程 ／ ${recipe.completed?'完成済み':'未完成'} ／ 調理 ${recipe.times}回</p></div></div>
+ <p class="muted cooking-detail-ingredients">${locked?'解放条件：'+safe(recipe.condition):'必要素材：'+(ingredients.map(m=>`${safe(m.name)} ${m.owned}/${m.quantity}`).join('・')||'なし')}</p>
+ <button type="button" class="primary cooking-detail-start" data-cook-detail="${safe(recipe.id)}" ${locked||lacks||!!state.active?'disabled':''}>料理する</button>`;
+ const button=el.querySelector('[data-cook-detail]');
+ if(button&&!button.disabled)button.addEventListener('click',()=>start(recipe.id));
+};
 const paintList=()=>{
  const category=$('cooking-filter').value,search=$('cooking-search').value.trim().toLowerCase();
- $('cooking-progress').textContent=`レシピ：${state.completedCount} / ${state.total} 種類`; $('cooking-moon').textContent=state.moonUnlocked?'🌙 月の扉が解放された！':'';
- $('cooking-recipes').innerHTML=state.recipes.filter(r=>(category==='all'||r.category===category)&&r.name.toLowerCase().includes(search)).map(r=>`<article class="cooking-recipe"><div class="cooking-image">${r.unlocked?img(r):'🔒'}</div><div class="cooking-info"><strong>${safe(r.name)}</strong><div class="muted tiny">${safe(r.category)} ／ ${r.steps.length}工程 ／ ${r.completed?'完成済み':'未完成'} ／ 調理 ${r.times}回</div><p class="muted tiny">${r.unlocked?r.ingredients.map(m=>`${safe(m.name)} ${m.owned}/${m.quantity}`).join('・'):'解放条件：'+safe(r.condition)}</p></div><button class="secondary small" data-cook="${r.id}" ${!r.unlocked||r.ingredients.some(m=>m.owned<m.quantity)||!!state.active?'disabled':''}>料理する</button></article>`).join('');
- $('cooking-recipes').querySelectorAll('[data-cook]:not([disabled])').forEach(b=>b.onclick=()=>start(b.dataset.cook));
+ $('cooking-progress').textContent=`レシピ：${state.completedCount} / ${state.total} 種類`;
+ $('cooking-moon').textContent=state.moonUnlocked?'🌙 月の扉が解放された！':'';
+ const recipes=state.recipes.filter(r=>(category==='all'||r.category===category)&&r.name.toLowerCase().includes(search));
+ if(!recipes.some(r=>r.id===selectedRecipeId))selectedRecipeId=null;
+ $('cooking-recipes').innerHTML=recipes.map(r=>`<button type="button" class="cooking-recipe-tile${r.id===selectedRecipeId?' is-selected':''}" data-recipe-id="${safe(r.id)}" aria-pressed="${r.id===selectedRecipeId?'true':'false'}"><span class="cooking-recipe-name">${safe(r.name)}</span><span class="cooking-recipe-thumb">${r.unlocked?img(r):'<span class="cooking-lock" aria-hidden="true">🔒</span>'}</span>${r.completed?'<span class="cooking-recipe-done">完成済み</span>':''}</button>`).join('')||'<p class="muted cooking-no-recipes">該当するレシピはありません。</p>';
+ $('cooking-recipes').querySelectorAll('[data-recipe-id]').forEach(button=>button.addEventListener('click',()=>{
+  selectedRecipeId=button.dataset.recipeId;
+  $('cooking-recipes').querySelectorAll('[data-recipe-id]').forEach(tile=>{const selected=tile.dataset.recipeId===selectedRecipeId;tile.classList.toggle('is-selected',selected);tile.setAttribute('aria-pressed',String(selected));});
+  renderRecipeDetail();
+  $('cooking-recipe-detail').scrollIntoView({block:'nearest',behavior:'smooth'});
+ }));
+ renderRecipeDetail();
  const byId=Object.fromEntries(state.recipes.map(r=>[r.id,r]));
  $('cooking-stock').innerHTML=state.owned.length?state.owned.map(x=>{const r=byId[x.id];return r?`<article class="cooking-food">${img(r)}<div><strong>${safe(r.name)} ×${x.quantity}</strong><div class="muted tiny">回復 ${r.restore} ／ 腹持ち ${r.satietyMinutes}分</div></div><div><button class="secondary small" data-eat="paper:${r.id}">黄色い獣へ</button> <button class="secondary small" data-eat="pyoro:${r.id}">赤色の獣へ</button></div></article>`:'';}).join(''):'<p class="muted">作った料理はまだありません。</p>';
  $('cooking-stock').querySelectorAll('[data-eat]').forEach(b=>b.onclick=()=>feed(...b.dataset.eat.split(':')));

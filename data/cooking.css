@@ -34,3 +34,31 @@
 #cooking-page .cooking-progress-plain{margin:16px 0 20px;padding:0;border:0;background:none;box-shadow:none;color:inherit;font-size:1rem}
 #cooking-page #cooking-moon:empty{display:none}
 @media(max-width:480px){#workshop-page .workshop-choice{gap:9px;padding:10px}#workshop-page .workshop-choice img{width:88px;flex-basis:88px}#workshop-page .workshop-choice-text strong{font-size:1rem}}
+
+
+/* v0.18.5.5: レシピは常に4列。タイル選択で詳細を別枠に表示 */
+#cooking-page .cooking-recipe-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0 20px}
+#cooking-page .cooking-recipe-tile{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:7px;min-width:0;width:100%;padding:9px 6px 11px;border:1px solid rgba(174,184,212,.27);border-radius:12px;background:rgba(37,45,67,.65);color:inherit;text-align:center;cursor:pointer;line-height:1.35;box-sizing:border-box}
+#cooking-page .cooking-recipe-tile:hover,#cooking-page .cooking-recipe-tile:focus-visible,#cooking-page .cooking-recipe-tile.is-selected{border-color:#e7be89;background:rgba(65,62,80,.75)}
+#cooking-page .cooking-recipe-thumb{display:grid;place-items:center;width:100%;aspect-ratio:1;overflow:hidden;border-radius:9px;background:#1d2c40;position:relative}
+#cooking-page .cooking-recipe-thumb img{width:100%;height:100%;object-fit:contain}
+#cooking-page .cooking-lock{font-size:clamp(22px,4vw,35px);line-height:1}
+#cooking-page .cooking-recipe-name{font-size:clamp(10px,1.8vw,13px);font-weight:700;overflow-wrap:anywhere;min-height:2.7em;display:flex;align-items:center;justify-content:center}
+#cooking-page .cooking-recipe-done{font-size:10px;color:#f1cf9f}
+#cooking-page .cooking-no-recipes{grid-column:1/-1}
+#cooking-page .cooking-recipe-detail{border:1px solid rgba(174,184,212,.35);background:rgba(35,39,60,.8);border-radius:13px;padding:16px;margin:12px 0 24px}
+#cooking-page .cooking-recipe-detail[hidden],#cooking-page .cooking-notice[hidden]{display:none!important}
+#cooking-page .cooking-detail-head{display:flex;align-items:center;gap:14px}
+#cooking-page .cooking-detail-head h3{margin:0 0 5px}
+#cooking-page .cooking-detail-head p{margin:0}
+#cooking-page .cooking-detail-image{width:76px;height:76px;flex:0 0 76px;display:grid;place-items:center;border-radius:9px;background:#1d2c40;font-size:32px;overflow:hidden}
+#cooking-page .cooking-detail-image img{width:100%;height:100%;object-fit:contain}
+#cooking-page .cooking-detail-ingredients{margin:14px 0;overflow-wrap:anywhere}
+#cooking-page .cooking-detail-start{width:100%}
+#cooking-page .cooking-notice:not([hidden]){margin:14px 0;padding:12px 14px;border-left:3px solid #e3b984;background:#1b2034;border-radius:7px}
+@media(max-width:470px){#cooking-page .cooking-recipe-grid{gap:7px}#cooking-page .cooking-recipe-tile{padding:6px 4px 8px;gap:5px}#cooking-page .cooking-recipe-name{font-size:10px}}
+
+/* v0.18.5.6: 料理名を各画像の上に揃える。 */
+#cooking-page .cooking-recipe-name{order:0;width:100%;min-height:2.7em}
+#cooking-page .cooking-recipe-thumb{order:1}
+#cooking-page .cooking-recipe-done{order:2}
