@@ -765,7 +765,8 @@ for(const [id,action] of [['#pyoro-rest-btn','rest'],['#pyoro-wake-btn','wake']]
  const el=$('#pyoro-life-action-result');el.textContent=result.message;el.classList.remove('hidden');
 });
 let pyoroBusy=false;
-const paintPyoroTalkUsage=u=>{$('#pyoro-ai-remaining').textContent=`自由に話しかける（${u.used}/${u.limit}回）`;$('#pyoro-ai-usage').textContent='';};
+// v0.18.5.1: 表示を見出しに一本化。削除された #pyoro-ai-usage にはアクセスしない。
+const paintPyoroTalkUsage=u=>{const title=$('#pyoro-ai-remaining');if(title)title.textContent=`自由に話しかける（${u.used}/${u.limit}回）`;};
 const pyoroReply=r=>{ $('#pyoro-talk-result').textContent=r.response+(r.affinityChange?`（親密度 +${r.affinityChange}pt）`:'');paintPyoroProfile(r.npc);paintPyoro('#pyoro-conversation-image',r.npc,pyoroReplyExpression(r.response));$('#pyoro-conversation-scene').textContent=pyoroStateScene(r.npc);paintPyoroTalkUsage(r.usage);};
 const pyoroAction=async(path,body)=>{if(pyoroBusy)return;pyoroBusy=true;try{const r=await api(path,'POST',body);pyoroReply(r);return r;}finally{pyoroBusy=false;}};
 const loadPyoroTalk=async()=>{const data=await api('/npcs/pyoro/conversation/options');paintPyoroTalkUsage(data.usage);const list=$('#pyoro-talk-options');list.replaceChildren();for(const t of data.choices){const b=document.createElement('button');b.className='secondary';b.textContent=t.label;b.onclick=handler(async()=>{const r=await pyoroAction('/npcs/pyoro/conversation',{choice:t.id});if(r)await loadPyoroTalk();});list.append(b);}};
