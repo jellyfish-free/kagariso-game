@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="data/cave-statistics.css?v=0.15.11">
   <link rel="stylesheet" href="data/forest.css?v=0.16.4.3">
   <link rel="stylesheet" href="data/sea.css?v=0.17.1.5">
-  <link rel="stylesheet" href="data/cooking.css?v=0.18.5.8">
+  <link rel="stylesheet" href="data/cooking.css?v=0.18.5.9">
   <link rel="stylesheet" href="data/cave-stills.css?v=0.16.4.4">
   <script src="config.js" defer></script>
   <script src="data/materials.js" defer></script>
@@ -66,7 +66,7 @@
 </style>
   <script src="data/sea-items.js?v=0.17.0.3" defer></script>
   <script src="script.js?v=0.18.5.8" defer></script>
-  <script src="data/cooking.js?v=0.18.5.8" defer></script>
+  <script src="data/cooking.js?v=0.18.5.9" defer></script>
   <script src="data/sea-game.js?v=0.17.1.5" defer></script>
 <style>
  .admin-npc-selector{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:14px 0 18px;}
@@ -223,15 +223,23 @@
       
     </div>
     <div id="cooking-play" class="hidden">
-      <h2 id="cooking-playing-name"></h2><h3 id="cooking-stage-title"></h3>
-      <div id="cooking-tap" class="hidden"><p class="muted">水色のゾーンを狙ってタップ。タップの早さで下ごしらえの出来が変わる。</p><div class="cooking-timing"><div class="target" id="cooking-target"></div><div class="marker" id="cooking-marker"></div></div><button id="cooking-tap-button" class="primary">タイミングよくタップ！</button></div>
+      <h2 id="cooking-playing-name" tabindex="-1"></h2><h3 id="cooking-stage-title"></h3>
+      <div id="cooking-tap" class="hidden"><p class="muted">水色のゾーンを狙ってタップ。3往復の間に合わせよう。</p><p id="cooking-laps" class="muted tiny" aria-live="off">残り3往復</p><div class="cooking-timing"><div class="target" id="cooking-target"></div><div class="marker" id="cooking-marker"></div></div><button id="cooking-tap-button" class="primary">タイミングよくタップ！</button></div>
       <div id="cooking-hold" class="hidden"><p class="muted">指で長押しして、よいタイミングで離そう。</p><button id="cooking-hold-button" class="primary cooking-hold-button">ここを長押し</button></div>
       <div id="cooking-card" class="hidden"><p class="muted">宝箱🎁・宝石💎・コイン🪙 が4枚ずつ。どれか3枚が揃うと結果が決まり、残りのカードもすべて開く。</p><div id="cooking-card-grid" class="cooking-card-grid"></div></div>
-      <div id="cooking-finish" class="hidden"><button id="cooking-finish-button" class="primary">料理を完成させる</button></div>
+      <div id="cooking-finish" class="hidden"><p class="muted">調理を保存しています……</p></div>
       <p id="cooking-stage-result" class="scene" aria-live="polite"></p>
       <div class="actions"><button id="cooking-next" class="primary hidden">次の工程へ →</button><button id="cooking-cancel" class="secondary">中断する</button></div>
     </div>
-    <details open><summary>完成した料理（持ち物）</summary><div id="cooking-stock"></div></details>
+    <section id="cooking-completion" class="hidden cooking-completion" aria-live="polite">
+      <h2 tabindex="-1" id="cooking-completion-title">料理が完成した！</h2>
+      <img id="cooking-completion-image" class="cooking-completion-image" alt="" hidden>
+      <p id="cooking-completion-name" class="cooking-completion-name"></p>
+      <p id="cooking-completion-quantity" class="cooking-completion-quantity"></p>
+      <p class="muted">完成した料理は持ち物に入りました。</p>
+      <button id="cooking-completion-back" class="primary">レシピ一覧へ戻る</button>
+    </section>
+    <div id="cooking-stock" class="hidden" aria-hidden="true"></div>
     <details open><summary>獣たちからの料理のおねだり</summary><p class="muted tiny">既存のお願いと合わせて、1日3件まで。完成した料理を1個渡すと達成できます。</p><button id="cooking-orders-refresh" class="secondary small">お願いを確認する</button><div id="cooking-orders"></div></details>
   </div>
 </section>
@@ -807,7 +815,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.5.8</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.5.9</span></footer>
   </div>
 </body>
 </html>
