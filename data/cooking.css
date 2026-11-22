@@ -92,3 +92,9 @@
 #cooking-page .cooking-completion-name{font-size:1.25rem;font-weight:700;margin:12px 0 2px}
 #cooking-page .cooking-completion-quantity{font-size:1.65rem;font-weight:700;margin:2px 0 18px;color:#eac48c}
 #cooking-page .cooking-completion #cooking-completion-back{width:100%;margin-top:16px}
+
+/* v0.18.5.10: 完成後の2ボタンと、タップ工程の冗長な見出しを整理 */
+#cooking-page .cooking-completion-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:18px}
+#cooking-page .cooking-completion-actions button{width:100%;margin:0;min-width:0}
+#cooking-page #cooking-stage-title:empty{display:none}
+@media(max-width:350px){#cooking-page .cooking-completion-actions{gap:6px}#cooking-page .cooking-completion-actions button{padding-inline:5px;font-size:.8rem}}

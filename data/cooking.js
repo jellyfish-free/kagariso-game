@@ -2,7 +2,7 @@
 (()=>{'use strict';
 const bridge=window.KAGARISO_COOKING_BRIDGE;if(!bridge)return;
 const $=id=>document.getElementById(id),safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let selectedRecipeId=null;
+let selectedRecipeId=null,lastCompletedRecipeId=null;
 let state=null,session=null,busy=false,fullDeck=null,holdBusy=false,holdStartPending=false,holdWantRelease=false,clockOffset=0,anim=0,autoCompleting=false,completionTimer=0;
 const TAP_ONE_WAY_MS=2500,TAP_TOTAL_MS=TAP_ONE_WAY_MS*2*3;
 const jumpToGame=()=>requestAnimationFrame(()=>{const el=$('cooking-playing-name');if(el&&!$('cooking-play').classList.contains('hidden')){el.scrollIntoView({block:'start',behavior:'instant'});}});
@@ -57,7 +57,7 @@ const renderStage=()=>{
  $('cooking-completion').classList.add('hidden');
  $('cooking-play').classList.remove('hidden');$('cooking-library').classList.add('hidden');
  $('cooking-playing-name').textContent=state.recipes.find(r=>r.id===session.recipeId)?.name||'料理';
- $('cooking-stage-title').textContent=`工程 ${Math.min(session.stage+1,session.steps.length)} / ${session.steps.length}：${gameTitles[session.game]}`;
+ $('cooking-stage-title').textContent=session.game==='tap'?'':`工程 ${Math.min(session.stage+1,session.steps.length)} / ${session.steps.length}：${gameTitles[session.game]}`;
  for(const n of ['tap','hold','card','finish'])$('cooking-'+n).classList.toggle('hidden',session.game!==n);
  $('cooking-next').classList.add('hidden');$('cooking-stage-result').textContent='';
  if(session.game==='card')renderCards();
@@ -77,21 +77,7 @@ const renderStage=()=>{
   };paint();
  }
 };
-const loadOrders=async()=>{
- try{
-  const data=await api('orders');
-  $('cooking-orders').innerHTML=['paper','pyoro'].map(npc=>{
-   const d=data[npc],name=npc==='paper'?'黄色い獣':'赤色の獣';
-   return `<section class="cooking-order-npc"><h3>${name}のお願い</h3><p class="muted tiny">今日の受注 ${d.acceptedToday} / ${d.dailyLimit} 件</p>
-     ${d.active.map(x=>`<div class="cooking-order"><strong>${safe(x.name)}を食べたい！</strong><div class="actions"><button class="primary small" data-order-done="${x.id}">料理を渡す</button><button class="secondary small" data-order-cancel="${x.id}">取り消す</button></div></div>`).join('')||'<p class="muted tiny">受注中の料理はありません。</p>'}
-     ${d.canAccept?d.offers.map(x=>`<div class="cooking-order"><span>${safe(x.name)}</span> <button class="secondary small" data-order-accept="${npc}:${x.recipeId}">引き受ける</button></div>`).join(''):'<p class="muted tiny">今日の受注上限か同時受注上限に達しています。</p>'}</section>`;
-  }).join('');
-  $('cooking-orders').querySelectorAll('[data-order-accept]').forEach(b=>b.onclick=async()=>{const [npcId,recipeId]=b.dataset.orderAccept.split(':');try{const r=await api('orders/accept',{npcId,recipeId});notice(r.message);await refresh();}catch(e){notice(e.message);}});
-  $('cooking-orders').querySelectorAll('[data-order-done]').forEach(b=>b.onclick=async()=>{try{const r=await api('orders/resolve',{orderId:b.dataset.orderDone,action:'complete'});notice(r.message);await refresh();}catch(e){notice(e.message);}});
-  $('cooking-orders').querySelectorAll('[data-order-cancel]').forEach(b=>b.onclick=async()=>{if(!confirm('お願いを取り消しますか？'))return;try{const r=await api('orders/resolve',{orderId:b.dataset.orderCancel,action:'cancel'});notice(r.message);await refresh();}catch(e){notice(e.message);}});
- }catch(e){$('cooking-orders').textContent=e.message;}
-};
-const refresh=async()=>{state=await api('status');session=state.active;paintList();await loadOrders();if(session){fullDeck=null;renderStage();jumpToGame();}else{$('cooking-play').classList.add('hidden');$('cooking-library').classList.remove('hidden');}};
+const refresh=async()=>{state=await api('status');session=state.active;paintList();if(session){fullDeck=null;renderStage();jumpToGame();}else{$('cooking-play').classList.add('hidden');$('cooking-library').classList.remove('hidden');}};
 const start=async recipeId=>{if(busy)return;busy=true;try{const r=await api('start',{recipeId});session=r.session;fullDeck=null;bridge.show('cooking');renderStage();jumpToGame();}catch(e){notice(e.message);if(bridge.show)bridge.show('cooking');}finally{busy=false;}};
 const step=async action=>{
  if(busy||!session)return;busy=true;cancelAnimationFrame(anim);
@@ -113,6 +99,7 @@ const finalizeCooking=async()=>{
  const finishedSessionId=session.id;
  try{
   const r=await api('finish',{sessionId:finishedSessionId});
+  lastCompletedRecipeId=state?.active?.recipeId||session.recipeId;
   session=null;
   await refresh();
   $('cooking-play').classList.add('hidden');$('cooking-library').classList.add('hidden');
@@ -145,7 +132,6 @@ const openKitchen=async()=>{
 };
 $('cooking-recipe-back').addEventListener('click',()=>bridge.show('cooking'));
 $('cooking-recipe-hall-back').addEventListener('click',()=>bridge.openHall());
-$('cooking-orders-refresh').addEventListener('click',loadOrders);
 $('cooking-filter').addEventListener('change',()=>{if(state)paintList();});$('cooking-search').addEventListener('input',()=>{if(state)paintList();});
 $('cooking-tap-button').onclick=()=>step({action:'tap'});
 const hold=$('cooking-hold-button');
@@ -154,6 +140,7 @@ const doRelease=async()=>{if(!holdBusy)return;holdBusy=false;holdWantRelease=fal
 hold.addEventListener('pointerup',e=>{e.preventDefault();holdWantRelease=true;if(!holdStartPending&&!busy)doRelease();});hold.addEventListener('pointercancel',()=>{holdWantRelease=true;if(!holdStartPending&&!busy)doRelease();});
 $('cooking-next').onclick=()=>{fullDeck=null;renderStage();};
 $('cooking-completion-back').onclick=()=>{$('cooking-completion').classList.add('hidden');$('cooking-library').classList.remove('hidden');$('cooking-library').scrollIntoView({block:'start',behavior:'instant'});};
+$('cooking-completion-again').onclick=async()=>{if(busy||autoCompleting||!lastCompletedRecipeId)return;const recipe=state?.recipes?.find(r=>r.id===lastCompletedRecipeId);if(!recipe)return;const missing=missingIngredients(recipe);if(missing.length){notice(missingLabel(recipe)+' 不足');$('cooking-completion').classList.add('hidden');selectedRecipeId=recipe.id;renderRecipeDetail();bridge.show('cooking-recipe');return;}await start(recipe.id);};
 $('cooking-cancel').onclick=async()=>{if(busy||autoCompleting||!session||session.game==='finish'||!confirm('調理を中断する？ 素材は消費されないよ。'))return;busy=true;try{await api('cancel',{sessionId:session.id});await refresh();notice('調理を中断したよ。');}catch(e){notice(e.message);}finally{busy=false;}};
 $('workshop-enter-cooking').addEventListener('click',openKitchen);
 $('workshop-back-hall').addEventListener('click',()=>{cancelAnimationFrame(anim);bridge.openHall();});
