@@ -1,0 +1,17 @@
+/* v0.18.0 cooking */
+#cooking-page .cooking-recipe{display:flex;gap:12px;align-items:center;padding:12px;margin:9px 0;background:#27334a88;border:1px solid #8aa6b144;border-radius:14px}
+#cooking-page .cooking-image{display:grid;place-items:center;flex:0 0 74px;width:74px;height:74px;background:#203249;border-radius:10px;font-size:30px;overflow:hidden}
+#cooking-page .cooking-image img{max-width:100%;max-height:100%;object-fit:contain}
+#cooking-page .cooking-info{flex:1;min-width:0}#cooking-page .cooking-info p{margin:5px 0}
+#cooking-page .cooking-food{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #778ca644;flex-wrap:wrap}
+#cooking-page .cooking-food img{width:60px;height:60px;object-fit:contain}#cooking-page .cooking-food div:last-child{margin-left:auto}
+#cooking-page .cooking-toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}#cooking-page .cooking-toolbar>*{flex:1;min-width:140px}
+#cooking-page .cooking-timing{position:relative;height:26px;background:#2c425e;border-radius:20px;margin:28px 0}
+#cooking-page .cooking-timing .target{position:absolute;height:100%;width:18%;background:#72dcd8aa;transform:translateX(-50%);border-radius:20px}
+#cooking-page .cooking-timing .marker{position:absolute;top:-9px;height:43px;width:5px;background:#f5d07b;border-radius:4px}
+#cooking-page .cooking-card-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:470px;margin:14px auto}
+#cooking-page .cooking-card{aspect-ratio:1;min-width:0;border:1px solid #8aa6c2;border-radius:12px;background:#2b3a52;font-size:clamp(20px,5vw,42px)}
+#cooking-page .cooking-card:disabled{opacity:1;cursor:default}
+#cooking-page .cooking-hold-button{min-height:100px;touch-action:none;user-select:none;-webkit-user-select:none}
+#cooking-page #cooking-stage-result{min-height:2em}
+@media(max-width:600px){#cooking-page .cooking-recipe{flex-wrap:wrap}#cooking-page .cooking-recipe>button{margin-left:auto}}
