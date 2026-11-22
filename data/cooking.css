@@ -74,3 +74,11 @@
 #cooking-recipe-page .cooking-detail-ingredients{margin:18px 0;line-height:1.8;overflow-wrap:anywhere}
 #cooking-recipe-page .cooking-detail-start{width:100%}
 @media(max-width:470px){#cooking-recipe-page .cooking-detail-image{width:80px;height:80px;flex-basis:80px}#cooking-page .cooking-recipe-condition{font-size:9px}}
+
+/* v0.18.5.8: 解放済みでも素材不足ならレシピのタイルを暗くする。詳細への移動は可能。 */
+#cooking-page .cooking-recipe-tile.is-insufficient{background:rgba(18,22,34,.84);border-color:rgba(125,135,161,.20);color:#b9bac6}
+#cooking-page .cooking-recipe-tile.is-insufficient .cooking-recipe-thumb{filter:brightness(.52) saturate(.65)}
+#cooking-page .cooking-recipe-tile.is-insufficient:hover,#cooking-page .cooking-recipe-tile.is-insufficient:focus-visible{border-color:#e7be89;background:rgba(35,35,51,.9)}
+#cooking-page .cooking-recipe-shortage{order:2;width:100%;font-size:clamp(9px,1.55vw,11px);line-height:1.45;color:#efc3ae;overflow-wrap:anywhere;text-align:left}
+#cooking-recipe-page .cooking-detail-missing{margin:0 0 14px;color:#efc3ae;font-size:.9rem;font-weight:600;overflow-wrap:anywhere}
+@media(max-width:470px){#cooking-page .cooking-recipe-shortage{font-size:9px}}

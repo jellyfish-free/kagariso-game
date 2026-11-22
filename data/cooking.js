@@ -7,6 +7,9 @@ let state=null,session=null,busy=false,fullDeck=null,holdBusy=false,holdStartPen
 const api=async(p,body)=>{const a=Date.now(),r=await bridge.api('/cooking/'+p,body?'POST':'GET',body),b=Date.now();if(r.session?.serverNow)clockOffset=r.session.serverNow-(a+b)/2;return r;};
 const notice=s=>{const el=$('cooking-message');el.textContent=s||'';el.hidden=!s;};
 const img=r=>`<img loading="lazy" src="${safe(r.image)}" alt="" onerror="this.style.display='none'">`;
+// v0.18.5.8: 使用する素材の不足数のみ計算。数量は必要数から所持数を引く。
+const missingIngredients=r=>(Array.isArray(r.ingredients)?r.ingredients:[]).map(m=>({name:String(m.name??''),quantity:Math.max(0,Number(m.quantity||0)-Number(m.owned||0))})).filter(m=>m.quantity>0);
+const missingLabel=r=>missingIngredients(r).map(m=>`${m.name}×${m.quantity}`).join(' ');
 // v0.18.5.7：レシピ詳細は専用ページで表示。調理の開始・保存処理は従来どおり。
 const renderRecipeDetail=()=>{
  const el=$('cooking-recipe-detail-content');
@@ -14,9 +17,11 @@ const renderRecipeDetail=()=>{
  if(!recipe){el.replaceChildren();return;}
  const locked=!recipe.unlocked;
  const ingredients=Array.isArray(recipe.ingredients)?recipe.ingredients:[];
- const lacks=ingredients.some(m=>Number(m.owned)<Number(m.quantity));
+ const missing=missingIngredients(recipe);
+ const lacks=missing.length>0;
  el.innerHTML=`<div class="cooking-detail-head"><div class="cooking-detail-image">${recipe.unlocked?img(recipe):'<span aria-hidden="true">🔒</span>'}</div><div><h3>${safe(recipe.name)}</h3><p class="muted tiny">${safe(recipe.category)} ／ ${recipe.steps.length}工程 ／ ${recipe.completed?'完成済み':'未完成'} ／ 調理 ${recipe.times}回</p></div></div>
  <p class="muted cooking-detail-ingredients">${locked?'解放条件：'+safe(recipe.condition):'必要素材：'+(ingredients.map(m=>`${safe(m.name)} ${m.owned}/${m.quantity}`).join('・')||'なし')}</p>
+ ${!locked&&lacks?`<p class="cooking-detail-missing">${safe(missingLabel(recipe))} 不足</p>`:''}
  <button type="button" class="primary cooking-detail-start" data-cook-detail="${safe(recipe.id)}" ${locked||lacks||!!state.active?'disabled':''}>料理する</button>`;
  const button=el.querySelector('[data-cook-detail]');
  if(button&&!button.disabled)button.addEventListener('click',()=>start(recipe.id));
@@ -27,7 +32,11 @@ const paintList=()=>{
  $('cooking-moon').textContent=state.moonUnlocked?'🌙 月の扉が解放された！':'';
  const recipes=state.recipes.filter(r=>(category==='all'||r.category===category)&&r.name.toLowerCase().includes(search));
  if(!recipes.some(r=>r.id===selectedRecipeId))selectedRecipeId=null;
- $('cooking-recipes').innerHTML=recipes.map(r=>`<button type="button" class="cooking-recipe-tile" data-recipe-id="${safe(r.id)}" aria-label="${safe(r.name)}の詳細を開く"><span class="cooking-recipe-name">${safe(r.name)}</span><span class="cooking-recipe-thumb">${r.unlocked?img(r):'<span class="cooking-lock" aria-hidden="true">🔒</span>'}</span>${!r.unlocked?`<span class="cooking-recipe-condition">解放条件：${safe(r.condition||'未確認')}</span>`:r.completed?'<span class="cooking-recipe-done">完成済み</span>':''}</button>`).join('')||'<p class="muted cooking-no-recipes">該当するレシピはありません。</p>';
+ $('cooking-recipes').innerHTML=recipes.map(r=>{
+  const missing=r.unlocked?missingLabel(r):'';
+  const insufficient=!!missing;
+  return `<button type="button" class="cooking-recipe-tile${insufficient?' is-insufficient':''}" data-recipe-id="${safe(r.id)}" aria-label="${safe(r.name)}${insufficient?'、'+missing+' 不足':''}の詳細を開く"><span class="cooking-recipe-name">${safe(r.name)}</span><span class="cooking-recipe-thumb">${r.unlocked?img(r):'<span class="cooking-lock" aria-hidden="true">🔒</span>'}</span>${!r.unlocked?`<span class="cooking-recipe-condition">解放条件：${safe(r.condition||'未確認')}</span>`:insufficient?`<span class="cooking-recipe-shortage">${safe(missing)} 不足</span>`:r.completed?'<span class="cooking-recipe-done">完成済み</span>':''}</button>`;
+ }).join('')||'<p class="muted cooking-no-recipes">該当するレシピはありません。</p>';
  $('cooking-recipes').querySelectorAll('[data-recipe-id]').forEach(button=>button.addEventListener('click',()=>{
   selectedRecipeId=button.dataset.recipeId;
   renderRecipeDetail();
