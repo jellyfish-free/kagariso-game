@@ -103,7 +103,8 @@ const renderStage=()=>{
  $('cooking-completion').classList.add('hidden');
  $('cooking-play').classList.remove('hidden');$('cooking-library').classList.add('hidden');
  $('cooking-playing-name').textContent=state.recipes.find(r=>r.id===session.recipeId)?.name||'料理';
- $('cooking-stage-title').textContent=session.game==='tap'?'':`工程 ${Math.min(session.stage+1,session.steps.length)} / ${session.steps.length}：${gameTitles[session.game]}`;
+ $('cooking-stage-title').classList.toggle('hidden',session.game==='tap'||session.game==='card');
+ $('cooking-stage-title').textContent=session.game==='tap'||session.game==='card'?'':`工程 ${Math.min(session.stage+1,session.steps.length)} / ${session.steps.length}：${gameTitles[session.game]}`;
  for(const n of ['tap','hold','card','finish'])$('cooking-'+n).classList.toggle('hidden',session.game!==n);
  $('cooking-stage-result').textContent='';
  if(session.game==='tap')$('cooking-stage-result').textContent=`${Number(session.tapCount||0)} / 3 回タップ　（成功 ${Number(session.tapHits||0)} 回）`;
@@ -151,7 +152,7 @@ const step=async action=>{
    fullDeck=r.allCards;
    $('cooking-card').classList.remove('hidden');$('cooking-tap').classList.add('hidden');$('cooking-hold').classList.add('hidden');
    renderCards();
-   $('cooking-stage-result').textContent=`${({chest:'大当たり！ 宝箱',gem:'中当たり！ 宝石',coin:'小当たり！ コイン'})[r.prize]}の3枚が揃った！ ほかのカードも全部公開！`;
+   $('cooking-stage-result').textContent=`${({chest:'大当たり！ 宝箱',gem:'中当たり！ 宝石',coin:'小当たり！ コイン'})[r.prize]}の3枚が揃った！`;
    if(session.game==='finish')scheduleCompletion(1300);else scheduleStageAdvance(1300,session);
   }else if(r.tapRecorded){
    renderStage();
