@@ -148,10 +148,11 @@ const positionHallCaveDoor=()=>{
   if(forestDoor){Object.assign(forestDoor.style,{left:`${offsetX+drawnWidth*0.15}px`,top:`${offsetY+drawnHeight*0.29}px`,width:`${drawnWidth*0.11}px`,height:`${drawnHeight*0.42}px`});forestDoor.classList.remove('hidden');}
   const seaDoor=$('#hall-sea-door');
   if(seaDoor){Object.assign(seaDoor.style,{left:`${offsetX+drawnWidth*0.747}px`,top:`${offsetY+drawnHeight*0.27}px`,width:`${drawnWidth*0.107}px`,height:`${drawnHeight*0.45}px`});seaDoor.classList.remove('hidden');}
-  // v0.18.4 赤い扉（解放後は工房）も画像の拡縮に追従。
+  // v0.18.5.3 工房の入口は左の赤い扉ではなく、正面中央のガラス両開き扉。
+  // 背景の自然サイズに対する比率で指定し、画面の拡縮にも追従する。
   const frontDoor=$('#hall-front-door');
   if(frontDoor){
-    const zone={x:0.308,y:0.297,width:0.080,height:0.42};
+    const zone={x:0.445,y:0.255,width:0.111,height:0.413};
     Object.assign(frontDoor.style,{left:`${offsetX+drawnWidth*zone.x}px`,top:`${offsetY+drawnHeight*zone.y}px`,width:`${drawnWidth*zone.width}px`,height:`${drawnHeight*zone.height}px`});
     frontDoor.classList.toggle('hidden',!frontCookingUnlocked);
   }
