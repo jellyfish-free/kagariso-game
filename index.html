@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="data/cave-statistics.css?v=0.15.11">
   <link rel="stylesheet" href="data/forest.css?v=0.16.4.3">
   <link rel="stylesheet" href="data/sea.css?v=0.17.1.5">
-  <link rel="stylesheet" href="data/cooking.css?v=0.18.5.9">
+  <link rel="stylesheet" href="data/cooking.css?v=0.18.5.10">
   <link rel="stylesheet" href="data/cave-stills.css?v=0.16.4.4">
   <script src="config.js" defer></script>
   <script src="data/materials.js" defer></script>
@@ -65,8 +65,8 @@
   }
 </style>
   <script src="data/sea-items.js?v=0.17.0.3" defer></script>
-  <script src="script.js?v=0.18.5.8" defer></script>
-  <script src="data/cooking.js?v=0.18.5.9" defer></script>
+  <script src="script.js?v=0.18.5.10" defer></script>
+  <script src="data/cooking.js?v=0.18.5.10" defer></script>
   <script src="data/sea-game.js?v=0.17.1.5" defer></script>
 <style>
  .admin-npc-selector{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:14px 0 18px;}
@@ -224,7 +224,7 @@
     </div>
     <div id="cooking-play" class="hidden">
       <h2 id="cooking-playing-name" tabindex="-1"></h2><h3 id="cooking-stage-title"></h3>
-      <div id="cooking-tap" class="hidden"><p class="muted">水色のゾーンを狙ってタップ。3往復の間に合わせよう。</p><p id="cooking-laps" class="muted tiny" aria-live="off">残り3往復</p><div class="cooking-timing"><div class="target" id="cooking-target"></div><div class="marker" id="cooking-marker"></div></div><button id="cooking-tap-button" class="primary">タイミングよくタップ！</button></div>
+      <div id="cooking-tap" class="hidden"><p id="cooking-laps" class="muted tiny" aria-live="off">残り3往復</p><div class="cooking-timing"><div class="target" id="cooking-target"></div><div class="marker" id="cooking-marker"></div></div><button id="cooking-tap-button" class="primary">タイミングよくタップ！</button></div>
       <div id="cooking-hold" class="hidden"><p class="muted">指で長押しして、よいタイミングで離そう。</p><button id="cooking-hold-button" class="primary cooking-hold-button">ここを長押し</button></div>
       <div id="cooking-card" class="hidden"><p class="muted">宝箱🎁・宝石💎・コイン🪙 が4枚ずつ。どれか3枚が揃うと結果が決まり、残りのカードもすべて開く。</p><div id="cooking-card-grid" class="cooking-card-grid"></div></div>
       <div id="cooking-finish" class="hidden"><p class="muted">調理を保存しています……</p></div>
@@ -237,10 +237,9 @@
       <p id="cooking-completion-name" class="cooking-completion-name"></p>
       <p id="cooking-completion-quantity" class="cooking-completion-quantity"></p>
       <p class="muted">完成した料理は持ち物に入りました。</p>
-      <button id="cooking-completion-back" class="primary">レシピ一覧へ戻る</button>
+      <div class="cooking-completion-actions"><button id="cooking-completion-again" class="primary" type="button">もう一度作る</button><button id="cooking-completion-back" class="secondary" type="button">レシピ一覧</button></div>
     </section>
     <div id="cooking-stock" class="hidden" aria-hidden="true"></div>
-    <details open><summary>獣たちからの料理のおねだり</summary><p class="muted tiny">既存のお願いと合わせて、1日3件まで。完成した料理を1個渡すと達成できます。</p><button id="cooking-orders-refresh" class="secondary small">お願いを確認する</button><div id="cooking-orders"></div></details>
   </div>
 </section>
 <section id="cooking-recipe-page" class="page hidden narrow">
@@ -388,7 +387,7 @@
     </section>
     <div class="section-top compact"><h2>赤色の獣からのお願い</h2><p class="muted tiny">住人ごとのお願いです。素材を集めたら本人に報告しよう。</p></div>
     <button id="pyoro-requests-open" type="button" class="secondary">お願いを見る</button>
-    <button id="pyoro-open-kitchen" class="secondary small hidden" type="button">手料理をあげる・料理のお願いを見る</button>
+    <button id="pyoro-open-kitchen" class="secondary small hidden" type="button">手料理をあげる</button>
     <div class="section-top compact"><h2>日記</h2><p class="muted tiny">赤色の獣が毎日の出来事を書き残しています。</p></div>
     <button id="pyoro-diary-open" type="button" class="secondary">赤色の獣の日記を読む</button>
     <div class="section-top compact"><h2>受けとったプレゼント</h2><p class="muted tiny">お願いのお礼は完成すると通信箱に届くよ。</p></div>
@@ -436,9 +435,9 @@
     <p class="muted">同時に3件まで。素材は少しずつ預けられます。途中で断れば、預けた素材はすべて返却されるよ。</p>
     <div id="pyoro-request-section">
       <p id="pyoro-request-status" class="request-daily-status"></p><p id="pyoro-request-message" class="notice hidden" role="status" aria-live="polite"></p>
-      <h2>引き受けたお願い</h2><div id="pyoro-request-active" class="choice-list"></div>
-      <h2>今日のお願い・普段のお願い</h2><div id="pyoro-request-offers" class="choice-list"></div>
-      <details><summary>終わったお願いの履歴</summary><div id="pyoro-request-history"></div></details>
+      <h2>引き受けたお願い</h2><div id="pyoro-request-active" class="choice-list"></div><div id="pyoro-cooking-active" class="choice-list"></div>
+      <h2>今日のお願い・普段のお願い</h2><div id="pyoro-request-offers" class="choice-list"></div><div id="pyoro-cooking-offers" class="choice-list"></div>
+      <details><summary>終わったお願いの履歴</summary><div id="pyoro-request-history"></div><div id="pyoro-cooking-history"></div></details>
     </div>
   </div>
 </section>
@@ -549,7 +548,7 @@
     <button id="pyoro-conversation-close" type="button" class="secondary">お話を終える</button>
   </div>
 </section>
-<section id="npc-page" class="page hidden narrow"><button class="back" id="npc-back" data-back="hall">← ホールに戻る</button><div class="panel npc-profile"><div class="npc-heading"><div class="profile-portrait"><img id="npc-profile-image" alt="黄色い獣"></div><div><h1>黄色い獣</h1><div id="npc-affinity" class="hearts"></div><div id="npc-relationship" class="muted"></div></div></div><div id="npc-live-state" class="state-grid"></div><div id="npc-move-notice" class="notice hidden"></div><div class="life-status" id="npc-life-status" aria-label="黄色い獣の生活状態"></div><div class="section-top compact"><h2>現在の様子</h2></div><p id="npc-scene" class="scene"></p><div class="actions"><button class="primary" id="talk-btn">話しかける</button><button class="secondary" id="room-btn">自室を訪ねる</button></div><section class="life-actions hidden" id="npc-life-actions"><h3>黄色い獣の生活</h3><p class="muted tiny">休息・睡眠の状態の変化は住人全員で共有されます。</p><div class="actions"><button class="secondary" id="rest-btn">休憩をすすめる</button><button class="secondary" id="wake-btn">そっと声をかけて起こす</button></div><div id="life-action-result" class="notice hidden"></div></section><section id="npc-after-rescue" class="hidden"><div class="section-top compact"><h2>黄色い獣からのお願い</h2><p class="muted tiny">住人ごとのお願いです。素材を集めたら本人に報告しよう。</p></div><button class="secondary" id="open-npc-requests">お願いを見る</button><button id="paper-open-kitchen" class="secondary small hidden" type="button">手料理をあげる・料理のお願いを見る</button><section id="npc-diary-section" class="hidden"><div class="section-top compact"><h2>日記</h2><p class="muted tiny">黄色い獣が毎日の出来事を書き残しています。</p></div><button class="secondary" id="open-npc-diary">黄色い獣の日記を読む</button></section><div class="section-top compact"><h2>受けとったプレゼント</h2><p class="muted tiny">お願いのお礼は完成すると通信箱に届くよ。</p></div><button class="secondary" id="open-npc-gifts">黄色い獣のプレゼントを見る</button></section><details id="profile-more"><summary>詳細を見る</summary><div class="details-content"><h3>この子について</h3><p id="npc-bio"></p><h3>性格</h3><p id="npc-personality"></p><h3>趣味・特技</h3><p>食べることが大好き。料理はまだ練習中。</p><h3>あなたとの関係</h3><p id="npc-relationship-detail"></p><h3>思い出</h3><button class="secondary small" id="history-btn">会話の履歴を見る</button><p class="note">特別なイベント、成長履歴、記念品は次の開発段階で追加予定。</p></div></details></div></section>
+<section id="npc-page" class="page hidden narrow"><button class="back" id="npc-back" data-back="hall">← ホールに戻る</button><div class="panel npc-profile"><div class="npc-heading"><div class="profile-portrait"><img id="npc-profile-image" alt="黄色い獣"></div><div><h1>黄色い獣</h1><div id="npc-affinity" class="hearts"></div><div id="npc-relationship" class="muted"></div></div></div><div id="npc-live-state" class="state-grid"></div><div id="npc-move-notice" class="notice hidden"></div><div class="life-status" id="npc-life-status" aria-label="黄色い獣の生活状態"></div><div class="section-top compact"><h2>現在の様子</h2></div><p id="npc-scene" class="scene"></p><div class="actions"><button class="primary" id="talk-btn">話しかける</button><button class="secondary" id="room-btn">自室を訪ねる</button></div><section class="life-actions hidden" id="npc-life-actions"><h3>黄色い獣の生活</h3><p class="muted tiny">休息・睡眠の状態の変化は住人全員で共有されます。</p><div class="actions"><button class="secondary" id="rest-btn">休憩をすすめる</button><button class="secondary" id="wake-btn">そっと声をかけて起こす</button></div><div id="life-action-result" class="notice hidden"></div></section><section id="npc-after-rescue" class="hidden"><div class="section-top compact"><h2>黄色い獣からのお願い</h2><p class="muted tiny">住人ごとのお願いです。素材を集めたら本人に報告しよう。</p></div><button class="secondary" id="open-npc-requests">お願いを見る</button><button id="paper-open-kitchen" class="secondary small hidden" type="button">手料理をあげる</button><section id="npc-diary-section" class="hidden"><div class="section-top compact"><h2>日記</h2><p class="muted tiny">黄色い獣が毎日の出来事を書き残しています。</p></div><button class="secondary" id="open-npc-diary">黄色い獣の日記を読む</button></section><div class="section-top compact"><h2>受けとったプレゼント</h2><p class="muted tiny">お願いのお礼は完成すると通信箱に届くよ。</p></div><button class="secondary" id="open-npc-gifts">黄色い獣のプレゼントを見る</button></section><details id="profile-more"><summary>詳細を見る</summary><div class="details-content"><h3>この子について</h3><p id="npc-bio"></p><h3>性格</h3><p id="npc-personality"></p><h3>趣味・特技</h3><p>食べることが大好き。料理はまだ練習中。</p><h3>あなたとの関係</h3><p id="npc-relationship-detail"></p><h3>思い出</h3><button class="secondary small" id="history-btn">会話の履歴を見る</button><p class="note">特別なイベント、成長履歴、記念品は次の開発段階で追加予定。</p></div></details></div></section>
       <section id="conversation-page" class="page hidden narrow"><div class="conversation-back-links"><button class="back" data-back="npc">← プロフィールへ</button><button class="back" data-back="hall">← ホールに戻る</button></div><div class="panel story"><span class="eyebrow">A MOMENT WITH THE YELLOW BEAST</span><h1>黄色い獣とのお話</h1><div class="game-backdrop conversation-visual"><img class="scene-background" id="conversation-background" alt="黄色い獣と話す場所"><img id="conversation-paper-image" class="conversation-paper-image" alt="黄色い獣"></div><div id="conversation-scene" class="scene"></div><div class="speech"><span class="speaker">黄色い獣</span><p id="speech-line">「ねえねえ！ なにかお話する？」</p></div><div id="conversation-choices" class="choice-list"></div><section id="conversation-after-rescue" class="hidden"><div class="ai-chat-block" id="npc-ai-chat">
   <div class="section-top compact"><h2 id="npc-ai-remaining">自由に話しかける（確認中）</h2></div>
   <p class="muted tiny">毎日0時に回復します。</p><p class="muted tiny hidden" id="npc-ai-limit-notice" role="status"></p>
@@ -575,9 +574,9 @@
         <p class="muted">同時に3件まで。素材は少しずつ預けられます。途中で断れば、預けた素材はすべて返却されるよ。</p>
         <p id="npc-request-daily-status" class="request-daily-status"></p><p id="npc-request-daily-note" class="muted tiny"></p>
         <div id="npc-requests-message" class="notice hidden" role="status" aria-live="polite"></div>
-        <div class="section-top"><h2>引き受けたお願い</h2></div><div id="npc-requests-active" class="request-list"></div>
-        <div class="section-top"><h2>今日のお願い・常設のお願い</h2></div><div id="npc-requests-available" class="request-list"></div>
-        <details><summary>終わったお願いの履歴</summary><div id="npc-requests-history" class="request-list details-content"></div></details>
+        <div class="section-top"><h2>引き受けたお願い</h2></div><div id="npc-requests-active" class="request-list"></div><div id="paper-cooking-active" class="request-list"></div>
+        <div class="section-top"><h2>今日のお願い・常設のお願い</h2></div><div id="npc-requests-available" class="request-list"></div><div id="paper-cooking-offers" class="request-list"></div>
+        <details><summary>終わったお願いの履歴</summary><div id="npc-requests-history" class="request-list details-content"></div><div id="paper-cooking-history" class="request-list details-content"></div></details>
         </div>
       </section>
       <section id="npc-gifts-page" class="page hidden narrow">
@@ -815,7 +814,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.5.9</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.5.10</span></footer>
   </div>
 </body>
 </html>

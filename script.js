@@ -851,6 +851,49 @@ const pyoroRequestUpdate=async(path,body)=>{
   pyoroRequestBusy=true;
   try{const result=await api(path,'POST',body);pyoroStatus('#pyoro-request-message',result.message);await loadPyoroRequests();}finally{pyoroRequestBusy=false;}
 };
+// v0.18.5.10: 素材依頼・料理依頼を同じNPCお願い画面に表示する。
+// 保存先は既存の各テーブルを維持し、共通の1日3件・同時3件枠はWorkerが判定する。
+async function renderCookingRequestsInNpcPage(npcId){
+ const prefix=npcId==='paper'?'paper':'pyoro';
+ const active=$('#'+prefix+'-cooking-active'),offers=$('#'+prefix+'-cooking-offers'),history=$('#'+prefix+'-cooking-history');
+ if(!active||!offers||!history)return;
+ active.replaceChildren();offers.replaceChildren();history.replaceChildren();
+ if(!frontCookingUnlocked)return;
+ let d;
+ try{const result=await api('/cooking/orders');d=result[npcId];if(!d)throw new Error('料理のお願いを確認できませんでした。');}
+ catch(err){const note=document.createElement('p');note.className='muted tiny';note.textContent='料理のお願いを読み込めませんでした：'+err.message;offers.append(note);return;}
+ const makeCard=(title,detail)=>{
+  const box=document.createElement('article');box.className='request-card';
+  const h=document.createElement('h3');h.textContent='［料理］'+title;box.append(h);
+  if(detail){const p=document.createElement('p');p.className='muted tiny';p.textContent=detail;box.append(p);}
+  return box;
+ };
+ const refreshRequests=async()=>{if(npcId==='paper')await openNpcRequests();else await loadPyoroRequests();};
+ const addButton=(box,label,style,action,confirmText)=>{
+  const button=document.createElement('button');button.type='button';button.className=style;button.textContent=label;
+  button.addEventListener('click',handler(async()=>{
+   if(button.disabled)return;
+   if(confirmText&&!confirm(confirmText))return;
+   button.disabled=true;
+   try{const result=await api('/cooking/orders/'+action.path,'POST',action.body);toast(result.message||'お願いを更新したよ。');await refreshRequests();}
+   finally{button.disabled=false;}
+  }));box.append(button);
+ };
+ for(const req of d.active||[]){
+  const box=makeCard(req.name,'必要な料理：'+req.name+' ×1');
+  const buttons=document.createElement('div');buttons.className='actions';
+  addButton(buttons,'料理を渡す','primary small',{path:'resolve',body:{orderId:req.id,action:'complete'}});
+  addButton(buttons,'取り消す','secondary small',{path:'resolve',body:{orderId:req.id,action:'cancel'}},'この料理のお願いを取り消しますか？');
+  box.append(buttons);active.append(box);
+ }
+ for(const offer of d.offers||[]){
+  const box=makeCard(offer.name,'完成した「'+offer.name+'」を1個渡すお願いです。');
+  const btn=document.createElement('button');btn.type='button';btn.className='secondary small';btn.textContent='このお願いを引き受ける';btn.disabled=!d.canAccept;
+  btn.addEventListener('click',handler(async()=>{if(btn.disabled)return;btn.disabled=true;try{const r=await api('/cooking/orders/accept','POST',{npcId,recipeId:offer.recipeId});toast(r.message||'引き受けたよ。');await refreshRequests();}finally{btn.disabled=false;}}));
+  box.append(btn);offers.append(box);
+ }
+ for(const row of d.history||[]){const line=document.createElement('p');line.className='muted tiny';line.textContent='［料理］'+row.name+'：'+(row.status==='completed'?'完了':'取消');history.append(line);}
+}
 async function loadPyoroRequests(){
   const {requests:r}=await api('/npcs/pyoro/requests');
   $('#pyoro-request-status').textContent=`今日の受注 ${r.acceptedToday}/${r.dailyLimit} 件（残り ${r.remainingToday} 件）／受注済みは日をまたいで継続`;
@@ -885,6 +928,7 @@ async function loadPyoroRequests(){
   if(!r.offers.length)offers.textContent='今日は新しく引き受けられるお願いがありません。';
   for(const req of r.history){const p=document.createElement('p');p.className='muted tiny';p.textContent=`${req.title}：${req.status==='completed'?'完了':'取消'}${req.affinityGain?'（親密度 +'+req.affinityGain+'pt）':''}`;history.append(p);}
   if(!r.history.length)history.textContent='まだ記録はありません。';
+  await renderCookingRequestsInNpcPage('pyoro');
 }
 async function loadPyoroGifts(){
  const data=await api('/npcs/pyoro/gifts');const inbox=$('#pyoro-gift-inbox'),history=$('#pyoro-gift-history'),inventory=$('#pyoro-gift-inventory');inbox.replaceChildren();history.replaceChildren();inventory.replaceChildren();
@@ -1381,6 +1425,7 @@ async function openNpcRequests(message=''){
   if(!requests.canAccept){const p=document.createElement('p');p.className='muted tiny';p.textContent='今日の受注上限、または同時受注3件の上限に達しています。';availableList.prepend(p);}
   for(const r of requests.history){const p=document.createElement('div');p.className='request-history-entry';p.textContent=`${r.title} — ${r.status==='completed'?'完了':'取り消し'}（${jstDate(r.resolvedAt||r.createdAt)}）`;historyList.append(p);}
   if(!requests.history.length)historyList.textContent='まだ履歴はありません。';
+  await renderCookingRequestsInNpcPage('paper');
   show('npc-requests');
 }
 
