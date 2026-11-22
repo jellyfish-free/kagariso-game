@@ -65,7 +65,7 @@
   }
 </style>
   <script src="data/sea-items.js?v=0.17.0.3" defer></script>
-  <script src="script.js?v=0.18.0" defer></script>
+  <script src="script.js?v=0.18.1" defer></script>
   <script src="data/cooking.js?v=0.18.0" defer></script>
   <script src="data/sea-game.js?v=0.17.1.5" defer></script>
 <style>
@@ -88,6 +88,18 @@
  .sea-admin-table input{width:86px;min-width:64px;box-sizing:border-box;padding:8px 5px;text-align:center;}
  .sea-admin-table th:first-child,.sea-admin-table td:first-child{white-space:nowrap;}
  #admin-sea-panel{margin-top:20px;}
+</style>
+
+<style>
+/* v0.18.1 赤い獣: 黄色い獣と同じプロフィール密度・順番 */
+#pyoro-page .npc-profile > .actions > button,#pyoro-page .npc-profile > button.secondary{width:100%;}
+#pyoro-page .npc-profile > button.secondary.small{width:auto;max-width:100%;margin-top:0;}
+#pyoro-page .pyoro-subview{margin-top:24px;border-top:1px solid rgba(160,160,185,.3);padding-top:18px;}
+#pyoro-page .pyoro-subview-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px;}
+#pyoro-page .pyoro-subview-top h2{margin:0;}
+#pyoro-page .pyoro-detail-panel > h3{margin:16px 0;}
+#pyoro-page .details-content .secondary.small{display:inline-flex;margin:6px 6px 0 0;}
+#pyoro-page .npc-heading #pyoro-relationship{margin-top:4px;}
 </style>
 </head>
 <body>
@@ -265,14 +277,60 @@
       <section id="inventory-page" class="page hidden narrow"><button class="back" id="inventory-back">← 戻る</button><div class="panel"><span class="eyebrow">MY BELONGINGS</span><h1>自分の持ち物</h1>
           <div class="catalog-controls"><div><label for="inventory-sort">並び替え</label><select id="inventory-sort"><option value="default">標準順</option><option value="name-asc">名前順（あいうえお順）</option><option value="count-desc">所持数が多い順</option><option value="count-asc">所持数が少ない順</option><option value="rarity-desc">レア度が高い順</option><option value="rarity-asc">レア度が低い順</option><option value="category">ジャンル順</option><option value="source">入手場所順</option></select></div><div><label for="inventory-source">入手場所</label><select id="inventory-source"><option value="all">すべて</option><option value="洞窟">洞窟</option><option value="黄色い獣">黄色い獣</option><option value="その他">その他</option></select></div></div>
           <div id="inventory-list" class="inventory-list"></div></div></section>
-      <section id="pyoro-page" class="page hidden narrow"><button id="pyoro-back" class="back">← ホールに戻る</button><div class="panel npc-profile"><div class="npc-heading"><div class="profile-portrait"><img src="images/npc/pyoro/normal.webp" alt="赤い獣"></div><div><h1 id="pyoro-name"></h1><div id="pyoro-hearts" class="hearts"></div><p id="pyoro-relationship"></p></div></div><p id="pyoro-description"></p><h2>性格</h2><p id="pyoro-personality"></p><h2>現在の状態</h2><div id="pyoro-state" class="scene"></div><p id="pyoro-memory" class="scene hidden">自分を釣り上げてくれたあなたのことを覚えている。</p><div class="section-top"><h2>赤い獣と話す</h2></div><div id="pyoro-talk-options" class="choice-list"></div><p id="pyoro-talk-result" class="scene" role="status" aria-live="polite"></p><section class="ai-chat-block"><h2>自由に話す</h2><p id="pyoro-ai-usage" class="muted"></p><form id="pyoro-ai-form"><textarea id="pyoro-ai-message" maxlength="240" required placeholder="話しかける（240文字まで）"></textarea><button class="primary" type="submit">話しかける</button></form></section><details><summary>会話の思い出</summary><button id="pyoro-history-load" class="secondary">履歴を見る</button><div id="pyoro-history" class="choice-list"></div></details><h2>ごはん・おやつ</h2><p id="pyoro-feed-result" role="status"></p><div id="pyoro-feed-list" class="choice-list"></div><button id="pyoro-open-kitchen" class="secondary small hidden" type="button">作った料理をあげる・料理のお願いを見る</button>
- <hr style="margin:28px 0;border:0;border-top:1px solid #636076">
- <section id="pyoro-request-section"><h2>赤い獣のお願い</h2><p id="pyoro-request-status" class="muted tiny"></p><p id="pyoro-request-message" class="scene hidden" role="status"></p><h3>受注中</h3><div id="pyoro-request-active" class="choice-list"></div><h3>今日のお願い</h3><div id="pyoro-request-offers" class="choice-list"></div><details><summary>これまでのお願い</summary><div id="pyoro-request-history"></div></details></section>
- <section id="pyoro-gift-section"><h2>赤い獣からのプレゼント</h2><p id="pyoro-gift-message" class="scene hidden" role="status"></p><div id="pyoro-gift-inbox" class="choice-list"></div><details><summary>受け取ったプレゼント</summary><div id="pyoro-gift-history" class="choice-list"></div></details></section>
- <section id="pyoro-diary-section"><h2>赤い獣の日記</h2><p class="muted tiny">毎日の記録を赤い獣の視点で読み返せます。</p><button id="pyoro-diary-load" class="secondary">日記を見る</button><div id="pyoro-diary-entries" class="choice-list"></div><button id="pyoro-diary-more" class="secondary small hidden">前の日記を読む</button><details><summary>黄色い獣との出来事</summary><button id="pyoro-interactions-load" class="secondary">交流を読み返す</button><div id="pyoro-interactions" class="choice-list"></div></details></section>
-<section id="pyoro-word-section"><h2>赤い獣に言葉を教える</h2><p class="muted tiny">赤い獣だけの言葉帳に記録されます。</p><form id="pyoro-word-form"><label for="pyoro-word">言葉</label><input id="pyoro-word" maxlength="24" required><label for="pyoro-meaning">意味</label><input id="pyoro-meaning" maxlength="120" required><label for="pyoro-usage">使い方</label><input id="pyoro-usage" maxlength="120" required><button type="submit" class="primary">言葉を教える</button></form><p id="pyoro-word-message" class="scene hidden" role="status"></p><details><summary>覚えた言葉</summary><div id="pyoro-word-list"></div></details></section>
- </div></section>
-      <section id="npc-page" class="page hidden narrow"><button class="back" id="npc-back" data-back="hall">← ホールに戻る</button><div class="panel npc-profile"><div class="npc-heading"><div class="profile-portrait"><img id="npc-profile-image" alt="黄色い獣"></div><div><h1>黄色い獣</h1><div id="npc-affinity" class="hearts"></div><div id="npc-relationship" class="muted"></div></div></div><div id="npc-live-state" class="state-grid"></div><div id="npc-move-notice" class="notice hidden"></div><div class="life-status" id="npc-life-status" aria-label="黄色い獣の生活状態"></div><div class="section-top compact"><h2>現在の様子</h2></div><p id="npc-scene" class="scene"></p><div class="actions"><button class="primary" id="talk-btn">話しかける</button><button class="secondary" id="room-btn">自室を訪ねる</button></div><section class="life-actions hidden" id="npc-life-actions"><h3>黄色い獣の生活</h3><p class="muted tiny">休息・睡眠の状態の変化は住人全員で共有されます。</p><div class="actions"><button class="secondary" id="rest-btn">休憩をすすめる</button><button class="secondary" id="wake-btn">そっと声をかけて起こす</button></div><div id="life-action-result" class="notice hidden"></div></section><section id="npc-after-rescue" class="hidden"><div class="section-top compact"><h2>黄色い獣からのお願い</h2><p class="muted tiny">住人ごとのお願いです。素材を集めたら本人に報告しよう。</p></div><button class="secondary" id="open-npc-requests">お願いを見る</button><button id="paper-open-kitchen" class="secondary small hidden" type="button">手料理をあげる・料理のお願いを見る</button><section id="npc-diary-section" class="hidden"><div class="section-top compact"><h2>日記</h2><p class="muted tiny">黄色い獣が毎日の出来事を書き残しています。</p></div><button class="secondary" id="open-npc-diary">黄色い獣の日記を読む</button></section><div class="section-top compact"><h2>受けとったプレゼント</h2><p class="muted tiny">お願いのお礼は完成すると通信箱に届くよ。</p></div><button class="secondary" id="open-npc-gifts">黄色い獣のプレゼントを見る</button></section><details id="profile-more"><summary>詳細を見る</summary><div class="details-content"><h3>この子について</h3><p id="npc-bio"></p><h3>性格</h3><p id="npc-personality"></p><h3>趣味・特技</h3><p>食べることが大好き。料理はまだ練習中。</p><h3>あなたとの関係</h3><p id="npc-relationship-detail"></p><h3>思い出</h3><button class="secondary small" id="history-btn">会話の履歴を見る</button><p class="note">特別なイベント、成長履歴、記念品は次の開発段階で追加予定。</p></div></details></div></section>
+      <section id="pyoro-page" class="page hidden narrow">
+  <button id="pyoro-back" class="back">← ホールに戻る</button>
+  <div class="panel npc-profile">
+    <div class="npc-heading">
+      <div class="profile-portrait"><img id="pyoro-profile-image" src="images/npc/pyoro/normal.webp" alt="赤い獣"></div>
+      <div><h1 id="pyoro-name">赤い獣</h1><div id="pyoro-hearts" class="hearts"></div><div id="pyoro-relationship" class="muted"></div></div>
+    </div>
+    <div id="pyoro-live-state" class="state-grid" aria-label="赤い獣の居場所と活動状態"></div>
+    <div id="pyoro-move-notice" class="notice hidden"></div>
+    <div id="pyoro-life-status" class="life-status" aria-label="赤い獣の生活状態"></div>
+    <div class="section-top compact"><h2>現在の様子</h2></div>
+    <p id="pyoro-scene" class="scene"></p>
+    <p id="pyoro-memory" class="scene hidden">自分を釣り上げてくれたあなたのことを覚えている。</p>
+    <div class="actions"><button id="pyoro-talk-open" type="button" class="primary">話しかける</button></div>
+    <section class="life-actions" id="pyoro-life-actions">
+      <h3>赤い獣の生活</h3>
+      <p class="muted tiny">休息・睡眠の状態の変化は住人全員で共有されます。</p>
+      <div class="actions"><button id="pyoro-rest-btn" type="button" class="secondary">休憩をすすめる</button><button id="pyoro-wake-btn" type="button" class="secondary">そっと声をかけて起こす</button></div>
+      <div id="pyoro-life-action-result" class="notice hidden" role="status"></div>
+    </section>
+    <div class="section-top compact"><h2>赤い獣からのお願い</h2><p class="muted tiny">住人ごとのお願いです。素材を集めたら本人に報告しよう。</p></div>
+    <button id="pyoro-requests-open" type="button" class="secondary">お願いを見る</button>
+    <button id="pyoro-open-kitchen" class="secondary small hidden" type="button">手料理をあげる・料理のお願いを見る</button>
+    <div class="section-top compact"><h2>日記</h2><p class="muted tiny">赤い獣が毎日の出来事を書き残しています。</p></div>
+    <button id="pyoro-diary-open" type="button" class="secondary">赤い獣の日記を読む</button>
+    <div class="section-top compact"><h2>受けとったプレゼント</h2><p class="muted tiny">お願いのお礼は完成すると通信箱に届くよ。</p></div>
+    <button id="pyoro-gifts-open" type="button" class="secondary">赤い獣のプレゼントを見る</button>
+    <details id="pyoro-profile-more"><summary>詳細を見る</summary><div class="details-content">
+      <h3>この子について</h3><p id="pyoro-description"></p>
+      <h3>性格</h3><p id="pyoro-personality"></p>
+      <h3>趣味・特技</h3><p>ホールを探検したり、不思議なものを調べたりするのが好き。少し怖がりだけれど好奇心旺盛。</p>
+      <h3>あなたとの関係</h3><p id="pyoro-relationship-detail"></p>
+      <h3>思い出</h3><button type="button" id="pyoro-history-shortcut" class="secondary small">会話の履歴を見る</button>
+      <button type="button" id="pyoro-words-open" class="secondary small">覚えた言葉を見る・教える</button>
+      <button type="button" id="pyoro-feeding-open" class="secondary small">ごはん・おやつをあげる</button>
+    </div></details>
+    <section id="pyoro-subview" class="pyoro-subview hidden" aria-label="赤い獣の詳細機能">
+      <div class="pyoro-subview-top"><button id="pyoro-subview-back" class="back" type="button">← プロフィールに戻る</button><h2 id="pyoro-subview-title"></h2></div>
+      <div id="pyoro-panel-talk" class="pyoro-detail-panel hidden">
+        <div class="section-top compact"><h3>赤い獣と話す</h3></div>
+        <div id="pyoro-talk-options" class="choice-list"></div>
+        <p id="pyoro-talk-result" class="scene" role="status" aria-live="polite"></p>
+        <section class="ai-chat-block"><h3>自由に話す</h3><p id="pyoro-ai-usage" class="muted"></p><form id="pyoro-ai-form"><textarea id="pyoro-ai-message" maxlength="240" required placeholder="話しかける（240文字まで）"></textarea><button class="primary" type="submit">話しかける</button></form></section>
+        <details id="pyoro-talk-history-details"><summary>会話の思い出</summary><button id="pyoro-history-load" class="secondary" type="button">履歴を見る</button><div id="pyoro-history" class="choice-list"></div></details>
+      </div>
+      <div id="pyoro-panel-feeding" class="pyoro-detail-panel hidden"><h3>ごはん・おやつ</h3><p id="pyoro-feed-result" role="status"></p><div id="pyoro-feed-list" class="choice-list"></div></div>
+      <section id="pyoro-panel-requests" class="pyoro-detail-panel hidden"><div id="pyoro-request-section"><h3>赤い獣のお願い</h3><p id="pyoro-request-status" class="muted tiny"></p><p id="pyoro-request-message" class="scene hidden" role="status"></p><h3>受注中</h3><div id="pyoro-request-active" class="choice-list"></div><h3>今日のお願い</h3><div id="pyoro-request-offers" class="choice-list"></div><details><summary>これまでのお願い</summary><div id="pyoro-request-history"></div></details></div></section>
+      <section id="pyoro-panel-gifts" class="pyoro-detail-panel hidden"><div id="pyoro-gift-section"><h3>赤い獣からのプレゼント</h3><p id="pyoro-gift-message" class="scene hidden" role="status"></p><div id="pyoro-gift-inbox" class="choice-list"></div><details><summary>受け取ったプレゼント</summary><div id="pyoro-gift-history" class="choice-list"></div></details></div></section>
+      <section id="pyoro-panel-diary" class="pyoro-detail-panel hidden"><div id="pyoro-diary-section"><h3>赤い獣の日記</h3><p class="muted tiny">毎日の記録を赤い獣の視点で読み返せます。</p><button id="pyoro-diary-load" class="secondary" type="button">日記を見る</button><div id="pyoro-diary-entries" class="choice-list"></div><button id="pyoro-diary-more" class="secondary small hidden" type="button">前の日記を読む</button><details><summary>黄色い獣との出来事</summary><button id="pyoro-interactions-load" class="secondary" type="button">交流を読み返す</button><div id="pyoro-interactions" class="choice-list"></div></details></div></section>
+      <section id="pyoro-panel-words" class="pyoro-detail-panel hidden"><div id="pyoro-word-section"><h3>赤い獣に言葉を教える</h3><p class="muted tiny">赤い獣だけの言葉帳に記録されます。</p><form id="pyoro-word-form"><label for="pyoro-word">言葉</label><input id="pyoro-word" maxlength="24" required><label for="pyoro-meaning">意味</label><input id="pyoro-meaning" maxlength="120" required><label for="pyoro-usage">使い方</label><input id="pyoro-usage" maxlength="120" required><button type="submit" class="primary">言葉を教える</button></form><p id="pyoro-word-message" class="scene hidden" role="status"></p><details open><summary>覚えた言葉</summary><div id="pyoro-word-list"></div></details></div></section>
+    </section>
+  </div>
+</section>
+<section id="npc-page" class="page hidden narrow"><button class="back" id="npc-back" data-back="hall">← ホールに戻る</button><div class="panel npc-profile"><div class="npc-heading"><div class="profile-portrait"><img id="npc-profile-image" alt="黄色い獣"></div><div><h1>黄色い獣</h1><div id="npc-affinity" class="hearts"></div><div id="npc-relationship" class="muted"></div></div></div><div id="npc-live-state" class="state-grid"></div><div id="npc-move-notice" class="notice hidden"></div><div class="life-status" id="npc-life-status" aria-label="黄色い獣の生活状態"></div><div class="section-top compact"><h2>現在の様子</h2></div><p id="npc-scene" class="scene"></p><div class="actions"><button class="primary" id="talk-btn">話しかける</button><button class="secondary" id="room-btn">自室を訪ねる</button></div><section class="life-actions hidden" id="npc-life-actions"><h3>黄色い獣の生活</h3><p class="muted tiny">休息・睡眠の状態の変化は住人全員で共有されます。</p><div class="actions"><button class="secondary" id="rest-btn">休憩をすすめる</button><button class="secondary" id="wake-btn">そっと声をかけて起こす</button></div><div id="life-action-result" class="notice hidden"></div></section><section id="npc-after-rescue" class="hidden"><div class="section-top compact"><h2>黄色い獣からのお願い</h2><p class="muted tiny">住人ごとのお願いです。素材を集めたら本人に報告しよう。</p></div><button class="secondary" id="open-npc-requests">お願いを見る</button><button id="paper-open-kitchen" class="secondary small hidden" type="button">手料理をあげる・料理のお願いを見る</button><section id="npc-diary-section" class="hidden"><div class="section-top compact"><h2>日記</h2><p class="muted tiny">黄色い獣が毎日の出来事を書き残しています。</p></div><button class="secondary" id="open-npc-diary">黄色い獣の日記を読む</button></section><div class="section-top compact"><h2>受けとったプレゼント</h2><p class="muted tiny">お願いのお礼は完成すると通信箱に届くよ。</p></div><button class="secondary" id="open-npc-gifts">黄色い獣のプレゼントを見る</button></section><details id="profile-more"><summary>詳細を見る</summary><div class="details-content"><h3>この子について</h3><p id="npc-bio"></p><h3>性格</h3><p id="npc-personality"></p><h3>趣味・特技</h3><p>食べることが大好き。料理はまだ練習中。</p><h3>あなたとの関係</h3><p id="npc-relationship-detail"></p><h3>思い出</h3><button class="secondary small" id="history-btn">会話の履歴を見る</button><p class="note">特別なイベント、成長履歴、記念品は次の開発段階で追加予定。</p></div></details></div></section>
       <section id="conversation-page" class="page hidden narrow"><div class="conversation-back-links"><button class="back" data-back="npc">← プロフィールへ</button><button class="back" data-back="hall">← ホールに戻る</button></div><div class="panel story"><span class="eyebrow">A MOMENT WITH THE YELLOW BEAST</span><h1>黄色い獣とのお話</h1><div class="game-backdrop conversation-visual"><img class="scene-background" id="conversation-background" alt="黄色い獣と話す場所"><img id="conversation-paper-image" class="conversation-paper-image" alt="黄色い獣"></div><div id="conversation-scene" class="scene"></div><div class="speech"><span class="speaker">黄色い獣</span><p id="speech-line">「ねえねえ！ なにかお話する？」</p></div><div id="conversation-choices" class="choice-list"></div><section id="conversation-after-rescue" class="hidden"><div class="ai-chat-block" id="npc-ai-chat">
   <div class="section-top compact"><h2 id="npc-ai-remaining">自由に話しかける（確認中）</h2></div>
   <p class="muted tiny">毎日0時に回復します。</p><p class="muted tiny hidden" id="npc-ai-limit-notice" role="status"></p>
@@ -538,7 +596,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.0</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.1</span></footer>
   </div>
 </body>
 </html>
