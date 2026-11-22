@@ -323,7 +323,10 @@ async function openHall(){const data=await api('/hall');resident=data.resident;$
   const pyoroHere=data.npcs.find(n=>n.id==='pyoro'&&n.state.location==='hall');
   paperActor.dataset.hallSlot=pyoroHere?'2':'3';
   $('#hall-pyoro-actor').classList.toggle('hidden',!pyoroHere);
-  if(pyoroHere)paintPyoro('#hall-pyoro-actor img',pyoroHere);
+  if(pyoroHere){
+    paintPyoro('#hall-pyoro-actor img',pyoroHere);
+    updatePyoroHallLabel(pyoroHere);
+  }
   $('#hall-pyoro-actor').onclick=handler(openPyoro);
   paperActor.classList.toggle('hidden',!paperHere);
   if(paperHere){paintPaper('#hall-paper-image',paperHere);$('#hall-paper-label').textContent=paperHere.state.activity==='sleeping'?'黄色い獣はおやすみ中':'黄色い獣に会う';}
@@ -649,15 +652,20 @@ const pyoroExpression=(n)=>{
  const st=n?.state||{};
  const mood=String(st.moodLabel||'');
  if(st.activity==='sleeping')return 'sleeping';
+ if(st.fullExpression||Number(st.hunger)<=15||String(st.hungerLabel||'').includes('満腹'))return 'full stomach';
  if(st.activity==='resting'||Number(st.energy)<32)return 'sleepy';
  if(Number(st.hunger)>=85)return 'sad';
- if(st.fullExpression||Number(st.hunger)<=15)return 'full stomach';
  if(mood.includes('不機嫌')||mood.includes('怒'))return 'angry';
  if(mood.includes('落ち')||mood.includes('悲')||mood.includes('元気がない'))return 'sad';
  if(mood.includes('ご機嫌')||mood.includes('嬉')||mood.includes('上機嫌'))return 'happy';
  return 'normal';
 };
 const pyoroImage=expression=>`images/npc/pyoro/${expression||'normal'}.webp`;
+// v0.18.5.17: ホールの足元ラベルも黄色い獣と同じ状態に連動する。
+const updatePyoroHallLabel=n=>{
+ const label=$('#hall-pyoro-label');if(!label||!n)return;
+ label.textContent=n.state?.activity==='sleeping'?'赤色の獣はおやすみ中':'赤色の獣に会う';
+};
 const paintPyoro=(id,n,override)=>{
  const img=$(id);if(!img)return;
  const exp=override||pyoroExpression(n);
@@ -679,6 +687,7 @@ const pyoroStateScene=n=>{
  const state=n.state||{};
  if(state.activity==='sleeping')return '赤色の獣はホールの片隅で小さく丸まり、すうすうと眠っている。時おり耳がぴくりと動く。';
  if(state.hunger>75)return '赤色の獣はおなかを押さえ、こちらの様子をちらちらうかがっている。……どうやら、おなかが空いたらしい。';
+ if(state.fullExpression||Number(state.hunger)<=15)return '赤色の獣は満足そうにおなかを撫で、しっぽをゆっくり揺らしている。おいしいごはんを食べて、ご機嫌らしい。';
  if(state.activity==='resting')return '赤色の獣はホールのソファで、少し警戒しながらもゆっくり休んでいる。';
  if(state.energy<40)return '赤色の獣は少し疲れているようで、ホールの隅に座って静かにあくびをしている。';
  if(state.mood<35)return '赤色の獣は耳を伏せ、足元をじっと見つめている。少し落ち着かない様子だ。';
@@ -703,6 +712,7 @@ const paintPyoroProfile=(n,moved=false)=>{
  $('#pyoro-scene').textContent=pyoroStateScene(n);
  paintPyoro('#pyoro-profile-image',n);
  paintPyoro('#hall-pyoro-actor img',n);
+ updatePyoroHallLabel(n);
  const notice=$('#pyoro-move-notice');
  if(moved){notice.textContent=`赤色の獣は${st.locationLabel||'ホール'}へ移動しました。`;notice.classList.remove('hidden');}
  $('#pyoro-talk-open').disabled=st.activity==='sleeping';
