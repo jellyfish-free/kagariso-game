@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="data/cave-statistics.css?v=0.15.11">
   <link rel="stylesheet" href="data/forest.css?v=0.16.4.3">
   <link rel="stylesheet" href="data/sea.css?v=0.17.1.5">
-  <link rel="stylesheet" href="data/cooking.css?v=0.18.5.4">
+  <link rel="stylesheet" href="data/cooking.css?v=0.18.5.6">
   <link rel="stylesheet" href="data/cave-stills.css?v=0.16.4.4">
   <script src="config.js" defer></script>
   <script src="data/materials.js" defer></script>
@@ -66,7 +66,7 @@
 </style>
   <script src="data/sea-items.js?v=0.17.0.3" defer></script>
   <script src="script.js?v=0.18.5.4" defer></script>
-  <script src="data/cooking.js?v=0.18.5.4" defer></script>
+  <script src="data/cooking.js?v=0.18.5.6" defer></script>
   <script src="data/sea-game.js?v=0.17.1.5" defer></script>
 <style>
  .admin-npc-selector{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:14px 0 18px;}
@@ -196,8 +196,7 @@
             <button type="button" id="workshop-enter-cooking" class="workshop-choice">
               <img src="images/backgrounds/kitchen.webp" alt="" loading="lazy">
               <span class="workshop-choice-text"><strong>料理を作る</strong><small>台所でレシピを選び、素材を調理する</small></span>
-              <span aria-hidden="true">→</span>
-            </button>
+              </button>
             <div class="workshop-choice workshop-choice-disabled" aria-label="服飾は今後解放予定です">
               <img src="images/backgrounds/Clothing.webp" alt="" loading="lazy">
               <span class="workshop-choice-text"><strong>服を作る</strong><small>服飾機能は今後追加予定</small></span>
@@ -216,11 +215,12 @@
     <img class="workshop-hero kitchen-hero" src="images/backgrounds/kitchen.webp" alt="明るい工房の台所" loading="lazy">
     <p id="cooking-first" class="scene hidden">重い正面の扉が、ことりと開いた。奥には、よく磨かれた調理台と、誰かが並べた古い料理帳。料理帳には、まだ余白がたくさん残されている。</p>
     <p id="cooking-progress" class="cooking-progress-plain"></p><p id="cooking-moon" class="muted"></p>
-    <div id="cooking-message" role="status" aria-live="polite" class="scene"></div>
+    <div id="cooking-message" role="status" aria-live="polite" class="cooking-notice" hidden></div>
     <div id="cooking-library">
-      <h2>料理帳</h2><p class="muted tiny">レシピは料理や探索・獣たちとの交流、住人への贈り物で解放されます。調理回数に1日の制限はありません。</p>
+      <h2>レシピ</h2><p class="muted tiny">レシピは料理や探索・獣たちとの交流、住人への贈り物で解放されます。調理回数に1日の制限はありません。</p>
       <div class="cooking-toolbar"><select id="cooking-filter" aria-label="料理の種類"><option value="all">すべて</option><option>洞窟</option><option>森</option><option>海</option><option>複合</option><option>特別</option></select><input id="cooking-search" placeholder="料理名を検索" aria-label="料理名を検索"></div>
-      <div id="cooking-recipes"></div>
+      <div id="cooking-recipes" class="cooking-recipe-grid" aria-label="レシピ一覧"></div>
+      <div id="cooking-recipe-detail" class="cooking-recipe-detail" hidden aria-live="polite"></div>
     </div>
     <div id="cooking-play" class="hidden">
       <h2 id="cooking-playing-name"></h2><h3 id="cooking-stage-title"></h3>
@@ -796,7 +796,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.5.4</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.5.6</span></footer>
   </div>
 </body>
 </html>
