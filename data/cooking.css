@@ -62,3 +62,15 @@
 #cooking-page .cooking-recipe-name{order:0;width:100%;min-height:2.7em}
 #cooking-page .cooking-recipe-thumb{order:1}
 #cooking-page .cooking-recipe-done{order:2}
+
+/* v0.18.5.7 レシピ詳細は別ページ。未解放の解放条件は鍵アイコン直下。 */
+#cooking-page .cooking-recipe-condition{width:100%;font-size:clamp(9px,1.55vw,11px);line-height:1.45;color:#d6c6ae;overflow-wrap:anywhere;text-align:left;margin-top:2px}
+#cooking-recipe-page .cooking-recipe-detail-content{margin:18px 0 10px}
+#cooking-recipe-page .cooking-detail-head{display:flex;align-items:center;gap:14px}
+#cooking-recipe-page .cooking-detail-head h3{margin:0 0 5px}
+#cooking-recipe-page .cooking-detail-head p{margin:0}
+#cooking-recipe-page .cooking-detail-image{width:104px;height:104px;flex:0 0 104px;display:grid;place-items:center;border-radius:10px;background:#1d2c40;font-size:42px;overflow:hidden}
+#cooking-recipe-page .cooking-detail-image img{width:100%;height:100%;object-fit:contain}
+#cooking-recipe-page .cooking-detail-ingredients{margin:18px 0;line-height:1.8;overflow-wrap:anywhere}
+#cooking-recipe-page .cooking-detail-start{width:100%}
+@media(max-width:470px){#cooking-recipe-page .cooking-detail-image{width:80px;height:80px;flex-basis:80px}#cooking-page .cooking-recipe-condition{font-size:9px}}

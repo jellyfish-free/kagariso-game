@@ -7,15 +7,14 @@ let state=null,session=null,busy=false,fullDeck=null,holdBusy=false,holdStartPen
 const api=async(p,body)=>{const a=Date.now(),r=await bridge.api('/cooking/'+p,body?'POST':'GET',body),b=Date.now();if(r.session?.serverNow)clockOffset=r.session.serverNow-(a+b)/2;return r;};
 const notice=s=>{const el=$('cooking-message');el.textContent=s||'';el.hidden=!s;};
 const img=r=>`<img loading="lazy" src="${safe(r.image)}" alt="" onerror="this.style.display='none'">`;
-// レシピは4列のアイコン一覧で表示。選択した料理の詳しい情報は別欄へ出す。
+// v0.18.5.7：レシピ詳細は専用ページで表示。調理の開始・保存処理は従来どおり。
 const renderRecipeDetail=()=>{
- const el=$('cooking-recipe-detail');
+ const el=$('cooking-recipe-detail-content');
  const recipe=state?.recipes?.find(r=>r.id===selectedRecipeId);
- if(!recipe){el.hidden=true;el.replaceChildren();return;}
+ if(!recipe){el.replaceChildren();return;}
  const locked=!recipe.unlocked;
  const ingredients=Array.isArray(recipe.ingredients)?recipe.ingredients:[];
  const lacks=ingredients.some(m=>Number(m.owned)<Number(m.quantity));
- el.hidden=false;
  el.innerHTML=`<div class="cooking-detail-head"><div class="cooking-detail-image">${recipe.unlocked?img(recipe):'<span aria-hidden="true">🔒</span>'}</div><div><h3>${safe(recipe.name)}</h3><p class="muted tiny">${safe(recipe.category)} ／ ${recipe.steps.length}工程 ／ ${recipe.completed?'完成済み':'未完成'} ／ 調理 ${recipe.times}回</p></div></div>
  <p class="muted cooking-detail-ingredients">${locked?'解放条件：'+safe(recipe.condition):'必要素材：'+(ingredients.map(m=>`${safe(m.name)} ${m.owned}/${m.quantity}`).join('・')||'なし')}</p>
  <button type="button" class="primary cooking-detail-start" data-cook-detail="${safe(recipe.id)}" ${locked||lacks||!!state.active?'disabled':''}>料理する</button>`;
@@ -28,14 +27,12 @@ const paintList=()=>{
  $('cooking-moon').textContent=state.moonUnlocked?'🌙 月の扉が解放された！':'';
  const recipes=state.recipes.filter(r=>(category==='all'||r.category===category)&&r.name.toLowerCase().includes(search));
  if(!recipes.some(r=>r.id===selectedRecipeId))selectedRecipeId=null;
- $('cooking-recipes').innerHTML=recipes.map(r=>`<button type="button" class="cooking-recipe-tile${r.id===selectedRecipeId?' is-selected':''}" data-recipe-id="${safe(r.id)}" aria-pressed="${r.id===selectedRecipeId?'true':'false'}"><span class="cooking-recipe-name">${safe(r.name)}</span><span class="cooking-recipe-thumb">${r.unlocked?img(r):'<span class="cooking-lock" aria-hidden="true">🔒</span>'}</span>${r.completed?'<span class="cooking-recipe-done">完成済み</span>':''}</button>`).join('')||'<p class="muted cooking-no-recipes">該当するレシピはありません。</p>';
+ $('cooking-recipes').innerHTML=recipes.map(r=>`<button type="button" class="cooking-recipe-tile" data-recipe-id="${safe(r.id)}" aria-label="${safe(r.name)}の詳細を開く"><span class="cooking-recipe-name">${safe(r.name)}</span><span class="cooking-recipe-thumb">${r.unlocked?img(r):'<span class="cooking-lock" aria-hidden="true">🔒</span>'}</span>${!r.unlocked?`<span class="cooking-recipe-condition">解放条件：${safe(r.condition||'未確認')}</span>`:r.completed?'<span class="cooking-recipe-done">完成済み</span>':''}</button>`).join('')||'<p class="muted cooking-no-recipes">該当するレシピはありません。</p>';
  $('cooking-recipes').querySelectorAll('[data-recipe-id]').forEach(button=>button.addEventListener('click',()=>{
   selectedRecipeId=button.dataset.recipeId;
-  $('cooking-recipes').querySelectorAll('[data-recipe-id]').forEach(tile=>{const selected=tile.dataset.recipeId===selectedRecipeId;tile.classList.toggle('is-selected',selected);tile.setAttribute('aria-pressed',String(selected));});
   renderRecipeDetail();
-  $('cooking-recipe-detail').scrollIntoView({block:'nearest',behavior:'smooth'});
+  bridge.show('cooking-recipe');
  }));
- renderRecipeDetail();
  const byId=Object.fromEntries(state.recipes.map(r=>[r.id,r]));
  $('cooking-stock').innerHTML=state.owned.length?state.owned.map(x=>{const r=byId[x.id];return r?`<article class="cooking-food">${img(r)}<div><strong>${safe(r.name)} ×${x.quantity}</strong><div class="muted tiny">回復 ${r.restore} ／ 腹持ち ${r.satietyMinutes}分</div></div><div><button class="secondary small" data-eat="paper:${r.id}">黄色い獣へ</button> <button class="secondary small" data-eat="pyoro:${r.id}">赤色の獣へ</button></div></article>`:'';}).join(''):'<p class="muted">作った料理はまだありません。</p>';
  $('cooking-stock').querySelectorAll('[data-eat]').forEach(b=>b.onclick=()=>feed(...b.dataset.eat.split(':')));
@@ -71,7 +68,7 @@ const loadOrders=async()=>{
  }catch(e){$('cooking-orders').textContent=e.message;}
 };
 const refresh=async()=>{state=await api('status');session=state.active;paintList();await loadOrders();if(session){fullDeck=null;renderStage();}else{$('cooking-play').classList.add('hidden');$('cooking-library').classList.remove('hidden');}};
-const start=async recipeId=>{if(busy)return;busy=true;try{const r=await api('start',{recipeId});session=r.session;fullDeck=null;renderStage();}catch(e){notice(e.message);}finally{busy=false;}};
+const start=async recipeId=>{if(busy)return;busy=true;try{const r=await api('start',{recipeId});session=r.session;fullDeck=null;bridge.show('cooking');renderStage();}catch(e){notice(e.message);if(bridge.show)bridge.show('cooking');}finally{busy=false;}};
 const step=async action=>{
  if(busy||!session)return;busy=true;cancelAnimationFrame(anim);
  try{
@@ -95,6 +92,8 @@ const openKitchen=async()=>{
   if(!state.visited){$('cooking-first').classList.remove('hidden');await api('visit',{});state.visited=true;}
  }catch(e){notice(e.message||'料理データを読み込めませんでした。');}
 };
+$('cooking-recipe-back').addEventListener('click',()=>bridge.show('cooking'));
+$('cooking-recipe-hall-back').addEventListener('click',()=>bridge.openHall());
 $('cooking-orders-refresh').addEventListener('click',loadOrders);
 $('cooking-filter').addEventListener('change',()=>{if(state)paintList();});$('cooking-search').addEventListener('input',()=>{if(state)paintList();});
 $('cooking-tap-button').onclick=()=>step({action:'tap'});
