@@ -115,3 +115,5 @@
 #cooking-page .cooking-cut-zone{position:absolute;top:0;bottom:0;width:14%;background:rgba(107,218,210,.55);border-inline:1px solid rgba(161,245,236,.65);box-sizing:border-box;border-radius:8px;pointer-events:none}
 #cooking-page .cooking-timing .marker{z-index:2;top:-7px;height:42px;width:5px;transform:translateX(-50%);box-shadow:0 0 7px rgba(255,234,184,.5);pointer-events:none}
 #cooking-page .cooking-tap-button{display:block;width:100%;max-width:none;min-height:76px;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+
+/* v0.18.5.13: 切る工程はゲージを動かしたまま3回タップ（進捗表示は既存の結果欄） */

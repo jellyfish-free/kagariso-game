@@ -83,6 +83,7 @@ const renderStage=()=>{
  $('cooking-stage-title').textContent=session.game==='tap'?'':`工程 ${Math.min(session.stage+1,session.steps.length)} / ${session.steps.length}：${gameTitles[session.game]}`;
  for(const n of ['tap','hold','card','finish'])$('cooking-'+n).classList.toggle('hidden',session.game!==n);
  $('cooking-stage-result').textContent='';
+ if(session.game==='tap')$('cooking-stage-result').textContent=`${Number(session.tapCount||0)} / 3 回タップ　（成功 ${Number(session.tapHits||0)} 回）`;
  if(session.game==='card')renderCards();
  if(session.game==='hold'){
   holdReleased=false;
@@ -101,7 +102,7 @@ const renderStage=()=>{
    const position=leg%2===0?phase:1-phase;
    $('cooking-marker').style.left=(Math.max(0,Math.min(100,position*100)))+'%';
    $('cooking-laps').textContent='残り'+Math.max(0,3-Math.floor(elapsed/(TAP_ONE_WAY_MS*2)))+'往復';
-   if(elapsed>=TAP_TOTAL_MS){step({action:'tap'});return;}
+   if(elapsed>=TAP_TOTAL_MS){step({action:'timeout'});return;}
    anim=requestAnimationFrame(paint);
   };paint();
  }
@@ -128,6 +129,9 @@ const step=async action=>{
    renderCards();
    $('cooking-stage-result').textContent=`${({chest:'大当たり！ 宝箱',gem:'中当たり！ 宝石',coin:'小当たり！ コイン'})[r.prize]}の3枚が揃った！ ほかのカードも全部公開！`;
    if(session.game==='finish')scheduleCompletion(1300);else scheduleStageAdvance(1300,session);
+  }else if(r.tapRecorded){
+   renderStage();
+   $('cooking-stage-result').textContent=`${r.tapSuccess?'トンッ！ 成功！':'トンッ！ あと少し！'}　${session.tapCount} / 3 回（成功 ${session.tapHits} 回）`;
   }else if(r.completedStep){
    $('cooking-stage-result').textContent=r.success?'成功！':'ちょっと失敗。でも完成はできるよ。';
    if(session.game==='finish')scheduleCompletion(500);else scheduleStageAdvance(700,session);
