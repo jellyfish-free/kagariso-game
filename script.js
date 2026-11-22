@@ -14,7 +14,7 @@ let pendingRecovery='';
 let inventoryReturn='hall';
 let gathering=false;
 let npcReturn='hall', mandatoryStory=false;
-const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-diary','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor','forest-event','forest','forest-area','forest-memories','sea','sea-event','pyoro','pyoro-conversation','cooking'];
+const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-diary','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor','forest-event','forest','forest-area','forest-memories','sea','sea-event','pyoro','pyoro-conversation','pyoro-words','pyoro-word-history','pyoro-diary','pyoro-gifts','cooking'];
 let activePage='';
 const show=(name)=>{
   const changed=activePage!==name; activePage=name;
@@ -312,10 +312,11 @@ async function openHall(){const data=await api('/hall');resident=data.resident;$
   const pyoroHere=data.npcs.find(n=>n.id==='pyoro'&&n.state.location==='hall');
   paperActor.dataset.hallSlot=pyoroHere?'2':'3';
   $('#hall-pyoro-actor').classList.toggle('hidden',!pyoroHere);
+  if(pyoroHere)paintPyoro('#hall-pyoro-actor img',pyoroHere);
   $('#hall-pyoro-actor').onclick=handler(openPyoro);
   paperActor.classList.toggle('hidden',!paperHere);
   if(paperHere){paintPaper('#hall-paper-image',paperHere);$('#hall-paper-label').textContent=paperHere.state.activity==='sleeping'?'黄色い獣はおやすみ中':'黄色い獣に会う';}
-  $('#npc-list').innerHTML=data.npcs.map(n=>`<article class="npc-card">${n.id==='paper'&&paperVisual?`<img class="npc-list-portrait" src="${safe(encodeURI(paperImage(paperExpression(n))))}" alt="">`:n.id==='pyoro'?'<img class="npc-list-portrait" src="images/npc/pyoro/normal.webp" alt="">':'<div class="avatar" aria-hidden="true">✦</div>'}<div><strong>${safe(n.id==='pyoro'?'赤色の獣':n.name)}</strong><div class="muted">${safe(stateText(n))} · ${safe(n.state.activityLabel)}</div></div><button class="secondary small" data-npc="${safe(n.id)}">詳細を見る</button></article>`).join('');
+  $('#npc-list').innerHTML=data.npcs.map(n=>`<article class="npc-card">${n.id==='paper'&&paperVisual?`<img class="npc-list-portrait" src="${safe(encodeURI(paperImage(paperExpression(n))))}" alt="">`:n.id==='pyoro'?`<img class="npc-list-portrait" src="${safe(encodeURI(pyoroImage(pyoroExpression(n))))}" alt="">`:'<div class="avatar" aria-hidden="true">✦</div>'}<div><strong>${safe(n.id==='pyoro'?'赤色の獣':n.name)}</strong><div class="muted">${safe(stateText(n))} · ${safe(n.state.activityLabel)}</div></div><button class="secondary small" data-npc="${safe(n.id)}">詳細を見る</button></article>`).join('');
   $('#doors').innerHTML=data.hall.doors.map(d=>`<article class="door-card" data-door-card="${safe(d.id)}"><span class="door-glyph">◇</span><div class="door-card-copy"><strong>${safe(d.id==='forest'&&d.status==='available'?'森':d.id==='sea'&&d.status==='available'?'海':d.id==='unknown'?(d.status==='available'?'工房':'正面の扉'):d.name)}</strong>${['forest','cave','sea'].includes(d.id)?'':`<div class="muted">${d.id==='unknown'&&d.status==='available'?'料理を作れる工房です':d.id==='moon'?'商人が来るのを待っている':d.status==='available'?'入口の採取ができます':'探索機能は次の開発段階で実装'}</div>`}</div>${d.status==='available'?`<button class="secondary small" data-door="${safe(d.id)}">${d.id==='unknown'?'工房へ':'探索する'}</button>`:`<span class="tag">${['forest','sea'].includes(d.id)?'未解放':'準備中'}</span>`}</article>`).join('');
   $('#doors').querySelector('[data-door="cave"]')?.addEventListener('click',handler(()=>enterHallCave()));
   $('#doors').querySelector('[data-door="forest"]')?.addEventListener('click',handler(openForest));
@@ -630,6 +631,38 @@ async function openInventory(from='hall'){
 }
 // v0.18.1: 赤色の獣も黄色い獣と同じ見せ方。APIやNPC別データは分離したまま。
 let pyoroProfile=null,pyoroProfileTimer=null,pyoroLastLocation='';
+// v0.18.3: 既存の表情画像を状態と会話の反応に合わせて表示。
+// パスは GitHub の images/npc/pyoro/ 以下に配置済みの画像を使用。
+const pyoroExpression=(n)=>{
+ const st=n?.state||{};
+ const mood=String(st.moodLabel||'');
+ if(st.activity==='sleeping')return 'sleeping';
+ if(st.activity==='resting'||Number(st.energy)<32)return 'sleepy';
+ if(Number(st.hunger)>=85)return 'sad';
+ if(st.fullExpression||Number(st.hunger)<=15)return 'full stomach';
+ if(mood.includes('不機嫌')||mood.includes('怒'))return 'angry';
+ if(mood.includes('落ち')||mood.includes('悲')||mood.includes('元気がない'))return 'sad';
+ if(mood.includes('ご機嫌')||mood.includes('嬉')||mood.includes('上機嫌'))return 'happy';
+ return 'normal';
+};
+const pyoroImage=expression=>`images/npc/pyoro/${expression||'normal'}.webp`;
+const paintPyoro=(id,n,override)=>{
+ const img=$(id);if(!img)return;
+ const exp=override||pyoroExpression(n);
+ const target=encodeURI(pyoroImage(exp));
+ if(img.getAttribute('src')!==target)img.src=target;
+ img.onerror=()=>{img.onerror=null;if(exp!=='normal')img.src=pyoroImage('normal');};
+};
+const pyoroReplyExpression=(response)=>{
+ const t=String(response||'');
+ if(/ありがと|うれし|やった|すごい|おいし|好き|楽しい|いいな|へへ|わーい/.test(t))return 'happy';
+ if(/こわ|怖|びっくり|おどろ|ひえ|ひっ/.test(t))return 'scary';
+ if(/照れ|はずかし|恥ずかし|えへ/.test(t))return 'shy';
+ if(/怒|むっ|ぷん|ふんっ|なんだよ/.test(t))return 'angry';
+ if(/かなしい|悲し|さびし|寂し|しょんぼり/.test(t))return 'sad';
+ if(/えっへん|すごいだろ|まかせろ/.test(t))return 'pride';
+ return 'talkL';
+};
 const pyoroStateScene=n=>{
  const state=n.state||{};
  if(state.activity==='sleeping')return '赤色の獣はホールの片隅で小さく丸まり、すうすうと眠っている。時おり耳がぴくりと動く。';
@@ -656,6 +689,8 @@ const paintPyoroProfile=(n,moved=false)=>{
    return `<div class="life-item"><span>${label}</span><strong>${safe(st[key]||'確認中')}</strong></div>`;
  }).join('');
  $('#pyoro-scene').textContent=pyoroStateScene(n);
+ paintPyoro('#pyoro-profile-image',n);
+ paintPyoro('#hall-pyoro-actor img',n);
  const notice=$('#pyoro-move-notice');
  if(moved){notice.textContent=`赤色の獣は${st.locationLabel||'ホール'}へ移動しました。`;notice.classList.remove('hidden');}
  $('#pyoro-talk-open').disabled=st.activity==='sleeping';
@@ -681,8 +716,8 @@ async function openPyoro(){
  $('#pyoro-subview').classList.add('hidden');
  paintPyoroProfile(npc);
  $('#pyoro-talk-result').textContent='';$('#pyoro-feed-result').textContent='';
- $('#pyoro-history').replaceChildren();$('#pyoro-diary-entries').replaceChildren();$('#pyoro-interactions').replaceChildren();
- $('#pyoro-diary-more').classList.add('hidden');pyoroDiaryBefore='';
+ $('#pyoro-history').replaceChildren();$('#pyoro-interactions').replaceChildren();
+ pyoroDiaryEntries=[];pyoroDiaryIndex=0;pyoroDiaryHasMore=false;
  await loadPyoroTalk();await loadPyoroFood();
  await Promise.all([loadPyoroRequests(),loadPyoroGifts(),loadPyoroWords()]);
  show('pyoro');
@@ -692,13 +727,21 @@ async function openPyoro(){
    try{const {npc:updated}=await api('/npcs/pyoro');const moved=pyoroLastLocation!==updated.state.location;pyoroLastLocation=updated.state.location;paintPyoroProfile(updated,moved);}catch{}
  },15000);
 }
-for(const [id,screen] of [['#pyoro-requests-open','requests'],['#pyoro-gifts-open','gifts'],['#pyoro-diary-open','diary'],['#pyoro-feeding-open','feeding'],['#pyoro-words-open','words']])bind(id,()=>{pyoroOpenSubview(screen);if(screen==='diary')loadPyoroDiary(true).catch(e=>toast(e.message));});
+for(const [id,screen] of [['#pyoro-requests-open','requests'],['#pyoro-feeding-open','feeding']])bind(id,()=>pyoroOpenSubview(screen));
+bind('#pyoro-words-open',async()=>{await loadPyoroWords();show('pyoro-words');});
+bind('#pyoro-words-back',()=>show('pyoro-conversation'));
+bind('#pyoro-word-history-open',async()=>{await loadPyoroWords();show('pyoro-word-history');});
+bind('#pyoro-word-history-back',()=>show('pyoro-words'));
+bind('#pyoro-diary-open',async()=>{await loadPyoroDiary(true);show('pyoro-diary');});
+bind('#pyoro-diary-back',openPyoro);
+bind('#pyoro-gifts-open',async()=>{await loadPyoroGifts();show('pyoro-gifts');});
+bind('#pyoro-gifts-back',openPyoro);
 const openPyoroConversation=async()=>{
  const {npc}=await api('/npcs/pyoro');
  paintPyoroProfile(npc);
  const background=$('#pyoro-conversation-background');
  applyImageFallback(background,hallBackgroundFiles(hallBackgroundName()),'pyoroConversationBackground');
- $('#pyoro-conversation-image').src='images/npc/pyoro/normal.webp';
+ paintPyoro('#pyoro-conversation-image',npc);
  $('#pyoro-conversation-scene').textContent=pyoroStateScene(npc);
  $('#pyoro-talk-result').textContent='「……なんだ？ オレに話があるのか？」';
  $('#pyoro-talk-history-details').open=false;
@@ -716,7 +759,7 @@ for(const [id,action] of [['#pyoro-rest-btn','rest'],['#pyoro-wake-btn','wake']]
 });
 let pyoroBusy=false;
 const paintPyoroTalkUsage=u=>{$('#pyoro-ai-usage').textContent=`今日のAI会話：${u.used} / ${u.limit}回`;};
-const pyoroReply=r=>{ $('#pyoro-talk-result').textContent=r.response+(r.affinityChange?`（親密度 +${r.affinityChange}pt）`:'');paintPyoroProfile(r.npc);$('#pyoro-conversation-scene').textContent=pyoroStateScene(r.npc);paintPyoroTalkUsage(r.usage);};
+const pyoroReply=r=>{ $('#pyoro-talk-result').textContent=r.response+(r.affinityChange?`（親密度 +${r.affinityChange}pt）`:'');paintPyoroProfile(r.npc);paintPyoro('#pyoro-conversation-image',r.npc,pyoroReplyExpression(r.response));$('#pyoro-conversation-scene').textContent=pyoroStateScene(r.npc);paintPyoroTalkUsage(r.usage);};
 const pyoroAction=async(path,body)=>{if(pyoroBusy)return;pyoroBusy=true;try{const r=await api(path,'POST',body);pyoroReply(r);return r;}finally{pyoroBusy=false;}};
 const loadPyoroTalk=async()=>{const data=await api('/npcs/pyoro/conversation/options');paintPyoroTalkUsage(data.usage);const list=$('#pyoro-talk-options');list.replaceChildren();for(const t of data.choices){const b=document.createElement('button');b.className='secondary';b.textContent=t.label;b.onclick=handler(async()=>{const r=await pyoroAction('/npcs/pyoro/conversation',{choice:t.id});if(r)await loadPyoroTalk();});list.append(b);}};
 $('#pyoro-ai-form').addEventListener('submit',handler(async e=>{e.preventDefault();const field=$('#pyoro-ai-message');const r=await pyoroAction('/npcs/pyoro/ai/chat',{message:field.value});if(r)field.value='';}));
@@ -725,7 +768,7 @@ const renderPyoroFood=data=>{
  const n=data.npc;paintPyoroProfile(n);
  const list=$('#pyoro-feed-list');list.replaceChildren();
  if(!data.canFeed){list.textContent=n.state.activity==='sleeping'?'眠っています。':'おなかいっぱいです。';return;}
- for(const kind of ['meal','snack']){const h=document.createElement('h3');h.textContent=kind==='meal'?'ごはん':'おやつ';list.append(h);const items=data.items.filter(x=>x.kind===kind);if(!items.length){const p=document.createElement('p');p.textContent='渡せる素材がありません。';list.append(p);}for(const item of items){const b=document.createElement('button');b.className='secondary';b.textContent=`${item.name} ×${item.quantity}（空腹 -${item.restore}）`;b.onclick=handler(async()=>{if(pyoroBusy)return;pyoroBusy=true;try{const r=await api('/npcs/pyoro/feeding','POST',{itemId:item.id});$('#pyoro-feed-result').textContent=r.message+(r.affinityChange?`（親密度 +${r.affinityChange}pt）`:'');renderPyoroFood(r);}finally{pyoroBusy=false;}});list.append(b);}}
+ for(const kind of ['meal','snack']){const h=document.createElement('h3');h.textContent=kind==='meal'?'ごはん':'おやつ';list.append(h);const items=data.items.filter(x=>x.kind===kind);if(!items.length){const p=document.createElement('p');p.textContent='渡せる素材がありません。';list.append(p);}for(const item of items){const b=document.createElement('button');b.className='secondary';b.textContent=`${item.name} ×${item.quantity}（空腹 -${item.restore}）`;b.onclick=handler(async()=>{if(pyoroBusy)return;pyoroBusy=true;try{const r=await api('/npcs/pyoro/feeding','POST',{itemId:item.id});$('#pyoro-feed-result').textContent=r.message+(r.affinityChange?`（親密度 +${r.affinityChange}pt）`:'');renderPyoroFood(r);paintPyoro('#pyoro-profile-image',r.npc,r.expression||'happy');}finally{pyoroBusy=false;}});list.append(b);}}
 };
 const loadPyoroFood=async()=>{const data=await api('/npcs/pyoro/feeding');renderPyoroFood(data);};
 
@@ -779,20 +822,32 @@ async function loadPyoroRequests(){
   if(!r.history.length)history.textContent='まだ記録はありません。';
 }
 async function loadPyoroGifts(){
- const data=await api('/npcs/pyoro/gifts');const inbox=$('#pyoro-gift-inbox'),history=$('#pyoro-gift-history');inbox.replaceChildren();history.replaceChildren();
+ const data=await api('/npcs/pyoro/gifts');const inbox=$('#pyoro-gift-inbox'),history=$('#pyoro-gift-history'),inventory=$('#pyoro-gift-inventory');inbox.replaceChildren();history.replaceChildren();inventory.replaceChildren();
  const present=g=>{const card=pyoroRequestCard(g.name,g.description);if(g.image){const image=document.createElement('img');image.src=encodeURI(g.image);image.alt='';image.loading='lazy';image.style.cssText='width:100%;max-width:230px;border-radius:12px;display:block;margin:8px 0;';card.append(image);}return card;};
  for(const g of data.inbox){const card=present(g);
-  if(g.ready){const btn=document.createElement('button');btn.className='primary small';btn.textContent='プレゼントを受け取る';btn.onclick=handler(async()=>{if(pyoroGiftBusy)return;pyoroGiftBusy=true;try{const r=await api('/npcs/pyoro/gifts/claim','POST',{giftId:g.id});pyoroStatus('#pyoro-gift-message',r.reply);await loadPyoroGifts();}finally{pyoroGiftBusy=false;}});card.append(btn);}
+  if(g.ready){const btn=document.createElement('button');btn.className='primary small';btn.textContent='プレゼントを受け取る';btn.onclick=handler(async()=>{if(pyoroGiftBusy)return;pyoroGiftBusy=true;try{const r=await api('/npcs/pyoro/gifts/claim','POST',{giftId:g.id});pyoroStatus('#pyoro-gift-message',r.reply);paintPyoro('#pyoro-profile-image',pyoroProfile,'happy');await loadPyoroGifts();}finally{pyoroGiftBusy=false;}});card.append(btn);}
   else {const p=document.createElement('p');p.className='muted tiny';p.textContent='まだ作っているところみたい。';card.append(p);}
   inbox.append(card);
  }
  if(!data.inbox.length)inbox.textContent='今は届いているプレゼントはありません。';
- for(const g of data.history)history.append(present(g));
+ for(const g of data.history.slice(0,5))history.append(present(g));
  if(!data.history.length)history.textContent='まだ受け取ったものはありません。';
+ for(const g of data.inventory||[]){const row=document.createElement('article');row.className='request-card';const text=document.createElement('strong');text.textContent=`${g.name||g.itemId||'記念品'} ×${g.quantity||1}`;row.append(text);if(g.image){const img=document.createElement('img');img.src=encodeURI(g.image);img.alt='';img.loading='lazy';img.style.cssText='width:100%;max-width:150px;border-radius:10px;margin-top:8px;';row.append(img);}inventory.append(row);}
+ if(!data.inventory?.length)inventory.textContent='まだ受け取った記念品はありません。';
 }
 async function loadPyoroWords(){
  const data=await api('/npcs/pyoro/words');const list=$('#pyoro-word-list');list.replaceChildren();
- for(const w of data.words){const p=document.createElement('p');p.className='muted tiny';p.textContent=`${w.word}：${w.meaning}（${w.lessons}回教わった）`;list.append(p);}
+ $('#pyoro-word-count').textContent=`（${data.words.length}こ）`;
+ for(const w of data.words){
+  const card=document.createElement('article');card.className='request-card';
+  const title=document.createElement('strong');title.textContent=w.word;card.append(title);
+  for(const line of [`意味：${w.meaning}`,`使うとき：${w.usage}`,`教わった回数：${w.lessons}回`]){
+   const p=document.createElement('p');p.className='muted tiny';p.textContent=line;card.append(p);
+  }
+  const b=document.createElement('button');b.className='secondary small';b.type='button';b.textContent='この言葉を教え直す';
+  b.onclick=()=>{$('#pyoro-word').value=w.word;$('#pyoro-meaning').value=w.meaning;$('#pyoro-usage').value=w.usage;show('pyoro-words');$('#pyoro-meaning').focus();};
+  card.append(b);list.append(card);
+ }
  if(!data.words.length)list.textContent='まだ覚えた言葉はありません。';
 }
 $('#pyoro-word-form').addEventListener('submit',handler(async e=>{
@@ -801,27 +856,40 @@ $('#pyoro-word-form').addEventListener('submit',handler(async e=>{
  finally{button.disabled=false;}
 }));
 let pyoroDiaryBefore='',pyoroDiaryLoading=false;
+let pyoroDiaryEntries=[],pyoroDiaryIndex=0,pyoroDiaryHasMore=false;
+const paintPyoroDiary=()=>{
+ const e=pyoroDiaryEntries[pyoroDiaryIndex];
+ $('#pyoro-diary-empty').classList.toggle('hidden',!!e);
+ $('#pyoro-diary-paper').classList.toggle('hidden',!e);
+ $('#pyoro-diary-navigation').classList.toggle('hidden',!e);
+ if(!e)return;
+ const [y,m,d]=e.day.split('-').map(Number),weekday='にち げつ か すい もく きん ど'.split(' ')[new Date(Date.UTC(y,m-1,d)).getUTCDay()];
+ $('#pyoro-diary-date').textContent=`${y}ねん ${m}がつ${d}にち ${weekday}ようび`;
+ $('#pyoro-diary-weather').textContent=e.weather==='clear'?'☀ はれ':'☁ くもり';
+ $('#pyoro-diary-body').textContent=e.body;
+ $('#pyoro-diary-prev').disabled=pyoroDiaryLoading||(pyoroDiaryIndex===pyoroDiaryEntries.length-1&&!pyoroDiaryHasMore);
+ $('#pyoro-diary-latest').disabled=pyoroDiaryIndex===0;
+ $('#pyoro-diary-next').disabled=pyoroDiaryIndex===0;
+};
 const loadPyoroDiary=async(reset=true)=>{
  if(pyoroDiaryLoading)return;
  pyoroDiaryLoading=true;
- const more=$('#pyoro-diary-more');more.disabled=true;
  try{
-  const path='/npcs/pyoro/diary'+(!reset&&pyoroDiaryBefore?'?before='+encodeURIComponent(pyoroDiaryBefore):'');
-  const {entries,hasMore}=await api(path);
-  const list=$('#pyoro-diary-entries');if(reset)list.replaceChildren();
-  for(const entry of entries){
-   const card=document.createElement('article');card.className='scene';
-   const title=document.createElement('strong');title.textContent=entry.day+' ／ '+(entry.weather==='clear'?'☀ はれ':'☁ くもり');
-   const body=document.createElement('p');body.style.whiteSpace='pre-line';body.textContent=entry.body;
-   card.append(title,body);list.append(card);
-  }
-  if(reset&&!entries.length)list.textContent='日記はまだありません。';
-  if(entries.length)pyoroDiaryBefore=entries[entries.length-1].day;
-  more.classList.toggle('hidden',!hasMore);
- }finally{pyoroDiaryLoading=false;more.disabled=false;}
+  const before=reset?'':pyoroDiaryEntries.at(-1)?.day;
+  const path='/npcs/pyoro/diary'+(before?'?before='+encodeURIComponent(before):'');
+  const {entries=[],hasMore=false}=await api(path);
+  if(reset){pyoroDiaryEntries=entries;pyoroDiaryIndex=0;}else pyoroDiaryEntries.push(...entries);
+  pyoroDiaryHasMore=hasMore;
+ }finally{pyoroDiaryLoading=false;paintPyoroDiary();}
 };
-bind('#pyoro-diary-load',()=>loadPyoroDiary(true));
-bind('#pyoro-diary-more',()=>loadPyoroDiary(false));
+bind('#pyoro-diary-prev',async()=>{
+ if(pyoroDiaryLoading)return;
+ if(pyoroDiaryIndex===pyoroDiaryEntries.length-1&&pyoroDiaryHasMore)await loadPyoroDiary(false);
+ if(pyoroDiaryIndex<pyoroDiaryEntries.length-1)pyoroDiaryIndex++;
+ paintPyoroDiary();
+});
+bind('#pyoro-diary-latest',()=>{pyoroDiaryIndex=0;paintPyoroDiary();});
+bind('#pyoro-diary-next',()=>{pyoroDiaryIndex=Math.max(0,pyoroDiaryIndex-1);paintPyoroDiary();});
 bind('#pyoro-interactions-load',async()=>{
  const data=await api('/npcs/pyoro/interactions'),list=$('#pyoro-interactions');list.replaceChildren();
  for(const i of data.interactions){const p=document.createElement('p');p.className='scene';p.textContent=i.day+'　'+i.summary+'\n'+i.pyoro_view;list.append(p);}

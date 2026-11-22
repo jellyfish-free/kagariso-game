@@ -65,7 +65,7 @@
   }
 </style>
   <script src="data/sea-items.js?v=0.17.0.3" defer></script>
-  <script src="script.js?v=0.18.2" defer></script>
+  <script src="script.js?v=0.18.3" defer></script>
   <script src="data/cooking.js?v=0.18.2" defer></script>
   <script src="data/sea-game.js?v=0.17.1.5" defer></script>
 <style>
@@ -103,6 +103,13 @@
 #pyoro-conversation-page .ai-chat-block button{width:100%;margin-top:10px;}
 #pyoro-conversation-page .speech{margin-bottom:14px;}
 #pyoro-conversation-page .conversation-paper-image{object-fit:contain;}
+</style>
+<style>
+/* v0.18.3: 赤色の獣の言葉帳・日記・贈り物は黄色い獣と同じサイズ */
+#pyoro-words-page input,#pyoro-words-page textarea{width:100%;max-width:100%;box-sizing:border-box}
+#pyoro-word-history-page .request-card{margin-bottom:12px}
+#pyoro-diary-page .diary-paper{white-space:normal}
+#pyoro-diary-page #pyoro-diary-body{white-space:pre-line}
 </style>
 </head>
 <body>
@@ -318,12 +325,77 @@
       <div class="pyoro-subview-top"><button id="pyoro-subview-back" class="back" type="button">← プロフィールに戻る</button><h2 id="pyoro-subview-title"></h2></div>
       <div id="pyoro-panel-feeding" class="pyoro-detail-panel hidden"><h3>ごはん・おやつ</h3><p id="pyoro-feed-result" role="status"></p><div id="pyoro-feed-list" class="choice-list"></div></div>
       <section id="pyoro-panel-requests" class="pyoro-detail-panel hidden"><div id="pyoro-request-section"><h3>赤色の獣のお願い</h3><p id="pyoro-request-status" class="muted tiny"></p><p id="pyoro-request-message" class="scene hidden" role="status"></p><h3>受注中</h3><div id="pyoro-request-active" class="choice-list"></div><h3>今日のお願い</h3><div id="pyoro-request-offers" class="choice-list"></div><details><summary>これまでのお願い</summary><div id="pyoro-request-history"></div></details></div></section>
-      <section id="pyoro-panel-gifts" class="pyoro-detail-panel hidden"><div id="pyoro-gift-section"><h3>赤色の獣からのプレゼント</h3><p id="pyoro-gift-message" class="scene hidden" role="status"></p><div id="pyoro-gift-inbox" class="choice-list"></div><details><summary>受け取ったプレゼント</summary><div id="pyoro-gift-history" class="choice-list"></div></details></div></section>
-      <section id="pyoro-panel-diary" class="pyoro-detail-panel hidden"><div id="pyoro-diary-section"><h3>赤色の獣の日記</h3><p class="muted tiny">毎日の記録を赤色の獣の視点で読み返せます。</p><button id="pyoro-diary-load" class="secondary" type="button">日記を見る</button><div id="pyoro-diary-entries" class="choice-list"></div><button id="pyoro-diary-more" class="secondary small hidden" type="button">前の日記を読む</button><details><summary>黄色い獣との出来事</summary><button id="pyoro-interactions-load" class="secondary" type="button">交流を読み返す</button><div id="pyoro-interactions" class="choice-list"></div></details></div></section>
-      <section id="pyoro-panel-words" class="pyoro-detail-panel hidden"><div id="pyoro-word-section"><h3>赤色の獣に言葉を教える</h3><p class="muted tiny">赤色の獣だけの言葉帳に記録されます。</p><form id="pyoro-word-form"><label for="pyoro-word">言葉</label><input id="pyoro-word" maxlength="24" required><label for="pyoro-meaning">意味</label><input id="pyoro-meaning" maxlength="120" required><label for="pyoro-usage">使い方</label><input id="pyoro-usage" maxlength="120" required><button type="submit" class="primary">言葉を教える</button></form><p id="pyoro-word-message" class="scene hidden" role="status"></p><details open><summary>覚えた言葉</summary><div id="pyoro-word-list"></div></details></div></section>
     </section>
   </div>
 </section>
+
+<!-- v0.18.3: 赤色の獣の言葉帳 / 日記 / 贈り物を黄色い獣と同じ独立画面へ -->
+<section id="pyoro-words-page" class="page hidden narrow">
+  <button id="pyoro-words-back" class="back" type="button">← お話に戻る</button>
+  <div class="panel">
+    <span class="eyebrow">WORDS WE LEARN TOGETHER</span>
+    <h1>赤色の獣の言葉帳</h1>
+    <p class="muted">みんなで教えた言葉を、赤色の獣が少しずつおぼえます。</p>
+    <div id="pyoro-word-section">
+      <p id="pyoro-word-message" class="notice hidden" role="status" aria-live="polite"></p>
+      <form id="pyoro-word-form">
+        <h2>言葉を教える</h2>
+        <label for="pyoro-word">教えたい言葉（24文字まで）</label>
+        <input id="pyoro-word" maxlength="24" required placeholder="例：おつかれ">
+        <label for="pyoro-meaning">どんな意味？（120文字まで）</label>
+        <textarea id="pyoro-meaning" maxlength="120" rows="2" required placeholder="例：がんばった人にかける言葉"></textarea>
+        <label for="pyoro-usage">どんなときに使う？（120文字まで）</label>
+        <textarea id="pyoro-usage" maxlength="120" rows="2" required placeholder="例：おしごとが終わったとき"></textarea>
+        <p class="muted tiny">教えた言葉は赤色の獣の言葉帳に記録されます。個人情報は入力しないでね。</p>
+        <button type="submit" class="primary">赤色の獣に教える</button>
+      </form>
+      <button id="pyoro-word-history-open" type="button" class="secondary">言葉帳・学習履歴を見る</button>
+    </div>
+  </div>
+</section>
+<section id="pyoro-word-history-page" class="page hidden narrow">
+  <button id="pyoro-word-history-back" class="back" type="button">← 言葉を教える画面へ</button>
+  <div class="panel">
+    <span class="eyebrow">WORDS WE LEARN TOGETHER</span><h1>赤色の獣の言葉帳</h1>
+    <h2>おぼえた言葉 <span id="pyoro-word-count" class="muted tiny"></span></h2>
+    <div id="pyoro-word-list" class="request-list"></div>
+  </div>
+</section>
+<section id="pyoro-diary-page" class="page hidden narrow">
+  <button id="pyoro-diary-back" class="back" type="button">← プロフィールへ戻る</button>
+  <div class="panel">
+    <span class="eyebrow">THE LITTLE BEAST'S DIARY</span><h1>赤色の獣の日記</h1>
+    <p id="pyoro-diary-empty" class="muted">まだ日記はありません。夜に日記を書くよ。</p>
+    <article id="pyoro-diary-paper" class="diary-paper hidden">
+      <div class="diary-date"><span id="pyoro-diary-date"></span><span id="pyoro-diary-weather"></span></div>
+      <h2>オレのにっき</h2><p id="pyoro-diary-body"></p>
+    </article>
+    <div id="pyoro-diary-navigation" class="diary-navigation hidden">
+      <button id="pyoro-diary-prev" class="secondary small" type="button">← 前の日</button>
+      <button id="pyoro-diary-latest" class="secondary small" type="button">最新の日記</button>
+      <button id="pyoro-diary-next" class="secondary small" type="button">次の日 →</button>
+    </div>
+    <details><summary>黄色い獣との出来事</summary>
+      <button id="pyoro-interactions-load" class="secondary" type="button">交流を読み返す</button>
+      <div id="pyoro-interactions" class="request-list"></div>
+    </details>
+  </div>
+</section>
+<section id="pyoro-gifts-page" class="page hidden narrow">
+  <button id="pyoro-gifts-back" class="back" type="button">← プロフィールへ戻る</button>
+  <div class="panel">
+    <span class="eyebrow">GIFTS FROM PYORO</span><h1>贈り物</h1>
+    <p class="muted">準備中の贈り物は完成まで保管されます。受取期限はありません。</p>
+    <div id="pyoro-gift-section">
+      <p id="pyoro-gift-message" class="notice hidden" role="status" aria-live="polite"></p>
+      <div class="section-top"><h2>贈り物</h2></div>
+      <div id="pyoro-gift-inbox" class="request-list"></div>
+      <details class="gift-collapsible"><summary>もらった記念品</summary><div id="pyoro-gift-inventory" class="request-list details-content"></div></details>
+      <details class="gift-collapsible"><summary>受け取り履歴（最新5件）</summary><div id="pyoro-gift-history" class="request-list details-content"></div></details>
+    </div>
+  </div>
+</section>
+
 <section id="pyoro-conversation-page" class="page hidden narrow">
   <div class="conversation-back-links">
     <button id="pyoro-conversation-back" class="back" type="button">← プロフィールへ</button>
@@ -623,7 +695,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.2</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.3</span></footer>
   </div>
 </body>
 </html>
