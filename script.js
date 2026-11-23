@@ -317,9 +317,11 @@ const lentImageFiles=new Set(['normal.webp','sleeping.webp','lentNothing.webp','
 function renderLent(p){
  const image=String(p.image||'').split('/').pop();
  $('#lent-scene').src='images/npc/lent/'+(lentImageFiles.has(image)?image:'normal.webp');
- $('#lent-relation').textContent=p.relationship+'　'+('♥'.repeat(p.hearts))+'♡'.repeat(Math.max(0,10-p.hearts));
+ // 親密度ptや日次上限はUIで公開せず、獣たちと同じハートを控えめに表示。
+ $('#lent-hearts').textContent='♥'.repeat(p.hearts)+'♡'.repeat(Math.max(0,10-p.hearts));
+ $('#lent-hearts').setAttribute('aria-label',`親密度 ♡${p.hearts}`);
+ $('#lent-relation').textContent=`あなたとの関係：${p.relationship}`;
  $('#lent-state').textContent=p.activityLabel;
- $('#lent-affinity').textContent=`親密度 ${p.points}pt｜今日の獲得 ${p.affinityToday} / ${p.affinityLimit}pt`;
  $('#lent-wake').classList.toggle('hidden',!p.canWake);
  $('#lent-conversation').classList.toggle('hidden',!p.aiUnlocked);
  $('#lent-chat-locked').classList.toggle('hidden',!!p.aiUnlocked);
@@ -2035,6 +2037,25 @@ async function checkGameNotifications(){
   const badge=$('#gift-ready-badge');badge.textContent=data.readyCount?`(${data.readyCount})`:'';badge.classList.toggle('hidden',!data.readyCount);
   const key=notificationKey()+':seen';let seen=[];try{seen=JSON.parse(localStorage.getItem(key)||'[]');}catch{}if(!Array.isArray(seen))seen=[];
   const known=new Set(seen),prefs=notificationPrefs();
+  // v0.18.7.1: 月の扉は住人全員の共同達成。解放時刻ごとに本人の端末に一度知らせる。
+  // 通知履歴は住人ID別で管理し、既存の贈り物・探索通知を妨げない。
+  if(data.moon?.unlockedAt){
+    const moonKey=`kagariso-moon-unlocked-v0.18.7.1:${id}`;
+    if(localStorage.getItem(moonKey)!==data.moon.unlockedAt){
+      localStorage.setItem(moonKey,data.moon.unlockedAt);
+      pushGameNotice('誰かが料理50種類を完成させた！ ホールの月の扉が開いたようです。',openMoonDoor,'月の扉へ','あとで行く');
+      if(activePage==='hall'){
+        moonDoorUnlocked=true;
+        positionHallCaveDoor();
+        const moonCard=$('#doors').querySelector('[data-door-card="moon"]');
+        if(moonCard){moonCard.querySelector('.tag')?.remove();
+          if(!moonCard.querySelector('[data-door="moon"]')){
+            const b=document.createElement('button');b.type='button';b.className='secondary small';b.dataset.door='moon';b.textContent='月の扉へ';b.addEventListener('click',handler(openMoonDoor));moonCard.append(b);
+          }
+        }
+      }
+    }
+  }
   if(data.forest?.unlocked&&data.forest.eligible&&!data.forest.seen){
     if(activePage==='hall'){updateForestHall(data.forest);showForestEvent(false);}
     else if(!['forest-event','forest'].includes(activePage)&&prefs.cave){
