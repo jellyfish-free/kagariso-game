@@ -14,7 +14,7 @@ let pendingRecovery='';
 let inventoryReturn='hall';
 let gathering=false;
 let npcReturn='hall', mandatoryStory=false;
-const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-diary','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor','forest-event','forest','forest-area','forest-memories','sea','sea-event','pyoro','pyoro-conversation','pyoro-history','pyoro-feeding','pyoro-requests','pyoro-words','pyoro-word-history','pyoro-diary','pyoro-gifts','workshop','cooking','cooking-recipe','moon','greenhouse'];
+const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-diary','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor','forest-event','forest','forest-area','forest-memories','sea','sea-event','pyoro','pyoro-conversation','pyoro-history','pyoro-feeding','pyoro-requests','pyoro-words','pyoro-word-history','pyoro-diary','pyoro-gifts','pair-memories','workshop','cooking','cooking-recipe','moon','greenhouse'];
 let activePage='';
 const show=(name)=>{
   const changed=activePage!==name; activePage=name;
@@ -896,7 +896,7 @@ let pyoroBusy=false;
 const paintPyoroTalkUsage=u=>{const title=$('#pyoro-ai-remaining');if(title)title.textContent=`自由に話しかける（${u.used}/${u.limit}回）`;};
 const pyoroReply=r=>{ $('#pyoro-talk-result').textContent=r.response+(r.affinityChange?`（親密度 +${r.affinityChange}pt）`:'');paintPyoroProfile(r.npc);paintPyoro('#pyoro-conversation-image',r.npc,pyoroReplyExpression(r.response));$('#pyoro-conversation-scene').textContent=pyoroStateScene(r.npc);paintPyoroTalkUsage(r.usage);};
 const pyoroAction=async(path,body)=>{if(pyoroBusy)return;pyoroBusy=true;try{const r=await api(path,'POST',body);pyoroReply(r);return r;}finally{pyoroBusy=false;}};
-const loadPyoroTalk=async()=>{const data=await api('/npcs/pyoro/conversation/options');paintPyoroTalkUsage(data.usage);const list=$('#pyoro-talk-options');list.replaceChildren();for(const t of data.choices){const b=document.createElement('button');b.className='secondary';b.textContent=t.label;b.onclick=handler(async()=>{const r=await pyoroAction('/npcs/pyoro/conversation',{choice:t.id});if(r)await loadPyoroTalk();});list.append(b);}};
+const loadPyoroTalk=async()=>{const data=await api('/npcs/pyoro/conversation/options');paintPyoroTalkUsage(data.usage);const list=$('#pyoro-talk-options');list.replaceChildren();for(const t of data.choices){const b=document.createElement('button');b.className='secondary';b.textContent=t.disabled?'挨拶する（この時間帯は挨拶済み）':t.label;b.disabled=!!t.disabled;b.onclick=handler(async()=>{const r=await pyoroAction('/npcs/pyoro/conversation',{choice:t.id});if(r)await loadPyoroTalk();});list.append(b);}};
 $('#pyoro-ai-form').addEventListener('submit',handler(async e=>{e.preventDefault();const field=$('#pyoro-ai-message');const r=await pyoroAction('/npcs/pyoro/ai/chat',{message:field.value});if(r)field.value='';}));
 // v0.18.5: 黄色い獣の呼び名入力と同じ操作。住人ごと・NPCごとにD1保存。
 $('#pyoro-name-form').addEventListener('submit',handler(async e=>{
@@ -1202,17 +1202,27 @@ bind('#pyoro-diary-latest',()=>{pyoroDiaryIndex=0;diaryCalendarMonths.pyoro=pyor
 bind('#pyoro-diary-next',()=>{pyoroDiaryIndex=Math.max(0,pyoroDiaryIndex-1);paintPyoroDiary();});
 for(const [delta,part] of [[-1,'prev'],[1,'next']])bind('#pyoro-calendar-'+part,()=>{shiftDiaryMonth('pyoro',delta);paintPyoroDiary();});
 bind('#pyoro-calendar-more',()=>loadPyoroDiary(false));
-bind('#paper-interactions-load',async()=>{
- const list=$('#paper-interactions');list.textContent='読み込み中……';
- const data=await api('/npcs/paper/interactions');list.replaceChildren();
- for(const i of data.interactions||[]){const p=document.createElement('p');p.className='scene';p.textContent=i.day+'　'+i.summary+'\n'+i.paper_view;list.append(p);}
- if(!data.interactions?.length)list.textContent='2匹の思い出はまだありません。';
-});
-bind('#pyoro-interactions-load',async()=>{
- const data=await api('/npcs/pyoro/interactions'),list=$('#pyoro-interactions');list.replaceChildren();
- for(const i of data.interactions){const p=document.createElement('p');p.className='scene';p.textContent=i.day+'　'+i.summary+'\n'+i.pyoro_view;list.append(p);}
- if(!data.interactions.length)list.textContent='2匹の思い出はまだありません。';
-});
+let pairMemoriesFrom='npc-diary';
+const openPairMemories=async(npc)=>{
+ pairMemoriesFrom=npc==='paper'?'npc-diary':'pyoro-diary';
+ const paper=npc==='paper',list=$('#pair-memories-list');
+ $('#pair-memories-heading').textContent=paper?'黄色い獣と赤色の獣の交流':'赤色の獣と黄色い獣の交流';
+ $('#pair-memories-subtitle').textContent=paper?'黄色い獣の視点で振り返る出来事':'赤色の獣の視点で振り返る出来事';
+ list.textContent='読み込み中……';show('pair-memories');
+ try{
+  const data=await api(paper?'/npcs/paper/interactions':'/npcs/pyoro/interactions');
+  list.replaceChildren();
+  for(const entry of data.interactions||[]){
+   const scene=document.createElement('article');scene.className='scene';
+   scene.textContent=[entry.day,entry.summary, paper?entry.paper_view:entry.pyoro_view].filter(Boolean).join('\n');
+   list.append(scene);
+  }
+  if(!list.children.length)list.textContent='2匹の思い出はまだありません。';
+ }catch(error){list.textContent=error.message||'交流を読み込めませんでした。';}
+};
+bind('#paper-interactions-open',()=>openPairMemories('paper'));
+bind('#pyoro-interactions-open',()=>openPairMemories('pyoro'));
+bind('#pair-memories-back',()=>show(pairMemoriesFrom));
 bind('#pyoro-back',openHall);
 bind('#pyoro-open-kitchen',openCookingFromProfile);
 bind('#paper-open-kitchen',openCookingFromProfile);
@@ -1450,24 +1460,6 @@ async function openNpcGifts(from='hall',message=''){
  $('#mail-npc-section').classList.toggle('hidden',!onlyPaper&&!data.npcUnlocked);
  const inbox=$('#npc-gifts-inbox'),inventory=$('#npc-gifts-inventory'),history=$('#npc-gifts-history');
  const addGiftImage=(container,gift)=>{if(!gift.image)return;const img=document.createElement('img');img.className='npc-gift-image';img.alt=gift.name||'返礼品';img.loading='lazy';img.src=encodeURI(gift.image);img.onerror=()=>img.remove();container.insertBefore(img,container.firstChild);};
- const redSection=$('#mail-pyoro-section');redSection.classList.add('hidden');
- if(!onlyPaper && frontCookingUnlocked){
-  try{
-   const red=await api('/npcs/pyoro/gifts');
-   redSection.classList.remove('hidden');
-   const redList=$('#mail-pyoro-inbox');redList.replaceChildren();
-   for(const gift of red.inbox||[]){
-    const ready=!!gift.ready;
-    const card=giftCard(ready?gift.name:'赤色の獣がお礼を準備中',ready?'贈り主：赤色の獣 ・ 受け取りできます':`贈り主：赤色の獣 ・ 完成予定：${giftDate(gift.readyAt)}（日本時間）`);
-    if(ready){
-      const btn=document.createElement('button');btn.type='button';btn.className='primary small';btn.textContent='受け取る';
-      btn.addEventListener('click',handler(async()=>{btn.disabled=true;try{await api('/npcs/pyoro/gifts/claim','POST',{giftId:gift.id});await openNpcGifts('hall','赤色の獣からの贈り物を受け取りました。');}finally{btn.disabled=false;}}));card.append(btn);
-    }else{const p=document.createElement('p');p.className='muted';p.textContent='赤色の獣が頑張って作っています。完成を待ってね。';card.append(p);}
-    redList.append(card);
-   }
-   giftEmpty(redList,'赤色の獣から届いている贈り物はありません。');
-  }catch(e){console.warn('赤色の獣の通信箱を取得できませんでした',e);}
- }
  const common=$('#gifts-common-sections');common.classList.toggle('hidden',onlyPaper);
  $('#gifts-heading').textContent=onlyPaper?'贈り物':'通信箱';
  $('#gifts-eyebrow').textContent=onlyPaper?'GIFTS FROM PAPER':'YOUR MAILBOX';
