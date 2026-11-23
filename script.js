@@ -1143,8 +1143,9 @@ function renderConversationChoices(options){
         const data=await api('/npcs/paper/conversation','POST',{choice:opt.id});
         currentNpc=data.npc;updateConversationBackground();paintPaper('#conversation-paper-image',data.npc);
         $('#speech-line').textContent=data.response;
-        $('#conversation-result').textContent=data.affinityChange?'黄色い獣と、すこしずつ親しくなっているようです。':'黄色い獣はあなたとの会話を楽しんでいるようです。';
-        $('#conversation-result').classList.remove('hidden');
+        // v0.18.5.21: 選択式会話の下に親密度の説明通知を出さない。
+        // 会話の反応文と親密度の更新処理はそのまま維持する。
+        $('#conversation-result').classList.add('hidden');
         renderConversationChoices(data.choices);
       }catch(err){
         try{const menu=await api('/npcs/paper/conversation/options');renderConversationChoices(menu.choices);}catch{}
