@@ -53,7 +53,7 @@ const renderRecipeDetail=()=>{
 const paintList=()=>{
  const category=$('cooking-filter').value,search=$('cooking-search').value.trim().toLowerCase();
  $('cooking-progress').textContent=`レシピ：${state.completedCount} / ${state.total} 種類`;
- $('cooking-moon').textContent=state.moonUnlocked?'🌙 月の扉が解放された！':'';
+ // 月の扉解放はホール通知で案内する。料理画面では表示しない。
  const recipes=state.recipes.filter(r=>(category==='all'||r.category===category)&&r.name.toLowerCase().includes(search));
  if(!recipes.some(r=>r.id===selectedRecipeId))selectedRecipeId=null;
  $('cooking-recipes').innerHTML=recipes.map(r=>{
@@ -185,7 +185,7 @@ const finalizeCooking=async()=>{
   const photo=$('cooking-completion-image');photo.hidden=!r.image;
   if(r.image){photo.src=r.image;photo.onerror=()=>{photo.hidden=true;};}
   $('cooking-completion').classList.remove('hidden');
-  notice(r.moonUnlocked?'🌙 月の扉が解放された！':'');
+  notice('');
   requestAnimationFrame(()=>$('cooking-completion-title').scrollIntoView({block:'start',behavior:'instant'}));
  }catch(e){
   notice('完成処理を確認できませんでした：'+e.message);
