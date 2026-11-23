@@ -134,3 +134,13 @@
 #cooking-page .cooking-tap-record.is-miss{
   background:none;border-left-color:#f3a1a3;
 }
+
+/* v0.18.7.5 調理UI：操作ボタンとゲージを適度に離す */
+#cooking-page #cooking-stage-title{display:none!important}
+#cooking-page .cooking-tap-status{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 14px}
+#cooking-page .cooking-tap-status .tiny{font-size:.76rem;font-weight:400}
+#cooking-page .cooking-tap-button{margin-top:32px;min-height:76px}
+#cooking-page .cooking-hold-button{margin-top:33px;min-height:76px}
+#cooking-page .cooking-hold-legend{margin-bottom:10px}
+#cooking-page .cooking-hold-success-zone{left:18.57%;width:21.43%}
+#cooking-page .cooking-timing{margin-top:12px;margin-bottom:0}

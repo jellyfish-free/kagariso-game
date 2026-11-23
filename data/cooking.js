@@ -6,7 +6,8 @@ let selectedRecipeId=null,lastCompletedRecipeId=null;
 let state=null,session=null,busy=false,fullDeck=null,holdBusy=false,holdStartPending=false,holdWantRelease=false,clockOffset=0,anim=0,autoCompleting=false,completionTimer=0,stageAdvanceTimer=0;
 const TAP_ONE_WAY_MS=2500,TAP_TOTAL_MS=TAP_ONE_WAY_MS*2*3;
 // Workerの長押し成功範囲 (850～2400ms) に合わせて、3.5秒でゲージ最大。
-const HOLD_MAX_MS=3500,HOLD_SUCCESS_START_MS=850,HOLD_SUCCESS_END_MS=2400;
+const HOLD_MAX_MS=3500;
+const holdRange=()=>{const start=650+Math.round(Math.max(0,Math.min(899,Number(session?.targetMs||900)-900))*0.8);return {start,end:start+750};};
 let holdMeterRaf=0,holdActivePointer=null,holdReleased=false;
 const stopHoldMeter=()=>{cancelAnimationFrame(holdMeterRaf);holdMeterRaf=0;};
 const updateHoldMeter=()=>{
@@ -16,7 +17,9 @@ const updateHoldMeter=()=>{
  const elapsed=holdMs>0?Math.max(0,Date.now()+clockOffset-holdMs):0;
  const pct=Math.min(100,Math.max(0,elapsed/HOLD_MAX_MS*100));
  fill.style.width=pct+'%';cursor.style.left=pct+'%';meter.setAttribute('aria-valuenow',String(Math.round(pct)));
- meter.classList.toggle('is-success',elapsed>=HOLD_SUCCESS_START_MS&&elapsed<=HOLD_SUCCESS_END_MS);
+ const range=holdRange();const zone=$('cooking-hold-meter').querySelector('.cooking-hold-success-zone');
+ zone.style.left=(range.start/HOLD_MAX_MS*100)+'%';zone.style.width=((range.end-range.start)/HOLD_MAX_MS*100)+'%';
+ meter.classList.toggle('is-success',elapsed>=range.start&&elapsed<=range.end);
 };
 const paintHoldMeter=()=>{
  stopHoldMeter();
@@ -53,7 +56,7 @@ const renderRecipeDetail=()=>{
 const paintList=()=>{
  const category=$('cooking-filter').value,search=$('cooking-search').value.trim().toLowerCase();
  $('cooking-progress').textContent=`レシピ：${state.completedCount} / ${state.total} 種類`;
- // 月の扉解放はホール通知で案内する。料理画面では表示しない。
+ // 解放は通知で案内する。料理画面には表示しない。
  const recipes=state.recipes.filter(r=>(category==='all'||r.category===category)&&r.name.toLowerCase().includes(search));
  if(!recipes.some(r=>r.id===selectedRecipeId))selectedRecipeId=null;
  $('cooking-recipes').innerHTML=recipes.map(r=>{
@@ -103,11 +106,11 @@ const renderStage=()=>{
  $('cooking-completion').classList.add('hidden');
  $('cooking-play').classList.remove('hidden');$('cooking-library').classList.add('hidden');
  $('cooking-playing-name').textContent=state.recipes.find(r=>r.id===session.recipeId)?.name||'料理';
- $('cooking-stage-title').classList.toggle('hidden',session.game==='tap'||session.game==='card');
- $('cooking-stage-title').textContent=session.game==='tap'||session.game==='card'?'':`工程 ${Math.min(session.stage+1,session.steps.length)} / ${session.steps.length}：${gameTitles[session.game]}`;
+ $('cooking-stage-title').classList.add('hidden');
+ $('cooking-stage-title').textContent='';
  for(const n of ['tap','hold','card','finish'])$('cooking-'+n).classList.toggle('hidden',session.game!==n);
  $('cooking-stage-result').textContent='';
- if(session.game==='tap')$('cooking-stage-result').textContent=`${Number(session.tapCount||0)} / 3 回タップ　（成功 ${Number(session.tapHits||0)} 回）`;
+ if(session.game==='tap')$('cooking-tap-count').textContent=`${Number(session.tapCount||0)} / 3回タップ`;
  if(session.game==='tap')paintTapPositions(session.revealed);else paintTapPositions([]);
  if(session.game==='card')renderCards();
  if(session.game==='hold'){
@@ -156,7 +159,7 @@ const step=async action=>{
    if(session.game==='finish')scheduleCompletion(1300);else scheduleStageAdvance(1300,session);
   }else if(r.tapRecorded){
    renderStage();
-   $('cooking-stage-result').textContent=`${r.tapSuccess?'トンッ！ 成功！':'トンッ！ あと少し！'}　${session.tapCount} / 3 回（成功 ${session.tapHits} 回）`;
+   $('cooking-tap-count').textContent=`${Number(session.tapCount||0)} / 3回タップ`;
   }else if(r.completedStep){
    // 第3タップは工程が切り替わっても結果表示中の印を残す。
    if(r.tapPositions)paintTapPositions(r.tapPositions);
