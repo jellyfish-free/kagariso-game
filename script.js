@@ -848,7 +848,7 @@ async function openPyoro(){
  $('#pyoro-profile-more').open=false;
  paintPyoroProfile(npc);
  $('#pyoro-talk-result').textContent='';$('#pyoro-feed-result').textContent='';
- $('#pyoro-interactions').replaceChildren();
+ // 交流の記録は独立ページで開いたときに取得する（旧要素は存在しない）。
  pyoroDiaryEntries=[];pyoroDiaryIndex=0;pyoroDiaryHasMore=false;
  show('pyoro');
  // v0.18.5.2: 会話・食事・お願い・贈り物・言葉帳は各ページで必要になったときだけ取得する。
