@@ -14,7 +14,7 @@ let pendingRecovery='';
 let inventoryReturn='hall';
 let gathering=false;
 let npcReturn='hall', mandatoryStory=false;
-const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-diary','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor','forest-event','forest','forest-area','forest-memories','sea','sea-event','pyoro','pyoro-conversation','pyoro-history','pyoro-feeding','pyoro-requests','pyoro-words','pyoro-word-history','pyoro-diary','pyoro-gifts','workshop','cooking','cooking-recipe'];
+const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-diary','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor','forest-event','forest','forest-area','forest-memories','sea','sea-event','pyoro','pyoro-conversation','pyoro-history','pyoro-feeding','pyoro-requests','pyoro-words','pyoro-word-history','pyoro-diary','pyoro-gifts','workshop','cooking','cooking-recipe','moon'];
 let activePage='';
 const show=(name)=>{
   const changed=activePage!==name; activePage=name;
@@ -40,6 +40,7 @@ const FOREST_MATERIALS=[{"id":"S0046","name":"土","rarity":1,"category":"鉱石
 const FOREST_AREAS=[{"id":1,"name":"灯りの森","description":"木々の間に小さな灯りが揺れている。森の香りが漂う。","image":"images/backgrounds/forest1.webp","spots":[{"id":"f1-1","name":"木々の周辺","items":["S0051","S0052","S0053","S0055","S0046","C026"]},{"id":"f1-2","name":"草花の群生地","items":["S0046","S0047","S0048","S0049","S0054","S0065","S0074","S0005"]},{"id":"f1-3","name":"実のなる木","items":["S0050","S0056","S0057","S0058","S0066"]},{"id":"f1-4","name":"獣たちの痕跡","items":["S0059","S0060","S0061","S0062","S0064","S0073"]}]},{"id":2,"name":"水辺の小道","description":"澄んだ水が流れ、木橋の向こうから滝の音が聞こえる。","image":"images/backgrounds/forest2.webp","spots":[{"id":"f2-1","name":"川の浅瀬","items":["S0046","S0048","S0063","S0067","S0007"]},{"id":"f2-2","name":"滝つぼ","items":["S0049","S0063","S0068","S0075","S0007"]},{"id":"f2-3","name":"川辺の草むら","items":["S0047","S0048","S0054","S0058","S0065","S0005"]},{"id":"f2-4","name":"木橋の周辺","items":["S0069","S0071","C026","C028","C002"]}]},{"id":3,"name":"朽ちた遺跡","description":"苔むした石壁と古い柱が残る、静かな遺跡。","image":"images/backgrounds/forest3.webp","spots":[{"id":"f3-1","name":"崩れた石壁","items":["S0046","S0049","S0069","S0007","C002"]},{"id":"f3-2","name":"朽ちた建造物","items":["S0051","S0053","S0069","S0070","C026","C028"]},{"id":"f3-3","name":"遺跡の草むら","items":["S0047","S0048","S0049","S0054","S0060","S0065","S0005"]},{"id":"f3-4","name":"古い祭壇の周辺","items":["S0049","S0059","S0072","S0007","C002"]}]}];
 const SEA_ITEMS=window.KAGARISO_SEA_ITEMS||[];
 let frontCookingUnlocked=false;
+let moonDoorUnlocked=false;
 let seaState=null;
 const FOREST_COMMON=new Set(["C026","C002","S0005","S0007","C028"]);
 const MATERIALS=[...(window.KAGARISO_MATERIALS||[]),...FOREST_MATERIALS,...SEA_ITEMS].map(m=>['S0039','S0040'].includes(m.id)?{...m,rarity:5}:m);
@@ -137,12 +138,13 @@ const HALL_DOOR_ZONES={
   cave:{x:0.012,y:0.250,width:0.108,height:0.460},
   forest:{x:0.150,y:0.290,width:0.110,height:0.420},
   sea:{x:0.747,y:0.270,width:0.107,height:0.450},
-  front:{x:0.445,y:0.255,width:0.111,height:0.413}
+  front:{x:0.445,y:0.255,width:0.111,height:0.413},
+  moon:{x:0.596,y:0.295,width:0.104,height:0.426}
 };
 const positionHallCaveDoor=()=>{
   const image=$('#hall-background'),stage=$('#hall-visual');
   if(!image||!stage)return;
-  const entries=[['cave','#hall-cave-door'],['forest','#hall-forest-door'],['sea','#hall-sea-door'],['front','#hall-front-door']];
+  const entries=[['cave','#hall-cave-door'],['forest','#hall-forest-door'],['sea','#hall-sea-door'],['front','#hall-front-door'],['moon','#hall-moon-door']];
   if(!image.naturalWidth||!image.naturalHeight){
     for(const [,selector] of entries)$(selector)?.classList.add('hidden');
     return;
@@ -161,7 +163,7 @@ const positionHallCaveDoor=()=>{
     const width=drawnWidth*zone.width;
     const height=drawnHeight*zone.height;
     const visible=left+width>0&&left<stageWidth&&top+height>0&&top<stageHeight;
-    door.classList.toggle('hidden',!visible||(key==='front'&&!frontCookingUnlocked));
+    door.classList.toggle('hidden',!visible||(key==='front'&&!frontCookingUnlocked||(key==='moon'&&!moonDoorUnlocked)));
     Object.assign(door.style,{
       left:`${left}px`,top:`${top}px`,width:`${width}px`,height:`${height}px`
     });
@@ -309,11 +311,20 @@ function showSeaEvent(kind,e,replay=false){
 }
 async function checkSeaEvents(){if(!seaState?.unlocked||!seaState?.eligible)return false;const e=await api('/sea/events');if(!e.greenSeen){showSeaEvent('green',e);return true;}if(e.discovered&&!e.encounterSeen){showSeaEvent(e.isFinder?'discover':'meet',e);return true;}return false;}
 
+async function openMoonDoor(){
+ // Unlock is verified by Worker when hall is opened; refresh status when entering.
+ const hall=await api('/hall');
+ moonDoorUnlocked=!!hall.moonUnlocked;
+ if(!moonDoorUnlocked){toast('月の扉はまだ開かない。');return;}
+ show('moon');
+}
+$('#moon-back-hall').addEventListener('click',handler(openHall));
 async function openHall(){const data=await api('/hall');resident=data.resident;$('#user-name').textContent=resident.name;$('#user-bar').classList.remove('hidden');
   updateHallBackground();
   updateForestHall(data.forest);
   seaState=data.sea||null;
   frontCookingUnlocked=!!data.frontUnlocked;
+  moonDoorUnlocked=!!data.moonUnlocked;
   $('#hall-front-door').title=frontCookingUnlocked?'工房へ':'正面の扉';
   $('#hall-front-door').setAttribute('aria-label',frontCookingUnlocked?'工房へ移動する':'正面の扉');
   $('#front-door-hint').textContent=frontCookingUnlocked?'工房へ':'正面の扉';
@@ -334,12 +345,14 @@ async function openHall(){const data=await api('/hall');resident=data.resident;$
   paperActor.classList.toggle('hidden',!paperHere);
   if(paperHere){paintPaper('#hall-paper-image',paperHere);$('#hall-paper-label').textContent=paperHere.state.activity==='sleeping'?'黄色い獣はおやすみ中':'黄色い獣に会う';}
   $('#npc-list').innerHTML=data.npcs.map(n=>`<article class="npc-card">${n.id==='paper'&&paperVisual?`<img class="npc-list-portrait" src="${safe(encodeURI(paperImage(paperExpression(n))))}" alt="">`:n.id==='pyoro'?`<img class="npc-list-portrait" src="${safe(encodeURI(pyoroImage(pyoroExpression(n))))}" alt="">`:'<div class="avatar" aria-hidden="true">✦</div>'}<div><strong>${safe(n.id==='pyoro'?'赤色の獣':n.name)}</strong><div class="muted">${safe(stateText(n))} · ${safe(n.state.activityLabel)}</div></div><button class="secondary small" data-npc="${safe(n.id)}">詳細を見る</button></article>`).join('');
-  $('#doors').innerHTML=data.hall.doors.map(d=>`<article class="door-card" data-door-card="${safe(d.id)}"><span class="door-glyph">◇</span><div class="door-card-copy"><strong>${safe(d.id==='forest'&&d.status==='available'?'森':d.id==='sea'&&d.status==='available'?'海':d.id==='unknown'?(d.status==='available'?'工房':'正面の扉'):d.name)}</strong>${['forest','cave','sea'].includes(d.id)||(d.id==='unknown'&&d.status==='available')?'':`<div class="muted">${d.id==='moon'?'商人が来るのを待っている':d.status==='available'?'入口の採取ができます':'探索機能は次の開発段階で実装'}</div>`}</div>${d.status==='available'?`<button class="secondary small" data-door="${safe(d.id)}">${d.id==='unknown'?'工房へ':'探索する'}</button>`:`<span class="tag">${['forest','sea'].includes(d.id)?'未解放':'準備中'}</span>`}</article>`).join('');
+  $('#doors').innerHTML=data.hall.doors.map(d=>`<article class="door-card" data-door-card="${safe(d.id)}"><span class="door-glyph">◇</span><div class="door-card-copy"><strong>${safe(d.id==='forest'&&d.status==='available'?'森':d.id==='sea'&&d.status==='available'?'海':d.id==='unknown'?(d.status==='available'?'工房':'正面の扉'):d.name)}</strong>${['forest','cave','sea'].includes(d.id)||(d.id==='unknown'&&d.status==='available')?'':`<div class="muted">${d.id==='moon'?'月の印が刻まれた扉。':d.status==='available'?'入口の採取ができます':d.id==='moon'?'まだ扉は開かない':'探索機能は次の開発段階で実装'}</div>`}</div>${d.status==='available'?`<button class="secondary small" data-door="${safe(d.id)}">${d.id==='unknown'?'工房へ':d.id==='moon'?'月の扉へ':'探索する'}</button>`:`<span class="tag">${['forest','sea','moon'].includes(d.id)?'未解放':'準備中'}</span>`}</article>`).join('');
   $('#doors').querySelector('[data-door="cave"]')?.addEventListener('click',handler(()=>enterHallCave()));
   $('#doors').querySelector('[data-door="forest"]')?.addEventListener('click',handler(openForest));
   $('#doors').querySelector('[data-door="sea"]')?.addEventListener('click',handler(async()=>{if(!await checkSeaEvents())await window.KAGARISO_SEA.open();}));
   $('#doors').querySelector('[data-door="unknown"]')?.addEventListener('click',handler(()=>window.KAGARISO_COOKING.open()));
+  $('#doors').querySelector('[data-door="moon"]')?.addEventListener('click',handler(openMoonDoor));
   $('#hall-front-door').onclick=handler(async()=>{if(!frontCookingUnlocked){toast('まだ正面の扉は開かない。');return;}await window.KAGARISO_COOKING.open();});
+  $('#hall-moon-door').onclick=handler(openMoonDoor);
   $('#hall-sea-door').onclick=handler(async()=>{if(!seaState?.unlocked||!seaState?.eligible){toast('緑の扉はまだ開かない。');return;}if(!await checkSeaEvents())await window.KAGARISO_SEA.open();});
   $('#npc-list').querySelectorAll('[data-npc]').forEach(b=>b.addEventListener('click',handler(()=>b.dataset.npc==='pyoro'?openPyoro():openNpc('hall'))));
   if(!data.npcs.length)$('#npc-list').innerHTML='<p class="muted">黄色い獣の姿はまだここにない。洞窟の扉を調べてみよう。</p>';

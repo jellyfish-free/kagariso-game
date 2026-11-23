@@ -93,7 +93,7 @@
   }
 </style>
   <script src="data/sea-items.js?v=0.17.0.3" defer></script>
-  <script src="script.js?v=0.18.5.21" defer></script>
+  <script src="script.js?v=0.18.6" defer></script>
   <script src="data/cooking.js?v=0.18.5.19" defer></script>
   <script src="data/sea-game.js?v=0.17.1.5" defer></script>
 <style>
@@ -214,6 +214,15 @@
   border-radius:8px;
 }
 </style>
+
+<style>
+/* v0.18.6 月の扉：他の扉と同じ矩形の感知範囲 */
+#hall-visual #hall-moon-door{clip-path:none;border-radius:8px;box-sizing:border-box;}
+#hall-visual #hall-moon-door::before{inset:0;box-sizing:border-box;border-radius:8px;}
+.moon-panel{max-width:630px;margin:auto;}
+.moon-entrance{margin-top:20px;padding:22px;border:1px solid var(--line);border-radius:15px;background:rgba(17,19,37,.45);text-align:center;}
+.moon-symbol{font-size:56px;line-height:1.4;color:#edd4a3;}
+</style>
 </head>
 <body>
   <div class="ambient ambient-a" aria-hidden="true"></div><div class="ambient ambient-b" aria-hidden="true"></div>
@@ -248,11 +257,24 @@
             <button type="button" id="hall-forest-door" class="hall-door-hotspot hidden" aria-label="白い扉"><span class="hall-door-hint" id="forest-door-hint">白い扉</span></button>
             <button type="button" id="hall-sea-door" class="hall-door-hotspot hidden" aria-label="緑の扉"><span class="hall-door-hint" id="sea-door-hint">🔒</span></button>
             <button type="button" id="hall-front-door" class="hall-door-hotspot hidden" aria-label="正面の扉" title="正面の扉"><span class="hall-door-hint" id="front-door-hint">正面の扉</span></button>
+            <button type="button" id="hall-moon-door" class="hall-door-hotspot hidden" aria-label="月の扉" title="月の扉"><span class="hall-door-hint">月の扉へ</span></button>
             <button type="button" id="hall-paper-actor" class="npc-actor hidden" aria-label="黄色い獣のプロフィールを見る">
               <img id="hall-paper-image" alt="黄色い獣" loading="eager"><span id="hall-paper-label">黄色い獣に会う</span>
             </button>
             <button type="button" id="hall-pyoro-actor" data-hall-slot="4" class="npc-actor hidden" aria-label="赤色の獣のプロフィールを見る"><img src="images/npc/pyoro/normal.webp" alt="赤色の獣"><span id="hall-pyoro-label">赤色の獣に会う</span></button>
           </div><div class="section-top"><h2>ここにいる住人たち</h2><p class="muted">居場所は、住人全員で共有されています。</p></div><div id="npc-list" class="npc-list"></div><div class="section-top"><h2>不思議な扉</h2><p class="muted">扉の向こうには、新しい探索が待っている。</p></div><div id="doors" class="doors"></div></section>
+      <section id="moon-page" class="page hidden narrow">
+        <button type="button" id="moon-back-hall" class="back">← ホールへ戻る</button>
+        <div class="panel moon-panel">
+          <span class="eyebrow">THE MOON DOOR</span>
+          <h1>月の扉</h1>
+          <div class="moon-entrance"><div class="moon-symbol" aria-hidden="true">☾</div>
+            <p>月の印が刻まれた扉が、静かに開いた。</p>
+            <p>その向こうには、まだ誰もいない不思議な空間が広がっている。</p>
+          </div>
+          <p class="muted tiny">商人との交流は今後の更新で追加されます。</p>
+        </div>
+      </section>
       <!-- v0.18.5.4: 工房TOP。料理と将来の服飾を別の入口に分離する。 -->
       <section id="workshop-page" class="page hidden narrow">
         <button type="button" id="workshop-back-hall" class="back">← ホールへ戻る</button>
@@ -906,7 +928,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.5.21</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.6</span></footer>
   </div>
 </body>
 </html>
