@@ -93,8 +93,8 @@
   }
 </style>
   <script src="data/sea-items.js?v=0.17.0.3" defer></script>
-  <script src="script.js?v=0.18.7.1" defer></script>
-  <script src="data/cooking.js?v=0.18.5.19" defer></script>
+  <script src="script.js?v=0.18.7.2" defer></script>
+  <script src="data/cooking.js?v=0.18.7.2" defer></script>
   <script src="data/sea-game.js?v=0.17.1.5" defer></script>
 <style>
  .admin-npc-selector{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:14px 0 18px;}
@@ -226,6 +226,11 @@
 <style>
 /* v0.18.7: 商人は背景と人物を合成済みの一枚絵で表示する */
 .lent-scene{display:block;width:100%;height:auto;max-height:none;object-fit:contain;border-radius:15px;margin:16px 0;}
+.lent-flower-quest{margin:16px 0 24px;padding:16px;border:1px solid var(--line);border-radius:12px;background:rgba(20,23,41,.35)}
+.lent-flower-quest h2{margin-top:0}.lent-flower-intro{white-space:pre-wrap;line-height:1.8}
+.lent-flower-progress{font-weight:700;color:#efd4a1}.lent-flower-action{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0}
+.lent-flower-action input{width:90px;padding:10px;border:1px solid var(--line);background:#1b2034;color:inherit;border-radius:8px}
+@media(max-width:490px){.lent-flower-action button{flex:1 1 100%}}
 .lent-intro{border:1px solid var(--line);border-radius:12px;padding:16px;margin:14px 0;}
 .lent-intro h2{margin-top:0;}.lent-panel .lent-shop{margin-top:18px;}
 /* v0.18.7.1 lentの親密度は獣と同じハート方式。商人らしく控えめに。 */
@@ -291,6 +296,17 @@
             <p id="lent-state">店の様子を確認しています……</p>
           </div>
           <p id="lent-message" class="scene hidden" role="status" aria-live="polite"></p>
+          <section id="lent-flower-quest" class="lent-flower-quest">
+            <h2>共同イベント｜逆さに咲く花</h2>
+            <p id="lent-flower-intro" class="lent-flower-intro"></p>
+            <p id="lent-flower-progress" class="lent-flower-progress" aria-live="polite"></p>
+            <p id="lent-flower-owned" class="muted tiny"></p>
+            <div class="lent-flower-action"><label for="lent-flower-qty">納品数</label>
+              <input type="number" id="lent-flower-qty" min="1" max="1000" step="1" value="1" inputmode="numeric">
+              <button type="button" id="lent-flower-donate" class="primary">花を納品する</button>
+            </div>
+            <p class="muted tiny">全住人で1,000個集めると、物々交換が始まります。</p>
+          </section>
           <section class="lent-shop">
             <h2>物々交換</h2>
             <div id="lent-offers"></div>
@@ -335,7 +351,7 @@
     <span class="eyebrow">THE KITCHEN</span><h1>料理を作る</h1>
     <img class="workshop-hero kitchen-hero" src="images/backgrounds/kitchen.webp" alt="明るい工房の台所" loading="lazy">
     <p id="cooking-first" class="scene hidden">重い正面の扉が、ことりと開いた。奥には、よく磨かれた調理台と、誰かが並べた古い料理帳。料理帳には、まだ余白がたくさん残されている。</p>
-    <p id="cooking-progress" class="cooking-progress-plain"></p><p id="cooking-moon" class="muted"></p>
+    <p id="cooking-progress" class="cooking-progress-plain"></p><p id="cooking-moon" class="hidden" aria-hidden="true"></p>
     <div id="cooking-message" role="status" aria-live="polite" class="cooking-notice" hidden></div>
     <div id="cooking-library">
       <h2>レシピ</h2><p class="muted tiny">レシピは料理や探索・獣たちとの交流、住人への贈り物で解放されます。調理回数に1日の制限はありません。</p>
@@ -959,7 +975,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.7.1</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.7.2</span></footer>
   </div>
 </body>
 </html>

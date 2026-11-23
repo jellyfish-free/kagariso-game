@@ -326,7 +326,19 @@ function renderLent(p){
  $('#lent-conversation').classList.toggle('hidden',!p.aiUnlocked);
  $('#lent-chat-locked').classList.toggle('hidden',!!p.aiUnlocked);
  if(p.aiUnlocked){const u=p.aiUsage||{used:0,limit:5};$('#lent-chat-usage').textContent=`(${u.used}/${u.limit}回)`;$('#lent-chat-send').disabled=!p.canChat||u.used>=5||lentBusy;$('#lent-chat-input').disabled=!p.canChat;}
+ const quest=p.flowerQuest;
+ const questBox=$('#lent-flower-quest'),intro=$('#lent-flower-intro'),qStatus=$('#lent-flower-progress');
+ questBox.classList.toggle('hidden',!!quest?.completed);
+ intro.textContent=quest?.completed?'「……へえ、こんなに集まったのか。これなら商売ができそうだ。」':'「ここで商売しようと思うんだけど……そもそも交換できるものなんてあんの？」';
+ if(quest){
+  qStatus.textContent=quest.completed?'共同納品達成！ 物々交換が解放されました。':`逆さに咲く花：${quest.donated} / ${quest.target}個（あと${quest.remaining}個）`;
+  $('#lent-flower-owned').textContent=`あなたの所持数：${quest.owned}個　あなたの納品：${quest.personalDonated}個`;
+  $('#lent-flower-qty').max=String(Math.min(quest.owned,quest.remaining,1000));
+  $('#lent-flower-donate').disabled=lentBusy||p.activity!=='open'||quest.owned<1||quest.remaining<1;
+  $('#lent-flower-qty').disabled=lentBusy||p.activity!=='open'||quest.owned<1||quest.remaining<1;
+ }
  const box=$('#lent-offers');box.replaceChildren();
+ if(!quest?.completed){const msg=document.createElement('p');msg.className='muted';msg.textContent='共同納品を達成すると物々交換が始まります。';box.append(msg);return;}
  if(!p.canTrade){const msg=document.createElement('p');msg.className='muted';msg.textContent=p.activity==='away'?'商人は留守にしています。': '商人は眠っています。取引はできません。';box.append(msg);return;}
  if(!p.offers?.length){const msg=document.createElement('p');msg.className='muted';msg.textContent='ただいま交換品の準備中です。';box.append(msg);return;}
  for(const offer of p.offers){
@@ -347,6 +359,18 @@ async function openMoonDoor(){
  renderLent(data.lent);
  show('moon');
 }
+$('#lent-flower-donate').addEventListener('click',handler(async()=>{
+ if(lentBusy)return;
+ const qty=Number($('#lent-flower-qty').value);
+ if(!Number.isSafeInteger(qty)||qty<1){toast('納品する個数を入力してください。');return;}
+ if(!confirm(`逆さに咲く花を${qty}個納品しますか？`))return;
+ lentBusy=true;$('#lent-flower-donate').disabled=true;
+ let result=null;
+ try{result=await api('/lent/flowers/donate','POST',{quantity:qty});
+  $('#lent-message').textContent=result.message;$('#lent-message').classList.remove('hidden');
+  if(result.quest.completed)toast('共同納品達成！ 商人の物々交換が解放されました。');
+ }finally{lentBusy=false;if(result)renderLent(result.profile);else $('#lent-flower-donate').disabled=false;}
+}));
 $('#lent-chat-send').addEventListener('click',handler(async()=>{
  if(lentBusy)return;const message=$('#lent-chat-input').value.trim();if(!message){toast('話しかけたいことを入力してください。');return;}
  lentBusy=true;$('#lent-chat-send').disabled=true;
