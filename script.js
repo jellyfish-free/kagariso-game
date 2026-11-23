@@ -130,39 +130,42 @@ const updateConversationBackground=()=>{
   img.dataset.hallBackground=name;
   applyImageFallback(img,hallBackgroundFiles(name),'conversationBackground');
 };
-// v0.11.8.4: 左端の茶色い扉を、背景画像の見かけの位置に追従させる。
-// 元画像に対する比率。晴天・曇天の7枚は同じ扉の構図を共有している。
-const HALL_CAVE_DOOR_AREA={x:0.009,y:0.16,width:0.108,height:0.59};
+// v0.18.5.20: ホールの4つの扉の感知範囲を長方形に統一する。
+// 背景画像の左上を(0,0)、右下を(1,1)とする相対座標。
+// 森の扉の表示を基準とし、洞窟・海・工房の形も扉の輪郭に合わせる。
+const HALL_DOOR_ZONES={
+  cave:{x:0.012,y:0.250,width:0.108,height:0.460},
+  forest:{x:0.150,y:0.290,width:0.110,height:0.420},
+  sea:{x:0.747,y:0.270,width:0.107,height:0.450},
+  front:{x:0.445,y:0.255,width:0.111,height:0.413}
+};
 const positionHallCaveDoor=()=>{
-  const image=$('#hall-background'),stage=$('#hall-visual'),door=$('#hall-cave-door');
-  if(!image||!stage||!door)return;
-  if(!image.naturalWidth||!image.naturalHeight){door.classList.add('hidden');$('#hall-forest-door')?.classList.add('hidden');$('#hall-sea-door')?.classList.add('hidden');$('#hall-front-door')?.classList.add('hidden');return;}
-  // object-fit:contain、object-position:center の表示位置を再現。
+  const image=$('#hall-background'),stage=$('#hall-visual');
+  if(!image||!stage)return;
+  const entries=[['cave','#hall-cave-door'],['forest','#hall-forest-door'],['sea','#hall-sea-door'],['front','#hall-front-door']];
+  if(!image.naturalWidth||!image.naturalHeight){
+    for(const [,selector] of entries)$(selector)?.classList.add('hidden');
+    return;
+  }
+  // object-fit:contain と object-position:center を反映。スマホの余白にも対応。
   const stageWidth=stage.clientWidth,stageHeight=stage.clientHeight;
   if(!stageWidth||!stageHeight)return;
   const scale=Math.min(stageWidth/image.naturalWidth,stageHeight/image.naturalHeight);
   const drawnWidth=image.naturalWidth*scale,drawnHeight=image.naturalHeight*scale;
   const offsetX=(stageWidth-drawnWidth)/2,offsetY=(stageHeight-drawnHeight)/2;
-  const area=HALL_CAVE_DOOR_AREA;
-  const forestDoor=$('#hall-forest-door');
-  if(forestDoor){Object.assign(forestDoor.style,{left:`${offsetX+drawnWidth*0.15}px`,top:`${offsetY+drawnHeight*0.29}px`,width:`${drawnWidth*0.11}px`,height:`${drawnHeight*0.42}px`});forestDoor.classList.remove('hidden');}
-  const seaDoor=$('#hall-sea-door');
-  if(seaDoor){Object.assign(seaDoor.style,{left:`${offsetX+drawnWidth*0.747}px`,top:`${offsetY+drawnHeight*0.27}px`,width:`${drawnWidth*0.107}px`,height:`${drawnHeight*0.45}px`});seaDoor.classList.remove('hidden');}
-  // v0.18.5.3 工房の入口は左の赤い扉ではなく、正面中央のガラス両開き扉。
-  // 背景の自然サイズに対する比率で指定し、画面の拡縮にも追従する。
-  const frontDoor=$('#hall-front-door');
-  if(frontDoor){
-    const zone={x:0.445,y:0.255,width:0.111,height:0.413};
-    Object.assign(frontDoor.style,{left:`${offsetX+drawnWidth*zone.x}px`,top:`${offsetY+drawnHeight*zone.y}px`,width:`${drawnWidth*zone.width}px`,height:`${drawnHeight*zone.height}px`});
-    frontDoor.classList.toggle('hidden',!frontCookingUnlocked);
+  for(const [key,selector] of entries){
+    const door=$(selector),zone=HALL_DOOR_ZONES[key];
+    if(!door)continue;
+    const left=offsetX+drawnWidth*zone.x;
+    const top=offsetY+drawnHeight*zone.y;
+    const width=drawnWidth*zone.width;
+    const height=drawnHeight*zone.height;
+    const visible=left+width>0&&left<stageWidth&&top+height>0&&top<stageHeight;
+    door.classList.toggle('hidden',!visible||(key==='front'&&!frontCookingUnlocked));
+    Object.assign(door.style,{
+      left:`${left}px`,top:`${top}px`,width:`${width}px`,height:`${height}px`
+    });
   }
-  const left=offsetX+drawnWidth*area.x,top=offsetY+drawnHeight*area.y;
-  const width=drawnWidth*area.width,height=drawnHeight*area.height;
-  // 背景トリミングで扉が完全に見えない場合は反応させない。
-  const visible=left+width>0&&left<stageWidth&&top+height>0&&top<stageHeight;
-  door.classList.toggle('hidden',!visible);
-  if(!visible)return;
-  Object.assign(door.style,{left:`${left}px`,top:`${top}px`,width:`${width}px`,height:`${height}px`});
 };
 // 背景画像が日替わり・時間帯切り替えで読み込まれたときにも位置を更新。
 $('#hall-background')?.addEventListener('load',positionHallCaveDoor);
@@ -836,11 +839,11 @@ bind('#pyoro-history-open',()=>openPyoroHistory('pyoro-conversation'));
 bind('#pyoro-history-back',()=>pyoroHistoryReturn==='pyoro'?show('pyoro'):show('pyoro-conversation'));
 bind('#pyoro-history-tab-ai',()=>switchPyoroHistoryTab(true));
 bind('#pyoro-history-tab-choice',()=>switchPyoroHistoryTab(false));
-// v0.18.5.19: 食事カードを黄色い獣と統一。料理は同じ食事画面へ合流。
+// v0.18.5.20: 食事カードを黄色い獣と統一。料理は同じ食事画面へ合流。
 let pyoroFeedingBusy=false;
 const pyoroFoodKind=(kind)=>kind==='cooking'?'#pyoro-feed-cooking':kind==='meal'?'#pyoro-feed-meals':'#pyoro-feed-snacks';
 
-// v0.18.5.19 食事候補を「料理・おやつ・素材」に切り替える共通タブ。
+// v0.18.5.20 食事候補を「料理・おやつ・素材」に切り替える共通タブ。
 for(const npc of ['npc','pyoro']){
   const page=document.getElementById(npc+'-feeding-page');
   if(!page)continue;
@@ -1019,7 +1022,7 @@ $('#pyoro-word-form').addEventListener('submit',handler(async e=>{
 }));
 let pyoroDiaryBefore='',pyoroDiaryLoading=false;
 let pyoroDiaryEntries=[],pyoroDiaryIndex=0,pyoroDiaryHasMore=false;
-// v0.18.5.19: 黄色い獣・赤色の獣共通の月別日記カレンダー。
+// v0.18.5.20: 黄色い獣・赤色の獣共通の月別日記カレンダー。
 const diaryCalendarMonths={paper:null,pyoro:null};
 function paintDiaryCalendar(npc,entries,selectedIndex,hasMore,onSelect){
  const prefix=npc==='paper'?'paper':'pyoro';
