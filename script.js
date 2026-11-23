@@ -314,9 +314,24 @@ function showSeaEvent(kind,e,replay=false){
 async function checkSeaEvents(){if(!seaState?.unlocked||!seaState?.eligible)return false;const e=await api('/sea/events');if(!e.greenSeen){showSeaEvent('green',e);return true;}if(e.discovered&&!e.encounterSeen){showSeaEvent(e.isFinder?'discover':'meet',e);return true;}return false;}
 
 // v0.18.7 商人lent。画像は背景と人物が一体のWebPを使う。
-let lentBusy=false;
-const lentImageFiles=new Set(['normal.webp','sleeping.webp','lentNothing.webp','angry.webp','laugh.webp','surprised.webp']);
+let lentBusy=false,lentCurrentProfile=null;
+const lentImageFiles=new Set(['normal.webp','sleeping.webp','lentNothing.webp','lentNothing2.webp','lent20.webp','Bad.webp','angry.webp','laugh.webp','surprised.webp','notInterested.webp','notinterested.webp','play.webp']);
+// 商人の短い台詞。AI自由会話は♡5で解放されるが、接客の挨拶は最初から表示する。
+const lentLinePools={
+ entry:{normal:['「いらっしゃいませ～……」','「いらっしゃ……あ～、なんだ、おまえか。」','「どうも～。何か探してる？」'],bad:['「……いらっしゃい。今日はあんまり気分が乗らないんだけど。」','「雨っぽいなあ……。ああ、いらっしゃい。」']},
+ trade:{normal:['「取引？ いいよ。」','「交換ね。……何を持ってきた？」'],bad:['「取引？ ……まあ、いいよ。」','「手短に頼むよ。」']},
+ after:{normal:['「またね～」','「ごひいきに～」','「……まだいたの？」'],bad:['「……もういい？」','「次は晴れた日に来てよ。」']}
+};
+const lentRandomLine=p=>p[Math.floor(Math.random()*p.length)];
+const lentLine=(p,kind)=>{
+ if(p.mood==='odd')return lentRandomLine(['「ほえ～～～」','「はえ～～～」']);
+ if(p.activity==='sleeping')return '商人は眠っている。';
+ if(p.activity==='away')return '商人は留守にしている。';
+ return lentRandomLine(lentLinePools[kind][p.mood==='bad'?'bad':'normal']);
+};
+const showLentLine=(p,kind)=>{$('#lent-message').textContent=lentLine(p,kind);$('#lent-message').classList.remove('hidden');};
 function renderLent(p){
+ lentCurrentProfile=p;
  const image=String(p.image||'').split('/').pop();
  $('#lent-scene').src='images/npc/lent/'+(lentImageFiles.has(image)?image:'normal.webp');
  // 親密度ptや日次上限はUIで公開せず、獣たちと同じハートを控えめに表示。
@@ -357,7 +372,7 @@ function renderLent(p){
   const strong=document.createElement('strong');strong.textContent=offer.title;
   const desc=document.createElement('p');desc.className='muted tiny';desc.textContent=`${offer.give.name} ×${offer.give.quantity} → ${offer.receive.name} ×${offer.receive.quantity}`;
   const button=document.createElement('button');button.className='secondary small';button.textContent='交換する';button.disabled=lentBusy;
-  button.onclick=handler(async()=>{if(lentBusy)return;if(!confirm(`${desc.textContent} を交換しますか？`))return;lentBusy=true;button.disabled=true;try{const res=await api('/lent/trade','POST',{offerId:offer.id});$('#lent-message').textContent=res.message;$('#lent-message').classList.remove('hidden');renderLent(res.profile);}finally{lentBusy=false;button.disabled=false;}});
+  button.onclick=handler(async()=>{if(lentBusy)return;showLentLine(lentCurrentProfile,'trade');if(!confirm(`${desc.textContent} を交換しますか？`))return;lentBusy=true;button.disabled=true;try{const res=await api('/lent/trade','POST',{offerId:offer.id});renderLent(res.profile);showLentLine(res.profile,'after');}finally{lentBusy=false;button.disabled=false;}});
   left.append(strong,desc);row.append(left,button);box.append(row);
  }
 }
@@ -372,6 +387,7 @@ async function openMoonDoor(){
  if(!moonDoorUnlocked){toast('月の扉はまだ開かない。');return;}
  const data=await api('/lent');
  renderLent(data.lent);
+ showLentLine(data.lent,'entry');
  show('moon');
 }
 $('#lent-flower-donate').addEventListener('click',handler(async()=>{
