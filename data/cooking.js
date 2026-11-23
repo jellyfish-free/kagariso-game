@@ -97,7 +97,7 @@ const paintTapPositions=taps=>{
  }
 };
 const gameTitles={tap:'切る・炒める・焼く',hold:'煮る・混ぜる：長押しして離す',card:'盛り付け：同じ絵柄を3枚集める',finish:'完成！'};
-const symbols={chest:'🎁',gem:'💎',coin:'🪙'};
+const symbols={chest:'🪎',gem:'💎',coin:'🪙'};
 const renderCards=()=>{const cards=fullDeck||session.cards||[];$('cooking-card-grid').innerHTML=Array.from({length:12},(_,i)=>`<button class="cooking-card" data-index="${i}" ${cards[i]?'disabled':''}>${cards[i]?symbols[cards[i]]:'❔'}</button>`).join('');$('cooking-card-grid').querySelectorAll('.cooking-card:not([disabled])').forEach(b=>b.onclick=()=>step({action:'draw',index:Number(b.dataset.index)}));};
 const renderStage=()=>{
  clearTimeout(stageAdvanceTimer);stageAdvanceTimer=0;stopHoldMeter();
