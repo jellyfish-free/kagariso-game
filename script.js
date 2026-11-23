@@ -836,19 +836,30 @@ bind('#pyoro-history-open',()=>openPyoroHistory('pyoro-conversation'));
 bind('#pyoro-history-back',()=>pyoroHistoryReturn==='pyoro'?show('pyoro'):show('pyoro-conversation'));
 bind('#pyoro-history-tab-ai',()=>switchPyoroHistoryTab(true));
 bind('#pyoro-history-tab-choice',()=>switchPyoroHistoryTab(false));
-// v0.18.5.18: 食事カードを黄色い獣と統一。料理は同じ食事画面へ合流。
+// v0.18.5.19: 食事カードを黄色い獣と統一。料理は同じ食事画面へ合流。
 let pyoroFeedingBusy=false;
-const pyoroFoodKind=(kind)=>kind==='meal'?'#pyoro-feed-meals':'#pyoro-feed-snacks';
+const pyoroFoodKind=(kind)=>kind==='cooking'?'#pyoro-feed-cooking':kind==='meal'?'#pyoro-feed-meals':'#pyoro-feed-snacks';
+
+// v0.18.5.19 食事候補を「料理・おやつ・素材」に切り替える共通タブ。
+for(const npc of ['npc','pyoro']){
+  const page=document.getElementById(npc+'-feeding-page');
+  if(!page)continue;
+  page.querySelectorAll('.npc-food-tab').forEach(button=>button.addEventListener('click',()=>{
+    const selected=button.dataset.foodCategory;
+    page.querySelectorAll('.npc-food-tab').forEach(tab=>{const active=tab.dataset.foodCategory===selected;tab.classList.toggle('active',active);tab.setAttribute('aria-selected',String(active));});
+    page.querySelectorAll('.npc-food-panel').forEach(panel=>panel.classList.toggle('hidden',panel.dataset.foodPanel!==npc+'-'+selected));
+  }));
+}
 const renderPyoroFood=(data,message='')=>{
  const n=data.npc;paintPyoroProfile(n);
  paintPyoro('#pyoro-feeding-image',n,data.expression);
  $('#pyoro-feeding-condition').textContent=n?.state?.hungerLabel||'確認中';
  $('#pyoro-feeding-activity').textContent=`いまいる場所：${n?.state?.locationLabel||'ホール'}・${n?.state?.activityLabel||''}`;
  const result=$('#pyoro-feed-result');result.textContent=message;result.classList.toggle('hidden',!message);
- for(const kind of ['meal','snack']){
+ for(const kind of ['cooking','snack','meal']){
   const list=$(pyoroFoodKind(kind));list.replaceChildren();
-  const items=(data.items||[]).filter(x=>x.kind===kind);
-  if(!items.length){const p=document.createElement('p');p.className='muted';p.textContent=kind==='meal'?'あげられるごはんをまだ持っていません。':'あげられるおやつをまだ持っていません。';list.append(p);continue;}
+  const items=(data.items||[]).filter(x=>kind==='cooking'?!!x.cooked:!x.cooked&&x.kind===kind);
+  if(!items.length){const p=document.createElement('p');p.className='muted';p.textContent=kind==='cooking'?'あげられる料理をまだ持っていません。':kind==='meal'?'あげられる素材をまだ持っていません。':'あげられるおやつをまだ持っていません。';list.append(p);continue;}
   for(const item of items){
     const card=document.createElement('div');card.className='feeding-item';
     const thumb=document.createElement('div');
@@ -861,8 +872,7 @@ const renderPyoroFood=(data,message='')=>{
     const button=document.createElement('button');button.type='button';button.className='secondary small';button.textContent='1個あげる';button.disabled=pyoroFeedingBusy||!data.canFeed;
     button.addEventListener('click',handler(async()=>{
       if(pyoroFeedingBusy)return;pyoroFeedingBusy=true;
-      $('#pyoro-feed-meals').querySelectorAll('button').forEach(b=>b.disabled=true);
-      $('#pyoro-feed-snacks').querySelectorAll('button').forEach(b=>b.disabled=true);
+      document.querySelectorAll('#pyoro-feeding-page .feeding-item button').forEach(b=>b.disabled=true);
       try{
         if(item.cooked){const response=await api('/cooking/feed','POST',{npcId:'pyoro',recipeId:item.id});await loadPyoroFood(response.message);}
         else{const response=await api('/npcs/pyoro/feeding','POST',{itemId:item.id});await loadPyoroFood(response.message+(response.affinityChange?`（親密度 +${response.affinityChange}pt）`:''));}
@@ -1009,7 +1019,7 @@ $('#pyoro-word-form').addEventListener('submit',handler(async e=>{
 }));
 let pyoroDiaryBefore='',pyoroDiaryLoading=false;
 let pyoroDiaryEntries=[],pyoroDiaryIndex=0,pyoroDiaryHasMore=false;
-// v0.18.5.18: 黄色い獣・赤色の獣共通の月別日記カレンダー。
+// v0.18.5.19: 黄色い獣・赤色の獣共通の月別日記カレンダー。
 const diaryCalendarMonths={paper:null,pyoro:null};
 function paintDiaryCalendar(npc,entries,selectedIndex,hasMore,onSelect){
  const prefix=npc==='paper'?'paper':'pyoro';
@@ -1242,10 +1252,10 @@ const renderFeeding=(data,message='')=>{
   $('#npc-feeding-location').textContent=`いまいる場所：${npc.state.locationLabel}・${npc.state.activityLabel}`;
   paintPaper('#npc-feeding-image',npc,data.expression);
   const result=$('#npc-feeding-result');result.classList.toggle('hidden',!message);result.textContent=message;
-  for(const [kind,selector] of [['meal','#npc-feeding-meals'],['snack','#npc-feeding-snacks']]){
+  for(const [kind,selector] of [['cooking','#npc-feeding-cooking'],['snack','#npc-feeding-snacks'],['meal','#npc-feeding-meals']]){
     const list=$(selector);list.replaceChildren();
-    const items=data.items.filter(x=>x.kind===kind);
-    if(!items.length){const p=document.createElement('p');p.className='muted';p.textContent=kind==='meal'?'あげられるごはんをまだ持っていません。':'あげられるおやつをまだ持っていません。';list.append(p);continue;}
+    const items=data.items.filter(x=>kind==='cooking'?!!x.cooked:!x.cooked&&x.kind===kind);
+    if(!items.length){const p=document.createElement('p');p.className='muted';p.textContent=kind==='cooking'?'あげられる料理をまだ持っていません。':kind==='meal'?'あげられる素材をまだ持っていません。':'あげられるおやつをまだ持っていません。';list.append(p);continue;}
     for(const item of items){
       const card=document.createElement('div');card.className='feeding-item';
       const thumb=document.createElement('div');if(item.cooked){const img=document.createElement('img');img.src=encodeURI(item.image||`images/cooking/${item.id}.webp`);img.alt='';img.loading='lazy';img.onerror=()=>img.remove();thumb.append(img);}else thumb.innerHTML=matIcon(item.id);card.append(thumb);
@@ -1256,8 +1266,7 @@ const renderFeeding=(data,message='')=>{
       button.disabled=feedingBusy||!data.canFeed;
       button.addEventListener('click',handler(async()=>{
         if(feedingBusy)return;feedingBusy=true;
-        $('#npc-feeding-meals').querySelectorAll('button').forEach(b=>b.disabled=true);
-        $('#npc-feeding-snacks').querySelectorAll('button').forEach(b=>b.disabled=true);
+        document.querySelectorAll('#npc-feeding-page .feeding-item button').forEach(b=>b.disabled=true);
         try{
           const outcome=await api(item.cooked?'/cooking/feed':'/npcs/paper/feeding','POST',item.cooked?{npcId:'paper',recipeId:item.id}:{itemId:item.id});
           feedingBusy=false;

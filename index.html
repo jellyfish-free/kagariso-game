@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="data/cave-statistics.css?v=0.15.11">
   <link rel="stylesheet" href="data/forest.css?v=0.16.4.3">
   <link rel="stylesheet" href="data/sea.css?v=0.17.1.5">
-  <link rel="stylesheet" href="data/cooking.css?v=0.18.5.18">
+  <link rel="stylesheet" href="data/cooking.css?v=0.18.5.19">
   <link rel="stylesheet" href="data/cave-stills.css?v=0.16.4.4">
   <script src="config.js" defer></script>
   <script src="data/materials.js" defer></script>
@@ -29,6 +29,34 @@
   /* v0.16.4.10 洞窟スチルの表示を上下まできれいに広げる */
   #cave-story-visual{overflow:hidden;}
   #cave-story-still{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center center;border-radius:inherit;display:block;}
+
+/* v0.18.5.19: 共通の食事タブと料理画像のサイズ制限 */
+#npc-feeding-page .npc-food-tabs, #pyoro-feeding-page .npc-food-tabs {
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:18px 0 16px;
+}
+#npc-feeding-page .npc-food-tab, #pyoro-feeding-page .npc-food-tab {
+ width:100%;min-width:0;padding:11px 5px;border:1px solid var(--line);border-radius:10px;
+ background:transparent;color:inherit;cursor:pointer;font-size:inherit;
+}
+#npc-feeding-page .npc-food-tab.active, #pyoro-feeding-page .npc-food-tab.active {
+ background:var(--accent,#dbac7f);color:#231b20;font-weight:bold;border-color:transparent;
+}
+#npc-feeding-page .feeding-list, #pyoro-feeding-page .feeding-list {display:grid;gap:10px;}
+#npc-feeding-page .feeding-item, #pyoro-feeding-page .feeding-item {
+ display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:12px;padding:10px;min-width:0;
+}
+#npc-feeding-page .feeding-item > div:first-child, #pyoro-feeding-page .feeding-item > div:first-child {
+ width:52px!important;height:52px!important;flex:0 0 52px!important;min-width:52px;max-width:52px;
+ display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:8px;
+}
+#npc-feeding-page .feeding-item > div:first-child img, #pyoro-feeding-page .feeding-item > div:first-child img {
+ display:block!important;width:52px!important;height:52px!important;max-width:52px!important;max-height:52px!important;
+ object-fit:contain!important;flex:none!important;margin:0!important;
+}
+#npc-feeding-page .feeding-item-info, #pyoro-feeding-page .feeding-item-info {flex:1;min-width:0;overflow-wrap:anywhere;}
+#npc-feeding-page .feeding-item-info p, #pyoro-feeding-page .feeding-item-info p {margin:4px 0 0;}
+#npc-feeding-page .feeding-item > button, #pyoro-feeding-page .feeding-item > button {width:auto!important;flex-shrink:0;}
+@media(max-width:420px){#npc-feeding-page .feeding-item,#pyoro-feeding-page .feeding-item{gap:8px;padding:8px;}#npc-feeding-page .feeding-item > button,#pyoro-feeding-page .feeding-item > button{padding:8px 6px;font-size:.75rem;}}
 </style>
   <style>
   /* v0.16.4.10 白い扉イベントのスチル差し替え */
@@ -65,8 +93,8 @@
   }
 </style>
   <script src="data/sea-items.js?v=0.17.0.3" defer></script>
-  <script src="script.js?v=0.18.5.18" defer></script>
-  <script src="data/cooking.js?v=0.18.5.18" defer></script>
+  <script src="script.js?v=0.18.5.19" defer></script>
+  <script src="data/cooking.js?v=0.18.5.19" defer></script>
   <script src="data/sea-game.js?v=0.17.1.5" defer></script>
 <style>
  .admin-npc-selector{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:14px 0 18px;}
@@ -148,7 +176,7 @@
 </style>
 
 <style>
-/* v0.18.5.18 共通NPC UI */
+/* v0.18.5.19 共通NPC UI */
 #pyoro-feeding-page .npc-feed-summary{border:0;padding:0;margin:14px 0 20px}
 #pyoro-feeding-page .npc-feed-summary img{width:88px;height:96px;object-fit:contain}
 #pyoro-feeding-page .feeding-list{display:grid;gap:10px}
@@ -459,7 +487,14 @@
     <div id="pyoro-panel-feeding">
       <div class="npc-feed-summary"><img id="pyoro-feeding-image" src="images/npc/pyoro/normal.webp" alt="赤色の獣" loading="lazy"><div><strong id="pyoro-feeding-condition">赤色の獣</strong><p class="muted tiny" id="pyoro-feeding-activity"></p></div></div>
       <p id="pyoro-feed-result" class="notice hidden" role="status" aria-live="polite"></p>
-      <div class="section-top"><h2>ごはん</h2></div><div id="pyoro-feed-meals" class="feeding-list"></div><div class="section-top"><h2>おやつ</h2></div><div id="pyoro-feed-snacks" class="feeding-list"></div>
+      <div class="npc-food-tabs" role="tablist" aria-label="食べ物の種類">
+        <button type="button" class="npc-food-tab active" data-food-npc="pyoro" data-food-category="cooking" role="tab" aria-selected="true">料理</button>
+        <button type="button" class="npc-food-tab" data-food-npc="pyoro" data-food-category="snack" role="tab" aria-selected="false">おやつ</button>
+        <button type="button" class="npc-food-tab" data-food-npc="pyoro" data-food-category="material" role="tab" aria-selected="false">素材</button>
+      </div>
+      <div class="npc-food-panel" data-food-panel="pyoro-cooking" role="tabpanel"><div id="pyoro-feed-cooking" class="feeding-list"></div></div>
+      <div class="npc-food-panel hidden" data-food-panel="pyoro-snack" role="tabpanel"><div id="pyoro-feed-snacks" class="feeding-list"></div></div>
+      <div class="npc-food-panel hidden" data-food-panel="pyoro-material" role="tabpanel"><div id="pyoro-feed-meals" class="feeding-list"></div></div>
     </div>
   </div>
 </section>
@@ -661,8 +696,14 @@
           <span class="eyebrow">MEAL & SNACK TIME</span><h1>ごはん・おやつをあげる</h1>
           <div class="feeding-visual"><img id="npc-feeding-image" alt="黄色い獣"><div><strong id="npc-feeding-hunger">お腹のようすを確認中</strong><p class="muted tiny" id="npc-feeding-location"></p></div></div>
           <div id="npc-feeding-result" class="notice hidden" role="status" aria-live="polite"></div>
-          <div class="section-top"><h2>ごはん</h2></div><div id="npc-feeding-meals" class="feeding-list"></div>
-          <div class="section-top"><h2>おやつ</h2></div><div id="npc-feeding-snacks" class="feeding-list"></div>
+          <div class="npc-food-tabs" role="tablist" aria-label="食べ物の種類">
+            <button type="button" class="npc-food-tab active" data-food-npc="npc" data-food-category="cooking" role="tab" aria-selected="true">料理</button>
+            <button type="button" class="npc-food-tab" data-food-npc="npc" data-food-category="snack" role="tab" aria-selected="false">おやつ</button>
+            <button type="button" class="npc-food-tab" data-food-npc="npc" data-food-category="material" role="tab" aria-selected="false">素材</button>
+          </div>
+          <div class="npc-food-panel" data-food-panel="npc-cooking" role="tabpanel"><div id="npc-feeding-cooking" class="feeding-list"></div></div>
+          <div class="npc-food-panel hidden" data-food-panel="npc-snack" role="tabpanel"><div id="npc-feeding-snacks" class="feeding-list"></div></div>
+          <div class="npc-food-panel hidden" data-food-panel="npc-material" role="tabpanel"><div id="npc-feeding-meals" class="feeding-list"></div></div>
         </div>
       </section>
       <section id="npc-words-page" class="page hidden narrow">
@@ -851,7 +892,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.5.18</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.5.19</span></footer>
   </div>
 </body>
 </html>
