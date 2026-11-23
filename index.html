@@ -93,7 +93,7 @@
   }
 </style>
   <script src="data/sea-items.js?v=0.17.0.3" defer></script>
-  <script src="script.js?v=0.18.6" defer></script>
+  <script src="script.js?v=0.18.7" defer></script>
   <script src="data/cooking.js?v=0.18.5.19" defer></script>
   <script src="data/sea-game.js?v=0.17.1.5" defer></script>
 <style>
@@ -223,6 +223,17 @@
 .moon-entrance{margin-top:20px;padding:22px;border:1px solid var(--line);border-radius:15px;background:rgba(17,19,37,.45);text-align:center;}
 .moon-symbol{font-size:56px;line-height:1.4;color:#edd4a3;}
 </style>
+<style>
+/* v0.18.7: 商人は背景と人物を合成済みの一枚絵で表示する */
+.lent-scene{display:block;width:100%;height:auto;max-height:none;object-fit:contain;border-radius:15px;margin:16px 0;}
+.lent-intro{border:1px solid var(--line);border-radius:12px;padding:16px;margin:14px 0;}
+.lent-intro h2{margin-top:0;}.lent-panel .lent-shop{margin-top:18px;}
+.lent-offer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;margin:10px 0;border:1px solid var(--line);border-radius:11px;}
+.lent-offer .lent-offer-copy{flex:1;min-width:0;}.lent-offer-copy p{margin:5px 0 0;}
+.lent-panel textarea{width:100%;box-sizing:border-box;min-height:105px;background:var(--input-bg,#1b2034);color:inherit;border:1px solid var(--line);border-radius:9px;padding:12px;font:inherit;}
+.lent-panel #lent-chat-send{width:100%;margin-top:10px;}.lent-chat-panel{border-top:1px solid var(--line);padding-top:18px;margin-top:22px;}
+@media(max-width:490px){.lent-offer{flex-direction:column;align-items:stretch;}}
+</style>
 </head>
 <body>
   <div class="ambient ambient-a" aria-hidden="true"></div><div class="ambient ambient-b" aria-hidden="true"></div>
@@ -265,14 +276,30 @@
           </div><div class="section-top"><h2>ここにいる住人たち</h2><p class="muted">居場所は、住人全員で共有されています。</p></div><div id="npc-list" class="npc-list"></div><div class="section-top"><h2>不思議な扉</h2><p class="muted">扉の向こうには、新しい探索が待っている。</p></div><div id="doors" class="doors"></div></section>
       <section id="moon-page" class="page hidden narrow">
         <button type="button" id="moon-back-hall" class="back">← ホールへ戻る</button>
-        <div class="panel moon-panel">
-          <span class="eyebrow">THE MOON DOOR</span>
-          <h1>月の扉</h1>
-          <div class="moon-entrance"><div class="moon-symbol" aria-hidden="true">☾</div>
-            <p>月の印が刻まれた扉が、静かに開いた。</p>
-            <p>その向こうには、まだ誰もいない不思議な空間が広がっている。</p>
+        <div class="panel moon-panel lent-panel">
+          <span class="eyebrow">THE MOONLIT MERCHANT</span>
+          <h1>月の扉の商人</h1>
+          <img id="lent-scene" class="lent-scene" src="images/npc/lent/normal.webp" alt="商人の部屋" loading="eager">
+          <div class="lent-intro">
+            <h2>商人</h2>
+            <p id="lent-relation">お客様　♡0</p>
+            <p id="lent-state">店の様子を確認しています……</p>
+            <p id="lent-affinity" class="muted tiny"></p>
           </div>
-          <p class="muted tiny">商人との交流は今後の更新で追加されます。</p>
+          <p id="lent-message" class="scene hidden" role="status" aria-live="polite"></p>
+          <section class="lent-shop">
+            <h2>物々交換</h2>
+            <div id="lent-offers"></div>
+            <p class="muted tiny">取引は営業中なら何回でも行えます。親密度は1日最大3ptまで。</p>
+          </section>
+          <section id="lent-conversation" class="hidden lent-chat-panel">
+            <h2>自由に話しかける <span id="lent-chat-usage" class="muted">(0/5回)</span></h2>
+            <textarea id="lent-chat-input" maxlength="240" rows="4" placeholder="商人に話しかける（240文字まで）"></textarea>
+            <button id="lent-chat-send" type="button" class="primary">話しかける</button>
+            <p id="lent-chat-reply" class="speech" aria-live="polite"></p>
+          </section>
+          <button type="button" id="lent-wake" class="secondary hidden">そっと声をかけて起こす</button>
+          <p id="lent-chat-locked" class="muted tiny">自由会話は♡5で解放されます。</p>
         </div>
       </section>
       <!-- v0.18.5.4: 工房TOP。料理と将来の服飾を別の入口に分離する。 -->
@@ -928,7 +955,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.6</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.7</span></footer>
   </div>
 </body>
 </html>

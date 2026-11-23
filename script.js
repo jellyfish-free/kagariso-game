@@ -311,13 +311,46 @@ function showSeaEvent(kind,e,replay=false){
 }
 async function checkSeaEvents(){if(!seaState?.unlocked||!seaState?.eligible)return false;const e=await api('/sea/events');if(!e.greenSeen){showSeaEvent('green',e);return true;}if(e.discovered&&!e.encounterSeen){showSeaEvent(e.isFinder?'discover':'meet',e);return true;}return false;}
 
+// v0.18.7 商人lent。画像は背景と人物が一体のWebPを使う。
+let lentBusy=false;
+const lentImageFiles=new Set(['normal.webp','sleeping.webp','lentNothing.webp','angry.webp','laugh.webp','surprised.webp']);
+function renderLent(p){
+ const image=String(p.image||'').split('/').pop();
+ $('#lent-scene').src='images/npc/lent/'+(lentImageFiles.has(image)?image:'normal.webp');
+ $('#lent-relation').textContent=p.relationship+'　'+('♥'.repeat(p.hearts))+'♡'.repeat(Math.max(0,10-p.hearts));
+ $('#lent-state').textContent=p.activityLabel;
+ $('#lent-affinity').textContent=`親密度 ${p.points}pt｜今日の獲得 ${p.affinityToday} / ${p.affinityLimit}pt`;
+ $('#lent-wake').classList.toggle('hidden',!p.canWake);
+ $('#lent-conversation').classList.toggle('hidden',!p.aiUnlocked);
+ $('#lent-chat-locked').classList.toggle('hidden',!!p.aiUnlocked);
+ if(p.aiUnlocked){const u=p.aiUsage||{used:0,limit:5};$('#lent-chat-usage').textContent=`(${u.used}/${u.limit}回)`;$('#lent-chat-send').disabled=!p.canChat||u.used>=5||lentBusy;$('#lent-chat-input').disabled=!p.canChat;}
+ const box=$('#lent-offers');box.replaceChildren();
+ if(!p.canTrade){const msg=document.createElement('p');msg.className='muted';msg.textContent=p.activity==='away'?'商人は留守にしています。': '商人は眠っています。取引はできません。';box.append(msg);return;}
+ if(!p.offers?.length){const msg=document.createElement('p');msg.className='muted';msg.textContent='ただいま交換品の準備中です。';box.append(msg);return;}
+ for(const offer of p.offers){
+  const row=document.createElement('div');row.className='lent-offer';
+  const left=document.createElement('div');left.className='lent-offer-copy';
+  const strong=document.createElement('strong');strong.textContent=offer.title;
+  const desc=document.createElement('p');desc.className='muted tiny';desc.textContent=`${offer.give.name} ×${offer.give.quantity} → ${offer.receive.name} ×${offer.receive.quantity}`;
+  const button=document.createElement('button');button.className='secondary small';button.textContent='交換する';button.disabled=lentBusy;
+  button.onclick=handler(async()=>{if(lentBusy)return;if(!confirm(`${desc.textContent} を交換しますか？`))return;lentBusy=true;button.disabled=true;try{const res=await api('/lent/trade','POST',{offerId:offer.id});$('#lent-message').textContent=res.message;$('#lent-message').classList.remove('hidden');renderLent(res.profile);}finally{lentBusy=false;button.disabled=false;}});
+  left.append(strong,desc);row.append(left,button);box.append(row);
+ }
+}
 async function openMoonDoor(){
- // Unlock is verified by Worker when hall is opened; refresh status when entering.
  const hall=await api('/hall');
  moonDoorUnlocked=!!hall.moonUnlocked;
  if(!moonDoorUnlocked){toast('月の扉はまだ開かない。');return;}
+ const data=await api('/lent');
+ renderLent(data.lent);
  show('moon');
 }
+$('#lent-chat-send').addEventListener('click',handler(async()=>{
+ if(lentBusy)return;const message=$('#lent-chat-input').value.trim();if(!message){toast('話しかけたいことを入力してください。');return;}
+ lentBusy=true;$('#lent-chat-send').disabled=true;
+ try{const res=await api('/lent/chat','POST',{message});$('#lent-chat-reply').textContent=res.response;$('#lent-chat-input').value='';renderLent(res.profile);}finally{lentBusy=false;}
+}));
+$('#lent-wake').addEventListener('click',handler(async()=>{if(lentBusy)return;lentBusy=true;try{const data=await api('/lent/wake','POST',{});renderLent(data.profile);$('#lent-message').textContent='商人が目を覚ました。';$('#lent-message').classList.remove('hidden');}finally{lentBusy=false;}}));
 $('#moon-back-hall').addEventListener('click',handler(openHall));
 async function openHall(){const data=await api('/hall');resident=data.resident;$('#user-name').textContent=resident.name;$('#user-bar').classList.remove('hidden');
   updateHallBackground();
