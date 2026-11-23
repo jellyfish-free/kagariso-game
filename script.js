@@ -681,7 +681,7 @@ const pyoroReplyExpression=(response)=>{
  if(/怒|むっ|ぷん|ふんっ|なんだよ/.test(t))return 'angry';
  if(/かなしい|悲し|さびし|寂し|しょんぼり/.test(t))return 'sad';
  if(/えっへん|すごいだろ|まかせろ/.test(t))return 'pride';
- return 'talkL';
+ return 'normal';
 };
 const pyoroStateScene=n=>{
  const state=n.state||{};
@@ -836,16 +836,49 @@ bind('#pyoro-history-open',()=>openPyoroHistory('pyoro-conversation'));
 bind('#pyoro-history-back',()=>pyoroHistoryReturn==='pyoro'?show('pyoro'):show('pyoro-conversation'));
 bind('#pyoro-history-tab-ai',()=>switchPyoroHistoryTab(true));
 bind('#pyoro-history-tab-choice',()=>switchPyoroHistoryTab(false));
-const renderPyoroFood=data=>{
+// v0.18.5.18: 食事カードを黄色い獣と統一。料理は同じ食事画面へ合流。
+let pyoroFeedingBusy=false;
+const pyoroFoodKind=(kind)=>kind==='meal'?'#pyoro-feed-meals':'#pyoro-feed-snacks';
+const renderPyoroFood=(data,message='')=>{
  const n=data.npc;paintPyoroProfile(n);
- paintPyoro('#pyoro-feeding-image',n);
- $('#pyoro-feeding-condition').textContent=n?.state?.activity==='sleeping'?'眠っている':(n?.state?.hunger>=60?'おなかがすいている':'赤色の獣');
- $('#pyoro-feeding-activity').textContent=[n?.state?.locationLabel,n?.state?.activityLabel].filter(Boolean).join(' · ');
- const list=$('#pyoro-feed-list');list.replaceChildren();
- if(!data.canFeed){list.textContent=n.state.activity==='sleeping'?'眠っています。':'おなかいっぱいです。';return;}
- for(const kind of ['meal','snack']){const h=document.createElement('h3');h.textContent=kind==='meal'?'ごはん':'おやつ';list.append(h);const items=data.items.filter(x=>x.kind===kind);if(!items.length){const p=document.createElement('p');p.textContent='渡せる素材がありません。';list.append(p);}for(const item of items){const b=document.createElement('button');b.className='secondary';b.textContent=`${item.name} ×${item.quantity}（空腹 -${item.restore}）`;b.onclick=handler(async()=>{if(pyoroBusy)return;pyoroBusy=true;try{const r=await api('/npcs/pyoro/feeding','POST',{itemId:item.id});$('#pyoro-feed-result').textContent=r.message+(r.affinityChange?`（親密度 +${r.affinityChange}pt）`:'');$('#pyoro-feed-result').classList.remove('hidden');renderPyoroFood(r);paintPyoro('#pyoro-profile-image',r.npc,r.expression||'happy');}finally{pyoroBusy=false;}});list.append(b);}}
+ paintPyoro('#pyoro-feeding-image',n,data.expression);
+ $('#pyoro-feeding-condition').textContent=n?.state?.hungerLabel||'確認中';
+ $('#pyoro-feeding-activity').textContent=`いまいる場所：${n?.state?.locationLabel||'ホール'}・${n?.state?.activityLabel||''}`;
+ const result=$('#pyoro-feed-result');result.textContent=message;result.classList.toggle('hidden',!message);
+ for(const kind of ['meal','snack']){
+  const list=$(pyoroFoodKind(kind));list.replaceChildren();
+  const items=(data.items||[]).filter(x=>x.kind===kind);
+  if(!items.length){const p=document.createElement('p');p.className='muted';p.textContent=kind==='meal'?'あげられるごはんをまだ持っていません。':'あげられるおやつをまだ持っていません。';list.append(p);continue;}
+  for(const item of items){
+    const card=document.createElement('div');card.className='feeding-item';
+    const thumb=document.createElement('div');
+    if(item.cooked){const img=document.createElement('img');img.src=encodeURI(item.image||`images/cooking/${item.id}.webp`);img.alt='';img.loading='lazy';img.onerror=()=>img.remove();thumb.append(img);}
+    else thumb.innerHTML=matIcon(item.id);
+    card.append(thumb);
+    const info=document.createElement('div');info.className='feeding-item-info';
+    const strong=document.createElement('strong');strong.textContent=item.name;info.append(strong);
+    const small=document.createElement('p');small.className='muted tiny';small.textContent=`所持数 ×${item.quantity} ・ 満腹度 +${item.restore}`+(item.cooked?` ・ 腹持ち ${item.satietyMinutes}分`:'');info.append(small);card.append(info);
+    const button=document.createElement('button');button.type='button';button.className='secondary small';button.textContent='1個あげる';button.disabled=pyoroFeedingBusy||!data.canFeed;
+    button.addEventListener('click',handler(async()=>{
+      if(pyoroFeedingBusy)return;pyoroFeedingBusy=true;
+      $('#pyoro-feed-meals').querySelectorAll('button').forEach(b=>b.disabled=true);
+      $('#pyoro-feed-snacks').querySelectorAll('button').forEach(b=>b.disabled=true);
+      try{
+        if(item.cooked){const response=await api('/cooking/feed','POST',{npcId:'pyoro',recipeId:item.id});await loadPyoroFood(response.message);}
+        else{const response=await api('/npcs/pyoro/feeding','POST',{itemId:item.id});await loadPyoroFood(response.message+(response.affinityChange?`（親密度 +${response.affinityChange}pt）`:''));}
+      }catch(e){await loadPyoroFood().catch(()=>{});throw e;}finally{pyoroFeedingBusy=false;}
+    }));card.append(button);list.append(card);
+  }
+ }
 };
-const loadPyoroFood=async()=>{const data=await api('/npcs/pyoro/feeding');renderPyoroFood(data);};
+const loadPyoroFood=async(message='')=>{
+ const data=await api('/npcs/pyoro/feeding');
+ // 料理が未解放の住人には、食事素材だけを表示する。
+ if(frontCookingUnlocked){
+  try{const cooked=await api('/cooking/feed-options?npcId=pyoro');data.items.push(...(cooked.items||[]).map(x=>({...x,cooked:true})));}catch(e){console.warn('料理の食事候補を取得できませんでした',e);}
+ }
+ renderPyoroFood(data,message);
+};
 
 // v0.17.0.7: Requests/presents/words are separate for pyoro.
 let pyoroRequestBusy=false,pyoroGiftBusy=false;
@@ -943,9 +976,9 @@ async function loadPyoroRequests(){
 async function loadPyoroGifts(){
  const data=await api('/npcs/pyoro/gifts');const inbox=$('#pyoro-gift-inbox'),history=$('#pyoro-gift-history'),inventory=$('#pyoro-gift-inventory');inbox.replaceChildren();history.replaceChildren();inventory.replaceChildren();
  const present=g=>{const card=pyoroRequestCard(g.name,g.description);if(g.image){const image=document.createElement('img');image.src=encodeURI(g.image);image.alt='';image.loading='lazy';image.style.cssText='width:100%;max-width:230px;border-radius:12px;display:block;margin:8px 0;';card.append(image);}return card;};
- for(const g of data.inbox){const card=present(g);
+ for(const g of data.inbox){const card=g.ready?present(g):pyoroRequestCard('赤色の獣がお礼を準備中',`完成予定：${giftDate(g.readyAt)}（日本時間）`);
   if(g.ready){const btn=document.createElement('button');btn.className='primary small';btn.textContent='プレゼントを受け取る';btn.onclick=handler(async()=>{if(pyoroGiftBusy)return;pyoroGiftBusy=true;try{const r=await api('/npcs/pyoro/gifts/claim','POST',{giftId:g.id});pyoroStatus('#pyoro-gift-message',r.reply);paintPyoro('#pyoro-profile-image',pyoroProfile,'happy');await loadPyoroGifts();}finally{pyoroGiftBusy=false;}});card.append(btn);}
-  else {const p=document.createElement('p');p.className='muted tiny';p.textContent='まだ作っているところみたい。';card.append(p);}
+  else {const p=document.createElement('p');p.className='muted tiny';p.textContent=`赤色の獣がお礼を準備中 ・ 完成予定：${giftDate(g.readyAt)}（日本時間）`;card.append(p);}
   inbox.append(card);
  }
  if(!data.inbox.length)inbox.textContent='今は届いているプレゼントはありません。';
@@ -976,12 +1009,40 @@ $('#pyoro-word-form').addEventListener('submit',handler(async e=>{
 }));
 let pyoroDiaryBefore='',pyoroDiaryLoading=false;
 let pyoroDiaryEntries=[],pyoroDiaryIndex=0,pyoroDiaryHasMore=false;
+// v0.18.5.18: 黄色い獣・赤色の獣共通の月別日記カレンダー。
+const diaryCalendarMonths={paper:null,pyoro:null};
+function paintDiaryCalendar(npc,entries,selectedIndex,hasMore,onSelect){
+ const prefix=npc==='paper'?'paper':'pyoro';
+ const grid=$('#'+prefix+'-calendar-grid');if(!grid)return;
+ const latest=entries[0]?.day||new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Tokyo'});
+ const display=diaryCalendarMonths[npc]||latest.slice(0,7);
+ diaryCalendarMonths[npc]=display;
+ const [year,month]=display.split('-').map(Number);
+ $('#'+prefix+'-calendar-month').textContent=`${year}年 ${month}月`;
+ grid.replaceChildren();
+ for(const title of ['日','月','火','水','木','金','土']){const cell=document.createElement('span');cell.className='npc-calendar-weekday';cell.textContent=title;grid.append(cell);}
+ const offset=new Date(Date.UTC(year,month-1,1)).getUTCDay();
+ for(let i=0;i<offset;i++){const blank=document.createElement('span');grid.append(blank);}
+ const last=new Date(Date.UTC(year,month,0)).getUTCDate();
+ for(let d=1;d<=last;d++){
+  const day=`${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  const index=entries.findIndex(x=>x.day===day);
+  const button=document.createElement('button');button.type='button';button.className='secondary small';button.textContent=d;
+  if(index>=0){button.classList.add('has-entry');if(index===selectedIndex)button.classList.add('active');button.onclick=()=>onSelect(index);}
+  else button.disabled=true;
+  grid.append(button);
+ }
+ const more=$('#'+prefix+'-calendar-more');
+ const earliest=entries.at(-1)?.day;
+ more.classList.toggle('hidden',!hasMore||!!earliest&&display>=earliest.slice(0,7));
+}
+function shiftDiaryMonth(npc,delta){const month=diaryCalendarMonths[npc]||new Date().toISOString().slice(0,7);const [y,m]=month.split('-').map(Number);const next=new Date(Date.UTC(y,m-1+delta,1));diaryCalendarMonths[npc]=next.toISOString().slice(0,7);}
 const paintPyoroDiary=()=>{
  const e=pyoroDiaryEntries[pyoroDiaryIndex];
  $('#pyoro-diary-empty').classList.toggle('hidden',!!e);
  $('#pyoro-diary-paper').classList.toggle('hidden',!e);
  $('#pyoro-diary-navigation').classList.toggle('hidden',!e);
- if(!e)return;
+ if(!e){paintDiaryCalendar('pyoro',pyoroDiaryEntries,pyoroDiaryIndex,pyoroDiaryHasMore,()=>{});return;}
  const [y,m,d]=e.day.split('-').map(Number),weekday='にち げつ か すい もく きん ど'.split(' ')[new Date(Date.UTC(y,m-1,d)).getUTCDay()];
  $('#pyoro-diary-date').textContent=`${y}ねん ${m}がつ${d}にち ${weekday}ようび`;
  $('#pyoro-diary-weather').textContent=e.weather==='clear'?'☀ はれ':'☁ くもり';
@@ -989,6 +1050,7 @@ const paintPyoroDiary=()=>{
  $('#pyoro-diary-prev').disabled=pyoroDiaryLoading||(pyoroDiaryIndex===pyoroDiaryEntries.length-1&&!pyoroDiaryHasMore);
  $('#pyoro-diary-latest').disabled=pyoroDiaryIndex===0;
  $('#pyoro-diary-next').disabled=pyoroDiaryIndex===0;
+ paintDiaryCalendar('pyoro',pyoroDiaryEntries,pyoroDiaryIndex,pyoroDiaryHasMore,index=>{pyoroDiaryIndex=index;paintPyoroDiary();});
 };
 const loadPyoroDiary=async(reset=true)=>{
  if(pyoroDiaryLoading)return;
@@ -997,7 +1059,7 @@ const loadPyoroDiary=async(reset=true)=>{
   const before=reset?'':pyoroDiaryEntries.at(-1)?.day;
   const path='/npcs/pyoro/diary'+(before?'?before='+encodeURIComponent(before):'');
   const {entries=[],hasMore=false}=await api(path);
-  if(reset){pyoroDiaryEntries=entries;pyoroDiaryIndex=0;}else pyoroDiaryEntries.push(...entries);
+  if(reset){pyoroDiaryEntries=entries;pyoroDiaryIndex=0;diaryCalendarMonths.pyoro=entries[0]?.day.slice(0,7)||null;}else pyoroDiaryEntries.push(...entries);
   pyoroDiaryHasMore=hasMore;
  }finally{pyoroDiaryLoading=false;paintPyoroDiary();}
 };
@@ -1007,8 +1069,10 @@ bind('#pyoro-diary-prev',async()=>{
  if(pyoroDiaryIndex<pyoroDiaryEntries.length-1)pyoroDiaryIndex++;
  paintPyoroDiary();
 });
-bind('#pyoro-diary-latest',()=>{pyoroDiaryIndex=0;paintPyoroDiary();});
+bind('#pyoro-diary-latest',()=>{pyoroDiaryIndex=0;diaryCalendarMonths.pyoro=pyoroDiaryEntries[0]?.day.slice(0,7)||null;paintPyoroDiary();});
 bind('#pyoro-diary-next',()=>{pyoroDiaryIndex=Math.max(0,pyoroDiaryIndex-1);paintPyoroDiary();});
+for(const [delta,part] of [[-1,'prev'],[1,'next']])bind('#pyoro-calendar-'+part,()=>{shiftDiaryMonth('pyoro',delta);paintPyoroDiary();});
+bind('#pyoro-calendar-more',()=>loadPyoroDiary(false));
 bind('#pyoro-interactions-load',async()=>{
  const data=await api('/npcs/pyoro/interactions'),list=$('#pyoro-interactions');list.replaceChildren();
  for(const i of data.interactions){const p=document.createElement('p');p.className='scene';p.textContent=i.day+'　'+i.summary+'\n'+i.pyoro_view;list.append(p);}
@@ -1184,10 +1248,10 @@ const renderFeeding=(data,message='')=>{
     if(!items.length){const p=document.createElement('p');p.className='muted';p.textContent=kind==='meal'?'あげられるごはんをまだ持っていません。':'あげられるおやつをまだ持っていません。';list.append(p);continue;}
     for(const item of items){
       const card=document.createElement('div');card.className='feeding-item';
-      const thumb=document.createElement('div');thumb.innerHTML=matIcon(item.id);card.append(thumb);
+      const thumb=document.createElement('div');if(item.cooked){const img=document.createElement('img');img.src=encodeURI(item.image||`images/cooking/${item.id}.webp`);img.alt='';img.loading='lazy';img.onerror=()=>img.remove();thumb.append(img);}else thumb.innerHTML=matIcon(item.id);card.append(thumb);
       const info=document.createElement('div');info.className='feeding-item-info';
       const name=document.createElement('strong');name.textContent=item.name;info.append(name);
-      const qty=document.createElement('p');qty.className='muted tiny';qty.textContent=`所持数 ×${item.quantity} ・ 満腹度 +${item.restore}`;info.append(qty);card.append(info);
+      const qty=document.createElement('p');qty.className='muted tiny';qty.textContent=`所持数 ×${item.quantity} ・ 満腹度 +${item.restore}`+(item.cooked?` ・ 腹持ち ${item.satietyMinutes}分`:'');info.append(qty);card.append(info);
       const button=document.createElement('button');button.type='button';button.className='secondary small';button.textContent='1個あげる';
       button.disabled=feedingBusy||!data.canFeed;
       button.addEventListener('click',handler(async()=>{
@@ -1195,18 +1259,19 @@ const renderFeeding=(data,message='')=>{
         $('#npc-feeding-meals').querySelectorAll('button').forEach(b=>b.disabled=true);
         $('#npc-feeding-snacks').querySelectorAll('button').forEach(b=>b.disabled=true);
         try{
-          const outcome=await api('/npcs/paper/feeding','POST',{itemId:item.id});
+          const outcome=await api(item.cooked?'/cooking/feed':'/npcs/paper/feeding','POST',item.cooked?{npcId:'paper',recipeId:item.id}:{itemId:item.id});
           feedingBusy=false;
-          currentNpc=outcome.npc;
-          renderFeeding({...outcome,canFeed:outcome.npc.state.activity!=='sleeping'&&outcome.npc.state.hunger>15},outcome.message);
-        }catch(error){feedingBusy=false;const refreshed=await api('/npcs/paper/feeding');renderFeeding(refreshed);throw error;}
+          const refreshed=await getPaperFeedingOptions();currentNpc=refreshed.npc;
+          renderFeeding(refreshed,outcome.message);
+        }catch(error){feedingBusy=false;const refreshed=await getPaperFeedingOptions();renderFeeding(refreshed);throw error;}
       }));card.append(button);list.append(card);
     }
   }
 };
+async function getPaperFeedingOptions(){const data=await api('/npcs/paper/feeding');if(frontCookingUnlocked){try{const cooked=await api('/cooking/feed-options?npcId=paper');data.items.push(...(cooked.items||[]).map(x=>({...x,cooked:true})));}catch(e){console.warn('料理の食事候補を取得できませんでした',e);}}return data;}
 async function openNpcFeeding(){
   feedingReturn=document.querySelector('#conversation-page:not(.hidden)')?'conversation':'npc';
-  const data=await api('/npcs/paper/feeding');
+  const data=await getPaperFeedingOptions();
   renderFeeding(data);
   $('#npc-feeding-back').textContent=feedingReturn==='conversation'?'← お話に戻る':'← 黄色い獣のプロフィールへ';
   show('npc-feeding');
@@ -1250,6 +1315,24 @@ async function openNpcGifts(from='hall',message=''){
  $('#mail-npc-section').classList.toggle('hidden',!onlyPaper&&!data.npcUnlocked);
  const inbox=$('#npc-gifts-inbox'),inventory=$('#npc-gifts-inventory'),history=$('#npc-gifts-history');
  const addGiftImage=(container,gift)=>{if(!gift.image)return;const img=document.createElement('img');img.className='npc-gift-image';img.alt=gift.name||'返礼品';img.loading='lazy';img.src=encodeURI(gift.image);img.onerror=()=>img.remove();container.insertBefore(img,container.firstChild);};
+ const redSection=$('#mail-pyoro-section');redSection.classList.add('hidden');
+ if(!onlyPaper && frontCookingUnlocked){
+  try{
+   const red=await api('/npcs/pyoro/gifts');
+   redSection.classList.remove('hidden');
+   const redList=$('#mail-pyoro-inbox');redList.replaceChildren();
+   for(const gift of red.inbox||[]){
+    const ready=!!gift.ready;
+    const card=giftCard(ready?gift.name:'赤色の獣がお礼を準備中',ready?'贈り主：赤色の獣 ・ 受け取りできます':`贈り主：赤色の獣 ・ 完成予定：${giftDate(gift.readyAt)}（日本時間）`);
+    if(ready){
+      const btn=document.createElement('button');btn.type='button';btn.className='primary small';btn.textContent='受け取る';
+      btn.addEventListener('click',handler(async()=>{btn.disabled=true;try{await api('/npcs/pyoro/gifts/claim','POST',{giftId:gift.id});await openNpcGifts('hall','赤色の獣からの贈り物を受け取りました。');}finally{btn.disabled=false;}}));card.append(btn);
+    }else{const p=document.createElement('p');p.className='muted';p.textContent='赤色の獣が頑張って作っています。完成を待ってね。';card.append(p);}
+    redList.append(card);
+   }
+   giftEmpty(redList,'赤色の獣から届いている贈り物はありません。');
+  }catch(e){console.warn('赤色の獣の通信箱を取得できませんでした',e);}
+ }
  const common=$('#gifts-common-sections');common.classList.toggle('hidden',onlyPaper);
  $('#gifts-heading').textContent=onlyPaper?'贈り物':'通信箱';
  $('#gifts-eyebrow').textContent=onlyPaper?'GIFTS FROM PAPER':'YOUR MAILBOX';
@@ -1501,18 +1584,21 @@ let diaryEntries=[],diaryIndex=0,diaryMore=false,diaryBusy=false;
 function renderDiary(){
  const entry=diaryEntries[diaryIndex];
  $('#diary-empty').classList.toggle('hidden',!!entry);$('#diary-paper').classList.toggle('hidden',!entry);$('#diary-navigation').classList.toggle('hidden',!entry);
- if(!entry)return;
+ if(!entry){paintDiaryCalendar('paper',diaryEntries,diaryIndex,diaryMore,()=>{});return;}
  const [year,month,day]=entry.day.split('-').map(Number),weekday='にち げつ か すい もく きん ど'.split(' ')[new Date(Date.UTC(year,month-1,day)).getUTCDay()];
  $('#diary-date').textContent=`${year}ねん ${month}がつ${day}にち ${weekday}ようび`;
  $('#diary-weather').textContent=entry.weather==='clear'?'☀ はれ':'☁ くもり';$('#diary-body').textContent=entry.body;
  $('#diary-prev').disabled=diaryBusy||diaryIndex>=diaryEntries.length-1&&!diaryMore;
  $('#diary-next').disabled=diaryIndex===0;$('#diary-latest').disabled=diaryIndex===0;
+ paintDiaryCalendar('paper',diaryEntries,diaryIndex,diaryMore,index=>{diaryIndex=index;renderDiary();});
 }
-async function openDiary(){const result=await api('/npcs/paper/diary');diaryEntries=result.entries||[];diaryMore=!!result.hasMore;diaryIndex=0;diaryBusy=false;renderDiary();show('npc-diary');}
+async function openDiary(){const result=await api('/npcs/paper/diary');diaryEntries=result.entries||[];diaryMore=!!result.hasMore;diaryIndex=0;diaryBusy=false;diaryCalendarMonths.paper=diaryEntries[0]?.day.slice(0,7)||null;renderDiary();show('npc-diary');}
 bind('#open-npc-diary',openDiary);bind('#npc-diary-back',()=>openNpc(npcReturn));
-bind('#diary-latest',()=>{diaryIndex=0;renderDiary();});bind('#diary-next',()=>{diaryIndex=Math.max(0,diaryIndex-1);renderDiary();});
+bind('#diary-latest',()=>{diaryIndex=0;diaryCalendarMonths.paper=diaryEntries[0]?.day.slice(0,7)||null;renderDiary();});bind('#diary-next',()=>{diaryIndex=Math.max(0,diaryIndex-1);renderDiary();});
 bind('#diary-prev',async()=>{if(diaryBusy)return;if(diaryIndex===diaryEntries.length-1&&diaryMore){diaryBusy=true;renderDiary();try{const r=await api('/npcs/paper/diary?before='+encodeURIComponent(diaryEntries.at(-1).day));diaryEntries.push(...r.entries);diaryMore=!!r.hasMore;}finally{diaryBusy=false;renderDiary();}}if(diaryIndex<diaryEntries.length-1)diaryIndex++;renderDiary();});
 
+for(const [delta,part] of [[-1,'prev'],[1,'next']])bind('#paper-calendar-'+part,()=>{shiftDiaryMonth('paper',delta);renderDiary();});
+bind('#paper-calendar-more',async()=>{if(diaryBusy||!diaryMore)return;diaryBusy=true;try{const r=await api('/npcs/paper/diary?before='+encodeURIComponent(diaryEntries.at(-1)?.day||''));diaryEntries.push(...(r.entries||[]));diaryMore=!!r.hasMore;}finally{diaryBusy=false;renderDiary();}});
 bind('#open-npc-requests',()=>openNpcRequests());
 bind('#npc-requests-back',()=>openNpc(npcReturn));
 

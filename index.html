@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="data/cave-statistics.css?v=0.15.11">
   <link rel="stylesheet" href="data/forest.css?v=0.16.4.3">
   <link rel="stylesheet" href="data/sea.css?v=0.17.1.5">
-  <link rel="stylesheet" href="data/cooking.css?v=0.18.5.16">
+  <link rel="stylesheet" href="data/cooking.css?v=0.18.5.18">
   <link rel="stylesheet" href="data/cave-stills.css?v=0.16.4.4">
   <script src="config.js" defer></script>
   <script src="data/materials.js" defer></script>
@@ -65,8 +65,8 @@
   }
 </style>
   <script src="data/sea-items.js?v=0.17.0.3" defer></script>
-  <script src="script.js?v=0.18.5.17" defer></script>
-  <script src="data/cooking.js?v=0.18.5.16" defer></script>
+  <script src="script.js?v=0.18.5.18" defer></script>
+  <script src="data/cooking.js?v=0.18.5.18" defer></script>
   <script src="data/sea-game.js?v=0.17.1.5" defer></script>
 <style>
  .admin-npc-selector{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:14px 0 18px;}
@@ -145,6 +145,32 @@
 #pyoro-words-page #pyoro-word-form textarea{min-height:72px;resize:vertical}
 #pyoro-words-page #pyoro-word-form button[type=submit]{display:block;width:100%;margin-top:20px}
 #pyoro-words-page #pyoro-word-history-open{width:auto}
+</style>
+
+<style>
+/* v0.18.5.18 共通NPC UI */
+#pyoro-feeding-page .npc-feed-summary{border:0;padding:0;margin:14px 0 20px}
+#pyoro-feeding-page .npc-feed-summary img{width:88px;height:96px;object-fit:contain}
+#pyoro-feeding-page .feeding-list{display:grid;gap:10px}
+#pyoro-feeding-page .feeding-item{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:12px;padding:10px}
+#pyoro-feeding-page .feeding-item > div:first-child{width:52px;flex:0 0 52px}
+#pyoro-feeding-page .feeding-item img{width:52px;height:52px;object-fit:contain}
+#pyoro-feeding-page .feeding-item-info{flex:1;min-width:0}
+#pyoro-feeding-page .feeding-item-info p{margin:4px 0 0}
+#pyoro-feeding-page .feeding-item button{width:auto!important;flex-shrink:0}
+#hall-pyoro-actor img,#hall-paper-actor img{object-fit:contain;object-position:center bottom}
+/* 立ち絵の余白が異なるため赤色の獣の見かけの大きさを調整 */
+#hall-pyoro-actor img{transform:scale(.88);transform-origin:center bottom}
+.npc-calendar{margin:16px 0 24px;padding:12px;border:1px solid var(--line);border-radius:12px}
+.npc-calendar-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.npc-calendar-header button{width:38px;min-width:38px}
+.npc-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.npc-calendar-weekday{text-align:center;font-size:.75rem;color:var(--muted);padding:5px 0}
+.npc-calendar-grid button{aspect-ratio:1;min-width:0;padding:3px 0;border-radius:7px;font-size:.82rem}
+.npc-calendar-grid button.has-entry{border-color:#c8a77b;color:#ffe2af}
+.npc-calendar-grid button.active{background:#d9b17d;color:#201c27}
+.npc-calendar-grid button:disabled{opacity:.35;cursor:default}
+#paper-calendar-more,#pyoro-calendar-more{margin-top:12px}
 </style>
 </head>
 <body>
@@ -433,7 +459,7 @@
     <div id="pyoro-panel-feeding">
       <div class="npc-feed-summary"><img id="pyoro-feeding-image" src="images/npc/pyoro/normal.webp" alt="赤色の獣" loading="lazy"><div><strong id="pyoro-feeding-condition">赤色の獣</strong><p class="muted tiny" id="pyoro-feeding-activity"></p></div></div>
       <p id="pyoro-feed-result" class="notice hidden" role="status" aria-live="polite"></p>
-      <div id="pyoro-feed-list" class="choice-list"></div>
+      <div class="section-top"><h2>ごはん</h2></div><div id="pyoro-feed-meals" class="feeding-list"></div><div class="section-top"><h2>おやつ</h2></div><div id="pyoro-feed-snacks" class="feeding-list"></div>
     </div>
   </div>
 </section>
@@ -486,6 +512,7 @@
   <button id="pyoro-diary-back" class="back" type="button">← プロフィールへ戻る</button>
   <div class="panel">
     <span class="eyebrow">THE LITTLE BEAST'S DIARY</span><h1>赤色の獣の日記</h1>
+    <div id="pyoro-calendar" class="npc-calendar"><div class="npc-calendar-header"><button type="button" class="secondary small" id="pyoro-calendar-prev" aria-label="前の月">‹</button><strong id="pyoro-calendar-month">日記カレンダー</strong><button type="button" class="secondary small" id="pyoro-calendar-next" aria-label="次の月">›</button></div><div id="pyoro-calendar-grid" class="npc-calendar-grid" aria-label="日記の日付"></div><button type="button" id="pyoro-calendar-more" class="secondary small hidden">過去の日記を読み込む</button></div>
     <p id="pyoro-diary-empty" class="muted">まだ日記はありません。夜に日記を書くよ。</p>
     <article id="pyoro-diary-paper" class="diary-paper hidden">
       <div class="diary-date"><span id="pyoro-diary-date"></span><span id="pyoro-diary-weather"></span></div>
@@ -572,6 +599,7 @@
       <section id="npc-diary-page" class="page hidden narrow">
         <button class="back" id="npc-diary-back">← プロフィールへ戻る</button>
         <div class="panel"><span class="eyebrow">THE LITTLE BEAST'S DIARY</span><h1>黄色い獣の日記</h1>
+    <div id="paper-calendar" class="npc-calendar"><div class="npc-calendar-header"><button type="button" class="secondary small" id="paper-calendar-prev" aria-label="前の月">‹</button><strong id="paper-calendar-month">日記カレンダー</strong><button type="button" class="secondary small" id="paper-calendar-next" aria-label="次の月">›</button></div><div id="paper-calendar-grid" class="npc-calendar-grid" aria-label="日記の日付"></div><button type="button" id="paper-calendar-more" class="secondary small hidden">過去の日記を読み込む</button></div>
           <p id="diary-empty" class="muted">まだ日記はありません。夜に日記を書くよ。</p>
           <article id="diary-paper" class="diary-paper hidden"><div class="diary-date"><span id="diary-date"></span><span id="diary-weather"></span></div><h2>ボクのにっき</h2><p id="diary-body"></p></article>
           <div id="diary-navigation" class="diary-navigation hidden"><button class="secondary small" id="diary-prev">← 前の日</button><button class="secondary small" id="diary-latest">最新の日記</button><button class="secondary small" id="diary-next">次の日 →</button></div>
@@ -597,7 +625,7 @@
           <div id="npc-gifts-inbox" class="request-list"></div>
           <details class="gift-collapsible"><summary>もらった記念品</summary><div id="npc-gifts-inventory" class="request-list details-content"></div></details>
           <details class="gift-collapsible"><summary>受け取り履歴（最新5件）</summary><div id="npc-gifts-history" class="request-list details-content"></div><button type="button" class="history-all-link" data-history="npc">さらに詳細を確認する</button></details>
-          </section><div id="gifts-common-sections">
+          </section><section id="mail-pyoro-section" class="hidden"><div class="section-top"><h2>赤色の獣からの贈り物</h2></div><div id="mail-pyoro-inbox" class="request-list"></div></section><div id="gifts-common-sections">
             <div class="section-top"><h2>住人からの贈り物</h2><p class="muted tiny">受け取るまでは贈り主の素材をお預かりします。</p></div>
             <div id="resident-gifts-inbox" class="request-list"></div>
             <details><summary>住人へ贈る</summary><div class="details-content">
@@ -823,7 +851,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.5.17</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.5.18</span></footer>
   </div>
 </body>
 </html>
