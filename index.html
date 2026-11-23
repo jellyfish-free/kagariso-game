@@ -93,8 +93,8 @@
   }
 </style>
   <script src="data/sea-items.js?v=0.17.0.3" defer></script>
-  <script src="script.js?v=0.18.7.2" defer></script>
-  <script src="data/cooking.js?v=0.18.7.2" defer></script>
+  <script src="script.js?v=0.18.7.3" defer></script>
+  <script src="data/cooking.js?v=0.18.7.3" defer></script>
   <script src="data/sea-game.js?v=0.17.1.5" defer></script>
 <style>
  .admin-npc-selector{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:14px 0 18px;}
@@ -278,11 +278,20 @@
             <button type="button" id="hall-sea-door" class="hall-door-hotspot hidden" aria-label="緑の扉"><span class="hall-door-hint" id="sea-door-hint">🔒</span></button>
             <button type="button" id="hall-front-door" class="hall-door-hotspot hidden" aria-label="正面の扉" title="正面の扉"><span class="hall-door-hint" id="front-door-hint">正面の扉</span></button>
             <button type="button" id="hall-moon-door" class="hall-door-hotspot hidden" aria-label="月の扉" title="月の扉"><span class="hall-door-hint">月の扉へ</span></button>
+            <button type="button" id="hall-greenhouse-door" class="hall-door-hotspot hidden" aria-label="紫色の扉" title="紫色の扉"><span class="hall-door-hint">温室へ</span></button>
             <button type="button" id="hall-paper-actor" class="npc-actor hidden" aria-label="黄色い獣のプロフィールを見る">
               <img id="hall-paper-image" alt="黄色い獣" loading="eager"><span id="hall-paper-label">黄色い獣に会う</span>
             </button>
             <button type="button" id="hall-pyoro-actor" data-hall-slot="4" class="npc-actor hidden" aria-label="赤色の獣のプロフィールを見る"><img src="images/npc/pyoro/normal.webp" alt="赤色の獣"><span id="hall-pyoro-label">赤色の獣に会う</span></button>
           </div><div class="section-top"><h2>ここにいる住人たち</h2><p class="muted">居場所は、住人全員で共有されています。</p></div><div id="npc-list" class="npc-list"></div><div class="section-top"><h2>不思議な扉</h2><p class="muted">扉の向こうには、新しい探索が待っている。</p></div><div id="doors" class="doors"></div></section>
+      <section id="greenhouse-page" class="page hidden narrow">
+        <button type="button" id="greenhouse-back-moon" class="back">← 商人の部屋へ戻る</button>
+        <button type="button" id="greenhouse-back-hall" class="back">← ホールへ戻る</button>
+        <div class="panel"><span class="eyebrow">THE GREENHOUSE</span><h1>温室</h1>
+          <p>紫色の扉の先には、花を育てるための場所が用意されていた。</p>
+          <p class="muted">花や綿、糸を吐く花の栽培は、これから始まります。</p>
+        </div>
+      </section>
       <section id="moon-page" class="page hidden narrow">
         <button type="button" id="moon-back-hall" class="back">← ホールへ戻る</button>
         <div class="panel moon-panel lent-panel">
@@ -297,7 +306,7 @@
           </div>
           <p id="lent-message" class="scene hidden" role="status" aria-live="polite"></p>
           <section id="lent-flower-quest" class="lent-flower-quest">
-            <h2>共同イベント｜逆さに咲く花</h2>
+            <h2>共同クエスト｜逆さに咲く花</h2>
             <p id="lent-flower-intro" class="lent-flower-intro"></p>
             <p id="lent-flower-progress" class="lent-flower-progress" aria-live="polite"></p>
             <p id="lent-flower-owned" class="muted tiny"></p>
@@ -306,6 +315,14 @@
               <button type="button" id="lent-flower-donate" class="primary">花を納品する</button>
             </div>
             <p class="muted tiny">全住人で1,000個集めると、物々交換が始まります。</p>
+          </section>
+          <section id="lent-seed-reward" class="lent-seed-reward hidden">
+            <h2>商人からの贈り物</h2>
+            <p id="lent-seed-message">「……ありがとう。場所は用意したから、あとはがんばれ。」</p>
+            <img src="images/materials/lent_seed.webp" alt="商人から渡される花の種" class="lent-seed-image" loading="lazy">
+            <button type="button" id="lent-seed-claim" class="primary">種を受け取る</button>
+            <p id="lent-seed-status" class="muted tiny"></p>
+            <button type="button" id="lent-enter-greenhouse" class="secondary">温室へ</button>
           </section>
           <section class="lent-shop">
             <h2>物々交換</h2>
@@ -721,6 +738,10 @@
           <p id="diary-empty" class="muted">まだ日記はありません。夜に日記を書くよ。</p>
           <article id="diary-paper" class="diary-paper hidden"><div class="diary-date"><span id="diary-date"></span><span id="diary-weather"></span></div><h2>ボクのにっき</h2><p id="diary-body"></p></article>
           <div id="diary-navigation" class="diary-navigation hidden"><button class="secondary small" id="diary-prev">← 前の日</button><button class="secondary small" id="diary-latest">最新の日記</button><button class="secondary small" id="diary-next">次の日 →</button></div>
+          <details class="paper-pair-memories"><summary>赤色の獣との出来事</summary>
+            <button id="paper-interactions-load" type="button" class="secondary">交流を読み返す</button>
+            <div id="paper-interactions" class="request-list" aria-live="polite"></div>
+          </details>
         </div>
       </section>
       <section id="npc-requests-page" class="page hidden narrow">
@@ -975,7 +996,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.7.2</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.7.3</span></footer>
   </div>
 </body>
 </html>

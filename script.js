@@ -14,7 +14,7 @@ let pendingRecovery='';
 let inventoryReturn='hall';
 let gathering=false;
 let npcReturn='hall', mandatoryStory=false;
-const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-diary','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor','forest-event','forest','forest-area','forest-memories','sea','sea-event','pyoro','pyoro-conversation','pyoro-history','pyoro-feeding','pyoro-requests','pyoro-words','pyoro-word-history','pyoro-diary','pyoro-gifts','workshop','cooking','cooking-recipe','moon'];
+const pages=['auth','recovery','hall','npc','conversation','room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-diary','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor','forest-event','forest','forest-area','forest-memories','sea','sea-event','pyoro','pyoro-conversation','pyoro-history','pyoro-feeding','pyoro-requests','pyoro-words','pyoro-word-history','pyoro-diary','pyoro-gifts','workshop','cooking','cooking-recipe','moon','greenhouse'];
 let activePage='';
 const show=(name)=>{
   const changed=activePage!==name; activePage=name;
@@ -41,6 +41,7 @@ const FOREST_AREAS=[{"id":1,"name":"灯りの森","description":"木々の間に
 const SEA_ITEMS=window.KAGARISO_SEA_ITEMS||[];
 let frontCookingUnlocked=false;
 let moonDoorUnlocked=false;
+let greenhouseUnlocked=false;
 let seaState=null;
 const FOREST_COMMON=new Set(["C026","C002","S0005","S0007","C028"]);
 const MATERIALS=[...(window.KAGARISO_MATERIALS||[]),...FOREST_MATERIALS,...SEA_ITEMS].map(m=>['S0039','S0040'].includes(m.id)?{...m,rarity:5}:m);
@@ -139,12 +140,13 @@ const HALL_DOOR_ZONES={
   forest:{x:0.150,y:0.290,width:0.110,height:0.420},
   sea:{x:0.747,y:0.270,width:0.107,height:0.450},
   front:{x:0.445,y:0.255,width:0.111,height:0.413},
-  moon:{x:0.596,y:0.295,width:0.104,height:0.426}
+  moon:{x:0.596,y:0.295,width:0.104,height:0.426},
+  greenhouse:{x:0.867,y:0.20,width:0.117,height:0.52}
 };
 const positionHallCaveDoor=()=>{
   const image=$('#hall-background'),stage=$('#hall-visual');
   if(!image||!stage)return;
-  const entries=[['cave','#hall-cave-door'],['forest','#hall-forest-door'],['sea','#hall-sea-door'],['front','#hall-front-door'],['moon','#hall-moon-door']];
+  const entries=[['cave','#hall-cave-door'],['forest','#hall-forest-door'],['sea','#hall-sea-door'],['front','#hall-front-door'],['moon','#hall-moon-door'],['greenhouse','#hall-greenhouse-door']];
   if(!image.naturalWidth||!image.naturalHeight){
     for(const [,selector] of entries)$(selector)?.classList.add('hidden');
     return;
@@ -163,7 +165,7 @@ const positionHallCaveDoor=()=>{
     const width=drawnWidth*zone.width;
     const height=drawnHeight*zone.height;
     const visible=left+width>0&&left<stageWidth&&top+height>0&&top<stageHeight;
-    door.classList.toggle('hidden',!visible||(key==='front'&&!frontCookingUnlocked||(key==='moon'&&!moonDoorUnlocked)));
+    door.classList.toggle('hidden',!visible||(key==='front'&&!frontCookingUnlocked)||(key==='moon'&&!moonDoorUnlocked)||(key==='greenhouse'&&!greenhouseUnlocked));
     Object.assign(door.style,{
       left:`${left}px`,top:`${top}px`,width:`${width}px`,height:`${height}px`
     });
@@ -327,6 +329,14 @@ function renderLent(p){
  $('#lent-chat-locked').classList.toggle('hidden',!!p.aiUnlocked);
  if(p.aiUnlocked){const u=p.aiUsage||{used:0,limit:5};$('#lent-chat-usage').textContent=`(${u.used}/${u.limit}回)`;$('#lent-chat-send').disabled=!p.canChat||u.used>=5||lentBusy;$('#lent-chat-input').disabled=!p.canChat;}
  const quest=p.flowerQuest;
+ const reward=$('#lent-seed-reward');
+ reward.classList.toggle('hidden',!quest?.completed);
+ if(quest?.completed){
+  $('#lent-seed-claim').classList.toggle('hidden',!!quest.seedClaimed);
+  $('#lent-seed-claim').disabled=lentBusy||p.activity!=='open';
+  $('#lent-seed-status').textContent=quest.seedClaimed?'種を受け取った。紫色の扉が開かれている。':p.activity==='open'?'商人から種を受け取ろう。':'商人が店にいるとき、種を受け取れる。';
+  $('#lent-enter-greenhouse').classList.toggle('hidden',!quest.seedClaimed);
+ }
  const questBox=$('#lent-flower-quest'),intro=$('#lent-flower-intro'),qStatus=$('#lent-flower-progress');
  questBox.classList.toggle('hidden',!!quest?.completed);
  intro.textContent=quest?.completed?'「……へえ、こんなに集まったのか。これなら商売ができそうだ。」':'「ここで商売しようと思うんだけど……そもそも交換できるものなんてあんの？」';
@@ -351,6 +361,11 @@ function renderLent(p){
   left.append(strong,desc);row.append(left,button);box.append(row);
  }
 }
+async function openGreenhouse(){
+ const h=await api('/hall');greenhouseUnlocked=!!h.greenhouseUnlocked;
+ if(!greenhouseUnlocked){toast('紫色の扉はまだ開かない。');return;}
+ show('greenhouse');
+}
 async function openMoonDoor(){
  const hall=await api('/hall');
  moonDoorUnlocked=!!hall.moonUnlocked;
@@ -371,6 +386,16 @@ $('#lent-flower-donate').addEventListener('click',handler(async()=>{
   if(result.quest.completed)toast('共同納品達成！ 商人の物々交換が解放されました。');
  }finally{lentBusy=false;if(result)renderLent(result.profile);else $('#lent-flower-donate').disabled=false;}
 }));
+$('#lent-seed-claim').addEventListener('click',handler(async()=>{
+ if(lentBusy)return;lentBusy=true;
+ try{const result=await api('/lent/flowers/reward','POST',{});
+  $('#lent-message').textContent=result.message;$('#lent-message').classList.remove('hidden');
+  renderLent(result.profile);toast('種を受け取った。紫色の扉が解放された！');
+ }finally{lentBusy=false;}
+}));
+$('#lent-enter-greenhouse').addEventListener('click',handler(openGreenhouse));
+$('#greenhouse-back-moon').addEventListener('click',handler(openMoonDoor));
+$('#greenhouse-back-hall').addEventListener('click',handler(openHall));
 $('#lent-chat-send').addEventListener('click',handler(async()=>{
  if(lentBusy)return;const message=$('#lent-chat-input').value.trim();if(!message){toast('話しかけたいことを入力してください。');return;}
  lentBusy=true;$('#lent-chat-send').disabled=true;
@@ -384,6 +409,7 @@ async function openHall(){const data=await api('/hall');resident=data.resident;$
   seaState=data.sea||null;
   frontCookingUnlocked=!!data.frontUnlocked;
   moonDoorUnlocked=!!data.moonUnlocked;
+  greenhouseUnlocked=!!data.greenhouseUnlocked;
   $('#hall-front-door').title=frontCookingUnlocked?'工房へ':'正面の扉';
   $('#hall-front-door').setAttribute('aria-label',frontCookingUnlocked?'工房へ移動する':'正面の扉');
   $('#front-door-hint').textContent=frontCookingUnlocked?'工房へ':'正面の扉';
@@ -410,8 +436,10 @@ async function openHall(){const data=await api('/hall');resident=data.resident;$
   $('#doors').querySelector('[data-door="sea"]')?.addEventListener('click',handler(async()=>{if(!await checkSeaEvents())await window.KAGARISO_SEA.open();}));
   $('#doors').querySelector('[data-door="unknown"]')?.addEventListener('click',handler(()=>window.KAGARISO_COOKING.open()));
   $('#doors').querySelector('[data-door="moon"]')?.addEventListener('click',handler(openMoonDoor));
+  $('#doors').querySelector('[data-door="greenhouse"]')?.addEventListener('click',handler(openGreenhouse));
   $('#hall-front-door').onclick=handler(async()=>{if(!frontCookingUnlocked){toast('まだ正面の扉は開かない。');return;}await window.KAGARISO_COOKING.open();});
   $('#hall-moon-door').onclick=handler(openMoonDoor);
+  $('#hall-greenhouse-door').onclick=handler(openGreenhouse);
   $('#hall-sea-door').onclick=handler(async()=>{if(!seaState?.unlocked||!seaState?.eligible){toast('緑の扉はまだ開かない。');return;}if(!await checkSeaEvents())await window.KAGARISO_SEA.open();});
   $('#npc-list').querySelectorAll('[data-npc]').forEach(b=>b.addEventListener('click',handler(()=>b.dataset.npc==='pyoro'?openPyoro():openNpc('hall'))));
   if(!data.npcs.length)$('#npc-list').innerHTML='<p class="muted">黄色い獣の姿はまだここにない。洞窟の扉を調べてみよう。</p>';
@@ -1158,6 +1186,12 @@ bind('#pyoro-diary-latest',()=>{pyoroDiaryIndex=0;diaryCalendarMonths.pyoro=pyor
 bind('#pyoro-diary-next',()=>{pyoroDiaryIndex=Math.max(0,pyoroDiaryIndex-1);paintPyoroDiary();});
 for(const [delta,part] of [[-1,'prev'],[1,'next']])bind('#pyoro-calendar-'+part,()=>{shiftDiaryMonth('pyoro',delta);paintPyoroDiary();});
 bind('#pyoro-calendar-more',()=>loadPyoroDiary(false));
+bind('#paper-interactions-load',async()=>{
+ const list=$('#paper-interactions');list.textContent='読み込み中……';
+ const data=await api('/npcs/paper/interactions');list.replaceChildren();
+ for(const i of data.interactions||[]){const p=document.createElement('p');p.className='scene';p.textContent=i.day+'　'+i.summary+'\n'+i.paper_view;list.append(p);}
+ if(!data.interactions?.length)list.textContent='2匹の思い出はまだありません。';
+});
 bind('#pyoro-interactions-load',async()=>{
  const data=await api('/npcs/pyoro/interactions'),list=$('#pyoro-interactions');list.replaceChildren();
  for(const i of data.interactions){const p=document.createElement('p');p.className='scene';p.textContent=i.day+'　'+i.summary+'\n'+i.pyoro_view;list.append(p);}
