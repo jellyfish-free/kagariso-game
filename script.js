@@ -324,6 +324,7 @@ const lentLinePools={
 };
 const lentRandomLine=p=>p[Math.floor(Math.random()*p.length)];
 const lentLine=(p,kind)=>{
+ if(p.activity==='playing'&&!p.canRespond)return '「.......」';
  if(p.mood==='odd')return lentRandomLine(['「ほえ～～～」','「はえ～～～」']);
  if(p.activity==='sleeping')return '商人は眠っている。';
  if(p.activity==='away')return '商人は留守にしている。';
@@ -342,7 +343,7 @@ function renderLent(p){
  $('#lent-wake').classList.toggle('hidden',!p.canWake);
  $('#lent-conversation').classList.toggle('hidden',!p.aiUnlocked);
  $('#lent-chat-locked').classList.toggle('hidden',!!p.aiUnlocked);
- if(p.aiUnlocked){const u=p.aiUsage||{used:0,limit:5};$('#lent-chat-usage').textContent=`(${u.used}/${u.limit}回)`;$('#lent-chat-send').disabled=!p.canChat||u.used>=5||lentBusy;$('#lent-chat-input').disabled=!p.canChat;}
+ if(p.aiUnlocked){const u=p.aiUsage||{used:0,limit:5};$('#lent-chat-usage').textContent=`(${u.used}/${u.limit}回)`;$('#lent-chat-send').disabled=(!p.canChat&&p.activity!=='playing')||u.used>=5||lentBusy;$('#lent-chat-input').disabled=!p.canChat&&p.activity!=='playing';}
  const quest=p.flowerQuest;
  const reward=$('#lent-seed-reward');
  const received=!!(quest?.seedClaimed&&quest?.canClaimed);
@@ -354,8 +355,8 @@ function renderLent(p){
   $('#lent-seed-claim').textContent=quest.seedClaimed?'じょうろを受け取る':'商人の話を聞く';
   $('#lent-seed-claim').onclick=ghShowReward;
   $('#lent-seed-message').textContent=received?'商人から種を受け取った。':'商人があなたを待っている。';
-  $('#lent-seed-claim').disabled=lentBusy||p.activity!=='open';
-  $('#lent-seed-status').textContent=quest.canClaimed?'報酬を受け取った。紫色の扉が開かれている。':p.activity==='open'?'商人から種を受け取ろう。':'商人が店にいるとき、種を受け取れる。';
+  $('#lent-seed-claim').disabled=lentBusy||!p.canRespond;
+  $('#lent-seed-status').textContent=quest.canClaimed?'報酬を受け取った。紫色の扉が開かれている。':p.canRespond?'商人から種を受け取ろう。':'商人が店にいるとき、種を受け取れる。';
   $('#lent-enter-greenhouse').classList.toggle('hidden',!quest.canClaimed);
  }
  const questBox=$('#lent-flower-quest'),intro=$('#lent-flower-intro'),qStatus=$('#lent-flower-progress');
@@ -366,14 +367,14 @@ function renderLent(p){
   $('#lent-flower-owned').textContent=`あなたの所持数：${quest.owned}個　あなたの納品：${quest.personalDonated}個`;
   $('#lent-flower-qty').max=String(Math.min(quest.owned,quest.remaining,1000));
   const qtyInput=$('#lent-flower-qty');qtyInput.value=String(Math.max(1,Math.min(Number(qtyInput.max),Number(qtyInput.value)||1)));
-  document.querySelectorAll('[data-lent-step]').forEach(b=>b.disabled=lentBusy||p.activity!=='open'||Number(qtyInput.max)<1);
-  $('#lent-flower-donate').disabled=lentBusy||p.activity!=='open'||quest.owned<1||quest.remaining<1;
-  $('#lent-flower-qty').disabled=lentBusy||p.activity!=='open'||quest.owned<1||quest.remaining<1;
+  document.querySelectorAll('[data-lent-step]').forEach(b=>b.disabled=lentBusy||!p.canRespond||Number(qtyInput.max)<1);
+  $('#lent-flower-donate').disabled=lentBusy||!p.canRespond||quest.owned<1||quest.remaining<1;
+  $('#lent-flower-qty').disabled=lentBusy||!p.canRespond||quest.owned<1||quest.remaining<1;
  }
  ghRenderShop(p);
  const box=$('#lent-offers');box.replaceChildren();
  if(!received)return;
- if(!p.canTrade){const msg=document.createElement('p');msg.className='muted';msg.textContent=p.activity==='away'?'商人は留守にしています。': '商人は眠っています。取引はできません。';box.append(msg);return;}
+ if(!p.canTrade){const msg=document.createElement('p');msg.className='muted';msg.textContent=p.activity==='away'?'商人は留守にしています。':p.activity==='playing'?'「.......」':'商人は眠っています。取引はできません。';box.append(msg);return;}
  if(!p.offers?.length){const msg=document.createElement('p');msg.className='muted';return;}
  for(const offer of p.offers){
   const row=document.createElement('div');row.className='lent-offer';
@@ -381,7 +382,7 @@ function renderLent(p){
   const strong=document.createElement('strong');strong.textContent=offer.title;
   const desc=document.createElement('p');desc.className='muted tiny';desc.textContent=`${offer.give.name} ×${offer.give.quantity} → ${offer.receive.name} ×${offer.receive.quantity}`;
   const button=document.createElement('button');button.className='secondary small';button.textContent='交換する';button.disabled=lentBusy;
-  button.onclick=handler(async()=>{if(lentBusy)return;showLentLine(lentCurrentProfile,'trade');if(!confirm(`${desc.textContent} を交換しますか？`))return;lentBusy=true;button.disabled=true;try{const res=await api('/lent/trade','POST',{offerId:offer.id});renderLent(res.profile);showLentLine(res.profile,'after');}finally{lentBusy=false;button.disabled=false;}});
+  button.onclick=handler(async()=>{if(lentBusy)return;showLentLine(lentCurrentProfile,'trade');lentBusy=true;button.disabled=true;try{const res=await api('/lent/trade','POST',{offerId:offer.id});renderLent(res.profile);showLentLine(res.profile,'after');}finally{lentBusy=false;button.disabled=false;}});
   left.append(strong,desc);row.append(left,button);box.append(row);
  }
 }
@@ -403,7 +404,7 @@ function ghRender(){
  if(potKey!==ghPotKey){ghPotKey=potKey;$('#gh-pots').innerHTML=Array.from({length:5},(_,i)=>{
   const flower=ready?c.pots[i]:null, src=flower?`plant${ghFlowers[flower.id.replace('GH_FLOWER_','')]}.webp`:growing?phase:state==='planted'?'plant3.webp':'plantEmpty.webp';
   const label=flower?`${ghName(flower.id)} ×${flower.quantity}本`:state==='empty'?'空き':growing?'育成中':'種まき済み';
-  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.19.0.4" alt=""><span>${safe(label)}</span></div>`;
+  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.19.0.5" alt=""><span>${safe(label)}</span></div>`;
  }).join('');}
  $('#gh-can').innerHTML=ghData.canColor?`<img src="${ghDir}jouro${ghData.canColor}.webp" alt="じょうろ">${({B:'青',G:'緑',R:'赤',Y:'黄'})[ghData.canColor]}のじょうろ`:'じょうろを受け取っていません';
  $('#gh-owned').textContent=`種：${ghQuantity('LENT_SEED')}袋　腐葉土：${ghQuantity('S0047')}個　肥料：${ghQuantity('GH_FERTILIZER')}個`;
@@ -442,7 +443,7 @@ async function ghDo(action){
 $('#gh-plant').onclick=()=>ghDo('plant');$('#gh-water').onclick=()=>ghDo('water');$('#gh-harvest').onclick=()=>ghDo('harvest');
 $('#gh-catalog').onclick=handler(openMaterialCatalog);
 function ghShowReward(){
- const p=lentCurrentProfile;if(!p?.flowerQuest?.completed||p.activity!=='open'||lentBusy||p.flowerQuest.canClaimed)return;
+ const p=lentCurrentProfile;if(!p?.flowerQuest?.completed||!p.canRespond||lentBusy||p.flowerQuest.canClaimed)return;
  let i=0;const box=$('#lent-seed-message'),button=$('#lent-seed-claim');
  const dialogue=GH.event.dialogue;box.textContent='「'+dialogue[0]+'」';button.textContent='次へ';
  button.onclick=handler(async()=>{
@@ -470,7 +471,7 @@ function ghRenderShop(p){
    const refresh=()=>{const m=max();input.max=String(m);input.value=String(Math.max(1,Math.min(m||1,Math.floor(Number(input.value)||1))));btn.disabled=m<1||lentBusy;card.querySelector('.gh-cost').textContent=recipe.alternatives[Number(sel.value)].map(x=>`${ghName(x.id)}：所持${data.owned[x.id]||0}個 / 必要${x.quantity*Number(input.value)}個`).join('　');};
    sel.onchange=refresh;input.onchange=refresh;input.oninput=()=>{card.querySelector('.gh-cost').textContent=recipe.alternatives[Number(sel.value)].map(x=>`${ghName(x.id)}：所持${data.owned[x.id]||0}個 / 必要${x.quantity*(Number(input.value)||0)}個`).join('　');};
    card.querySelectorAll('[data-step]').forEach(b=>b.onclick=()=>{input.value=String(b.dataset.step==='max'?max():Number(input.value)+Number(b.dataset.step));refresh();});
-   btn.onclick=handler(async()=>{if(lentBusy)return;refresh();const quantity=Number(input.value);if(quantity>max())return;if(!confirm(`${item.name}を${quantity}個交換しますか？`))return;lentBusy=true;btn.disabled=true;try{await api('/greenhouse/trade','POST',{recipeId:recipe.id,alternative:Number(sel.value),quantity,operationId:crypto.randomUUID()});toast(`${item.name}を${quantity}個交換しました。`);}finally{lentBusy=false;if(activePage==='moon'){const r=await api('/lent');renderLent(r.lent);}}});
+   btn.onclick=handler(async()=>{if(lentBusy)return;refresh();const quantity=Number(input.value);if(quantity>max())return;lentBusy=true;btn.disabled=true;try{await api('/greenhouse/trade','POST',{recipeId:recipe.id,alternative:Number(sel.value),quantity,operationId:crypto.randomUUID()});toast(`${item.name}を${quantity}個交換しました。`);}finally{lentBusy=false;if(activePage==='moon'){const r=await api('/lent');renderLent(r.lent);}}});
    refresh();host.querySelector('#gh-recipes').append(card);
   }
  }).catch(e=>{if(ticket===ghShopRender)host.textContent=e.message;});
