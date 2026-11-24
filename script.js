@@ -871,7 +871,7 @@ bind('#pyoro-word-history-open',async()=>{await loadPyoroWords();show('pyoro-wor
 bind('#pyoro-word-history-back',()=>show('pyoro-words'));
 bind('#pyoro-diary-open',async()=>{await loadPyoroDiary(true);show('pyoro-diary');});
 bind('#pyoro-diary-back',openPyoro);
-bind('#pyoro-gifts-open',async()=>{await loadPyoroGifts();show('pyoro-gifts');});
+bind('#pyoro-gifts-open',()=>openNpcGifts('pyoro'));
 bind('#pyoro-gifts-back',openPyoro);
 const openPyoroConversation=async()=>{
  const npc=pyoroProfile||(await api('/npcs/pyoro')).npc;
@@ -897,7 +897,7 @@ for(const [id,action] of [['#pyoro-rest-btn','rest'],['#pyoro-wake-btn','wake']]
 let pyoroBusy=false;
 // v0.18.5.1: 表示を見出しに一本化。削除された #pyoro-ai-usage にはアクセスしない。
 const paintPyoroTalkUsage=u=>{const title=$('#pyoro-ai-remaining');if(title)title.textContent=`自由に話しかける（${u.used}/${u.limit}回）`;};
-const pyoroReply=r=>{ $('#pyoro-talk-result').textContent=r.response+(r.affinityChange?`（親密度 +${r.affinityChange}pt）`:'');paintPyoroProfile(r.npc);paintPyoro('#pyoro-conversation-image',r.npc,pyoroReplyExpression(r.response));$('#pyoro-conversation-scene').textContent=pyoroStateScene(r.npc);paintPyoroTalkUsage(r.usage);};
+const pyoroReply=r=>{ $('#pyoro-talk-result').textContent=r.response;paintPyoroProfile(r.npc);paintPyoro('#pyoro-conversation-image',r.npc,pyoroReplyExpression(r.response));$('#pyoro-conversation-scene').textContent=pyoroStateScene(r.npc);paintPyoroTalkUsage(r.usage);};
 const pyoroAction=async(path,body)=>{if(pyoroBusy)return;pyoroBusy=true;try{const r=await api(path,'POST',body);pyoroReply(r);return r;}finally{pyoroBusy=false;}};
 const loadPyoroTalk=async()=>{const data=await api('/npcs/pyoro/conversation/options');paintPyoroTalkUsage(data.usage);const list=$('#pyoro-talk-options');list.replaceChildren();for(const t of data.choices){const b=document.createElement('button');b.className='secondary';b.textContent=t.disabled?'挨拶する（この時間帯は挨拶済み）':t.label;b.disabled=!!t.disabled;b.onclick=handler(async()=>{const r=await pyoroAction('/npcs/pyoro/conversation',{choice:t.id});if(r)await loadPyoroTalk();});list.append(b);}};
 $('#pyoro-ai-form').addEventListener('submit',handler(async e=>{e.preventDefault();const field=$('#pyoro-ai-message');const r=await pyoroAction('/npcs/pyoro/ai/chat',{message:field.value});if(r)field.value='';}));
@@ -1068,22 +1068,8 @@ async function renderCookingRequestsInNpcPage(npcId,dailyExhausted=false){
  }
  for(const row of d.history||[]){const line=document.createElement('p');line.className='muted tiny';line.textContent='［料理］'+row.name+'：'+(row.status==='completed'?'完了':'取消');history.append(line);}
 }
-// v0.18.7.9: 赤色の獣も黄色い獣と同じお願い画面を使う。
+// v0.18.7.10: 赤色の獣も黄色い獣と同じお願い画面を使う。
 async function loadPyoroRequests(message=''){return renderNpcRequests('pyoro',message);}
-async function loadPyoroGifts(){
- const data=await api('/npcs/pyoro/gifts');const inbox=$('#pyoro-gift-inbox'),history=$('#pyoro-gift-history'),inventory=$('#pyoro-gift-inventory');inbox.replaceChildren();history.replaceChildren();inventory.replaceChildren();
- const present=g=>{const card=pyoroRequestCard(g.name,g.description);if(g.image){const image=document.createElement('img');image.src=encodeURI(g.image);image.alt='';image.loading='lazy';image.style.cssText='width:100%;max-width:230px;border-radius:12px;display:block;margin:8px 0;';card.append(image);}return card;};
- for(const g of data.inbox){const card=g.ready?present(g):pyoroRequestCard('赤色の獣がお礼を準備中',`完成予定：${giftDate(g.readyAt)}（日本時間）`);
-  if(g.ready){const btn=document.createElement('button');btn.className='primary small';btn.textContent='プレゼントを受け取る';btn.onclick=handler(async()=>{if(pyoroGiftBusy)return;pyoroGiftBusy=true;try{const r=await api('/npcs/pyoro/gifts/claim','POST',{giftId:g.id});pyoroStatus('#pyoro-gift-message',r.reply);paintPyoro('#pyoro-profile-image',pyoroProfile,'happy');await loadPyoroGifts();}finally{pyoroGiftBusy=false;}});card.append(btn);}
-  else {const p=document.createElement('p');p.className='muted tiny';p.textContent=`赤色の獣がお礼を準備中 ・ 完成予定：${giftDate(g.readyAt)}（日本時間）`;card.append(p);}
-  inbox.append(card);
- }
- if(!data.inbox.length)inbox.textContent='今は届いているプレゼントはありません。';
- for(const g of data.history.slice(0,5))history.append(present(g));
- if(!data.history.length)history.textContent='まだ受け取ったものはありません。';
- for(const g of data.inventory||[]){const row=document.createElement('article');row.className='request-card';const text=document.createElement('strong');text.textContent=`${g.name||g.itemId||'記念品'} ×${g.quantity||1}`;row.append(text);if(g.image){const img=document.createElement('img');img.src=encodeURI(g.image);img.alt='';img.loading='lazy';img.style.cssText='width:100%;max-width:150px;border-radius:10px;margin-top:8px;';row.append(img);}inventory.append(row);}
- if(!data.inventory?.length)inventory.textContent='まだ受け取った記念品はありません。';
-}
 async function loadPyoroWords(){
  const data=await api('/npcs/pyoro/words');const list=$('#pyoro-word-list');list.replaceChildren();
  $('#pyoro-word-count').textContent=`（${data.words.length}こ）`;
@@ -1422,44 +1408,49 @@ $('#gift-send').addEventListener('click',handler(async()=>{
 }));
 async function openNpcGifts(from='hall',message=''){
  giftReturn=from;
- const onlyPaper=from==='npc';
- const data=await api(onlyPaper?'/npcs/paper/gifts':'/gifts');
- const npc=onlyPaper?data:data.npc;
- $('#mail-npc-section').classList.toggle('hidden',!onlyPaper&&!data.npcUnlocked);
+ const onlyNpc=from==='npc'||from==='pyoro';
+ const data=await api(onlyNpc?`/npcs/${from==='pyoro'?'pyoro':'paper'}/gifts`:'/gifts');
+ const npc=onlyNpc?data:data.npc;
+ const red=onlyNpc?null:data.pyoro;
+ const defaultSender=from==='pyoro'?'赤色の獣':'黄色い獣';
+ const gifts={inbox:[...npc.inbox,...(red?.inbox||[])],history:[...npc.history,...(red?.history||[])],inventory:[...npc.inventory,...(red?.inventory||[])]};
+ $('#mail-npc-section').classList.toggle('hidden',!onlyNpc&&!data.npcUnlocked&&!red);
  const inbox=$('#npc-gifts-inbox'),inventory=$('#npc-gifts-inventory'),history=$('#npc-gifts-history');
  const addGiftImage=(container,gift)=>{if(!gift.image)return;const img=document.createElement('img');img.className='npc-gift-image';img.alt=gift.name||'返礼品';img.loading='lazy';img.src=encodeURI(gift.image);img.onerror=()=>img.remove();container.insertBefore(img,container.firstChild);};
- const common=$('#gifts-common-sections');common.classList.toggle('hidden',onlyPaper);
- $('#gifts-heading').textContent=onlyPaper?'贈り物':'通信箱';
- $('#gifts-eyebrow').textContent=onlyPaper?'GIFTS FROM PAPER':'YOUR MAILBOX';
+ const common=$('#gifts-common-sections');common.classList.toggle('hidden',onlyNpc);
+ $('#gifts-heading').textContent=onlyNpc?'贈り物':'通信箱';
+ $('#gifts-eyebrow').textContent=onlyNpc?(from==='pyoro'?'GIFTS FROM PYORO':'GIFTS FROM PAPER'):'YOUR MAILBOX';
  $('#npc-gift-section-heading').textContent='贈り物';
+ $('#mail-npc-section .history-all-link').dataset.history=from==='pyoro'?'pyoro':from==='npc'?'npc':'all-npc';
  inbox.replaceChildren();inventory.replaceChildren();history.replaceChildren();
  const notification=$('#npc-gifts-message');notification.classList.toggle('hidden',!message);notification.textContent=message;
- for(const gift of npc.inbox){
-  const card=giftCard(gift.ready?gift.name:'黄色い獣がお礼を準備中',gift.ready?'贈り主：黄色い獣　・　受け取りできます':`贈り主：黄色い獣　・　完成予定：${giftDate(gift.readyAt)}（日本時間）`);
+ for(const gift of gifts.inbox){
+  const sender=gift.sender||defaultSender;const npcId=sender==='赤色の獣'?'pyoro':'paper';
+  const card=giftCard(gift.ready?gift.name:`${sender}がお礼を準備中`,gift.ready?`贈り主：${sender}　・　受け取りできます`:`贈り主：${sender}　・　完成予定：${giftDate(gift.readyAt)}（日本時間）`);
   if(gift.ready){
    addGiftImage(card,gift);
    const desc=document.createElement('p');desc.textContent=gift.description;card.append(desc);
-   const msg=document.createElement('p');msg.textContent=`黄色い獣「${gift.message}」`;card.append(msg);
-   const sel=document.createElement('select');sel.className='gift-reply';sel.setAttribute('aria-label','黄色い獣への返答');
+   const msg=document.createElement('p');msg.textContent=`${sender}「${gift.message}」`;card.append(msg);
+   const sel=document.createElement('select');sel.className='gift-reply';sel.setAttribute('aria-label',`${sender}への返答`);
    for(const [id,label] of [['thanks','ありがとう！ 嬉しいよ！'],['effort','頑張って作ってくれたんだね']]){const opt=document.createElement('option');opt.value=id;opt.textContent=label;sel.append(opt);}
    const btn=document.createElement('button');btn.className='primary small';btn.textContent='返答して受け取る';
    btn.addEventListener('click',handler(async()=>{
     if(giftBusy)return;giftBusy=true;btn.disabled=true;
-    try{const result=await api('/npcs/paper/gifts/claim','POST',{giftId:gift.id,replyChoice:sel.value});await openNpcGifts(giftReturn,`受け取りました：${result.gift.name}。黄色い獣 ${result.reply}`);}finally{giftBusy=false;}
+    try{const result=await api(`/npcs/${npcId}/gifts/claim`,'POST',{giftId:gift.id,replyChoice:sel.value});await openNpcGifts(giftReturn,`受け取りました：${result.gift.name}。${sender} ${result.reply}`);}finally{giftBusy=false;}
    }));card.append(sel,btn);
-  }else{const note=document.createElement('p');note.className='muted';note.textContent='黄色い獣が頑張って作っています。完成を待ってね。';card.append(note);}
+  }else{const note=document.createElement('p');note.className='muted';note.textContent=`${sender}が頑張って作っています。完成を待ってね。`;card.append(note);}
   inbox.append(card);
  }
  giftEmpty(inbox,'届いている贈り物はありません。');
- for(const item of npc.inventory){const card=giftCard(`${item.name} ×${item.quantity}`,item.description);addGiftImage(card,item);inventory.append(card);}
+ for(const item of gifts.inventory){const card=giftCard(`${item.name} ×${item.quantity}`,item.description);addGiftImage(card,item);inventory.append(card);}
  giftEmpty(inventory,'まだ記念品を受け取っていません。');
- for(const gift of [...npc.history].sort((a,b)=>String(b.receivedAt||'').localeCompare(String(a.receivedAt||''))).slice(0,5)){
+ for(const gift of [...gifts.history].sort((a,b)=>String(b.receivedAt||'').localeCompare(String(a.receivedAt||''))).slice(0,5)){
   const detail=document.createElement('details');detail.className='gift-history-entry';const title=document.createElement('summary');title.textContent=`${gift.name}｜${giftDate(gift.receivedAt)}`;detail.append(title);
-  for(const str of [`説明：${gift.description}`,`贈り主：${gift.sender}`,`受け取った日：${giftDate(gift.receivedAt)}`,`メッセージ：${gift.message}`,`あなたの返答：${gift.replyChoice==='effort'?'頑張って作ってくれたんだね':'ありがとう！ 嬉しいよ！'}`]){const p=document.createElement('p');p.className='muted tiny';p.textContent=str;detail.append(p);}
+  for(const str of [`説明：${gift.description}`,`贈り主：${gift.sender}`,`受け取った日：${giftDate(gift.receivedAt)}`,`メッセージ：${gift.message}`,`あなたの返答：${gift.replyChoice==='effort'?'頑張って作ってくれたんだね':gift.replyChoice==='thanks'?'ありがとう！ 嬉しいよ！':'記録なし'}`]){const p=document.createElement('p');p.className='muted tiny';p.textContent=str;detail.append(p);}
   history.append(detail);
  }
  giftEmpty(history,'まだ受け取り履歴はありません。');
- if(!onlyPaper){
+ if(!onlyNpc){
   const incoming=$('#resident-gifts-inbox'),outgoing=$('#resident-gifts-outgoing'),received=$('#resident-gifts-history');
   incoming.replaceChildren();outgoing.replaceChildren();received.replaceChildren();$('#resident-gifts-pending').replaceChildren();
   let outCount=0,inCount=0;
@@ -1512,7 +1503,7 @@ bind('#open-npc-gifts',()=>openNpcGifts('npc'));
 // 認証トークンをURLに含めず、既存APIで全件をページ単位で取得する。
 let giftHistoryLoadId=0;
 async function openGiftHistoryPage(kind){
- const names={npc:'贈り物の受け取り履歴',outgoing:'送った贈り物・取引履歴',incoming:'住人からの受け取り履歴'};
+ const names={pyoro:'赤色の獣の贈り物の受け取り履歴','all-npc':'贈り物の受け取り履歴',npc:'贈り物の受け取り履歴',outgoing:'送った贈り物・取引履歴',incoming:'住人からの受け取り履歴'};
  if(!names[kind])return;
  const loadId=++giftHistoryLoadId;
  $('#gift-history-heading').textContent=names[kind];
@@ -1533,7 +1524,7 @@ async function openGiftHistoryPage(kind){
   $('#gift-history-count').textContent=`${records.length}件の履歴`;
   if(!records.length){list.textContent='まだ履歴はありません。';return;}
   list.innerHTML=records.map((g)=>{
-   if(kind==='npc')return `<article class="gift-history-full-entry"><strong>${safe(g.name)}</strong><p class="muted tiny">${safe(giftDate(g.receivedAt))} ｜ ${safe(g.sender||'黄色い獣')}</p><p>${safe(g.description||'')}</p><p>${safe(g.message||'')}</p></article>`;
+   if(['npc','pyoro','all-npc'].includes(kind))return `<article class="gift-history-full-entry"><strong>${safe(g.name)}</strong><p class="muted tiny">${safe(giftDate(g.receivedAt))} ｜ ${safe(g.sender||'黄色い獣')}</p><p>${safe(g.description||'')}</p><p>${safe(g.message||'')}</p></article>`;
    const text=(g.items||[]).map(i=>`${safe(i.name)} ×${Number(i.quantity)||0}`).join('、');
    const other=kind==='outgoing'?`相手：${safe(g.receiver)}`:`贈り主：${safe(g.sender)}`;
    const status={pending:'受取待ち',accepted:'受取済み',declined:'辞退されました',cancelled:'取り消し'}[g.status]||g.status;
@@ -1549,10 +1540,10 @@ const backFromGiftHistory=()=>{giftHistoryLoadId++;show('npc-gifts');};
 bind('#gift-history-back',backFromGiftHistory);
 bind('#gift-history-bottom-back',backFromGiftHistory);
 document.querySelectorAll('.history-all-link').forEach(btn=>btn.addEventListener('click',handler(()=>openGiftHistoryPage(btn.dataset.history))));
-bind('#npc-gifts-back',async()=>{if(giftReturn==='npc')await openNpc(npcReturn);else await openHall();});
+bind('#npc-gifts-back',async()=>{if(giftReturn==='npc')await openNpc(npcReturn);else if(giftReturn==='pyoro')await openPyoro();else await openHall();});
 // v0.6 黄色い獣のお願い。表示情報はすべてサーバーから取得する。
 let requestBusy=false;
-// v0.18.7.9: 表示・納品操作を共有し、APIとNPCのセリフはそれぞれ維持する。
+// v0.18.7.10: 表示・納品操作を共有し、APIとNPCのセリフはそれぞれ維持する。
 async function openNpcRequests(message=''){return renderNpcRequests('paper',message);}
 async function renderNpcRequests(npcId,message=''){
   const isPaper=npcId==='paper',npcName=isPaper?'黄色い獣':'赤色の獣';
@@ -2121,7 +2112,7 @@ async function checkGameNotifications(){
    }
   }
   const red=data.pyoro||[];const freshRed=red.filter(g=>!known.has('pyoro:'+g.id));
-  if(freshRed.length&&prefs.npc&&activePage!=='pyoro-gifts')pushGameNotice('赤色の獣から贈り物が届きました！',async()=>{await loadPyoroGifts();show('pyoro-gifts');});
+  if(freshRed.length&&prefs.npc&&activePage!=='npc-gifts')pushGameNotice('赤色の獣から贈り物が届きました！',()=>openNpcGifts('pyoro'));
   // 未受取のIDだけ保持。受け取り済みを削除した後に同じIDが再登場することはない。
   localStorage.setItem(key,JSON.stringify(['npc','resident','pyoro'].flatMap(kind=>(data[kind]||[]).map(g=>kind+':'+g.id))));
  }finally{noticeBusy=false;}
