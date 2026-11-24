@@ -1010,7 +1010,7 @@ const loadPyoroFood=async(message='')=>{
 };
 
 // v0.17.0.7: Requests/presents/words are separate for pyoro.
-let pyoroRequestBusy=false,pyoroGiftBusy=false;
+let pyoroGiftBusy=false;
 const pyoroStatus=(id,message)=>{const el=$(id);el.textContent=message||'';el.classList.toggle('hidden',!message);};
 const pyoroRequestCard=(title,description)=>{
   const box=document.createElement('article');box.className='request-card';
@@ -1018,14 +1018,9 @@ const pyoroRequestCard=(title,description)=>{
   if(description){const p=document.createElement('p');p.className='muted tiny';p.textContent=description;box.append(p);}
   return box;
 };
-const pyoroRequestUpdate=async(path,body)=>{
-  if(pyoroRequestBusy)return;
-  pyoroRequestBusy=true;
-  try{const result=await api(path,'POST',body);pyoroStatus('#pyoro-request-message',result.message);await loadPyoroRequests();}finally{pyoroRequestBusy=false;}
-};
 // v0.18.5.10: 素材依頼・料理依頼を同じNPCお願い画面に表示する。
 // 保存先は既存の各テーブルを維持し、共通の1日3件・同時3件枠はWorkerが判定する。
-async function renderCookingRequestsInNpcPage(npcId){
+async function renderCookingRequestsInNpcPage(npcId,dailyExhausted=false){
  const prefix=npcId==='paper'?'paper':'pyoro';
  const active=$('#'+prefix+'-cooking-active'),offers=$('#'+prefix+'-cooking-offers'),history=$('#'+prefix+'-cooking-history');
  if(!active||!offers||!history)return;
@@ -1040,15 +1035,15 @@ async function renderCookingRequestsInNpcPage(npcId){
   if(detail){const p=document.createElement('p');p.className='muted tiny';p.textContent=detail;box.append(p);}
   return box;
  };
- const refreshRequests=async()=>{if(npcId==='paper')await openNpcRequests();else await loadPyoroRequests();};
+ const refreshRequests=async(message)=>{await renderNpcRequests(npcId,message);};
  const addButton=(box,label,style,action,confirmText)=>{
   const button=document.createElement('button');button.type='button';button.className=style;button.textContent=label;
   button.addEventListener('click',handler(async()=>{
-   if(button.disabled)return;
+   if(button.disabled||requestBusy)return;
    if(confirmText&&!confirm(confirmText))return;
-   button.disabled=true;
-   try{const result=await api('/cooking/orders/'+action.path,'POST',action.body);toast(result.message||'お願いを更新したよ。');await refreshRequests();}
-   finally{button.disabled=false;}
+   requestBusy=true;button.disabled=true;
+   try{const result=await api('/cooking/orders/'+action.path,'POST',action.body);await refreshRequests(result.message||'お願いを更新したよ。');}
+   finally{requestBusy=false;button.disabled=false;}
   }));box.append(button);
  };
  for(const req of d.active||[]){
@@ -1058,50 +1053,16 @@ async function renderCookingRequestsInNpcPage(npcId){
   addButton(buttons,'取り消す','secondary small',{path:'resolve',body:{orderId:req.id,action:'cancel'}},'この料理のお願いを取り消しますか？');
   box.append(buttons);active.append(box);
  }
- for(const offer of d.offers||[]){
+ for(const offer of (dailyExhausted||d.acceptedToday>=d.dailyLimit?[]:(d.offers||[]))){
   const box=makeCard(offer.name,'完成した「'+offer.name+'」を1個渡すお願いです。');
   const btn=document.createElement('button');btn.type='button';btn.className='secondary small';btn.textContent='このお願いを引き受ける';btn.disabled=!d.canAccept;
-  btn.addEventListener('click',handler(async()=>{if(btn.disabled)return;btn.disabled=true;try{const r=await api('/cooking/orders/accept','POST',{npcId,recipeId:offer.recipeId});toast(r.message||'引き受けたよ。');await refreshRequests();}finally{btn.disabled=false;}}));
+  btn.addEventListener('click',handler(async()=>{if(btn.disabled||requestBusy)return;requestBusy=true;btn.disabled=true;try{const r=await api('/cooking/orders/accept','POST',{npcId,recipeId:offer.recipeId});await refreshRequests(r.message||'引き受けたよ。');}finally{requestBusy=false;btn.disabled=false;}}));
   box.append(btn);offers.append(box);
  }
  for(const row of d.history||[]){const line=document.createElement('p');line.className='muted tiny';line.textContent='［料理］'+row.name+'：'+(row.status==='completed'?'完了':'取消');history.append(line);}
 }
-async function loadPyoroRequests(){
-  const {requests:r}=await api('/npcs/pyoro/requests');
-  $('#pyoro-request-status').textContent=`今日の受注 ${r.acceptedToday}/${r.dailyLimit} 件（残り ${r.remainingToday} 件）／受注済みは日をまたいで継続`;
-  const active=$('#pyoro-request-active'),offers=$('#pyoro-request-offers'),history=$('#pyoro-request-history');
-  active.replaceChildren();offers.replaceChildren();history.replaceChildren();
-  for(const req of r.active){
-    const card=pyoroRequestCard(req.title,'預けた素材は完了報告まで保管されます。');
-    let complete=true;
-    for(const item of req.items){
-      const row=document.createElement('div');row.className='request-item';
-      const label=document.createElement('p');label.className='muted tiny';label.textContent=`${item.name}：${item.donated}/${item.needed}（残り ${item.remaining}・所持 ${item.owned}）`;
-      row.append(label);
-      if(item.remaining>0){complete=false;const form=document.createElement('form');form.className='actions';
-        const input=document.createElement('input');input.type='number';input.min='1';input.max=String(Math.min(item.remaining,item.owned));input.value=String(Math.min(1,item.remaining,item.owned)||1);input.step='1';input.style.maxWidth='90px';input.setAttribute('aria-label',item.name+'の納品個数');
-        const btn=document.createElement('button');btn.type='submit';btn.className='secondary small';btn.textContent='預ける';btn.disabled=item.owned<1;
-        form.append(input,btn);form.addEventListener('submit',handler(async e=>{e.preventDefault();const quantity=Number(input.value);if(!Number.isSafeInteger(quantity)||quantity<1||quantity>item.remaining||quantity>item.owned)throw new Error('素材の個数を確認してね。');await pyoroRequestUpdate('/npcs/pyoro/requests/donate',{requestId:req.id,itemId:item.id,quantity});}));
-        row.append(form);
-      }
-      card.append(row);
-    }
-    const actions=document.createElement('div');actions.className='actions';
-    const report=document.createElement('button');report.className='primary small';report.textContent='赤色の獣に報告する';report.disabled=!complete;report.onclick=handler(()=>pyoroRequestUpdate('/npcs/pyoro/requests/resolve',{requestId:req.id,action:'report'}));
-    const cancel=document.createElement('button');cancel.className='secondary small';cancel.textContent='取り消す';cancel.onclick=handler(async()=>{if(confirm('お願いを取り消しますか？ 預けた素材は持ち物に戻ります。'))await pyoroRequestUpdate('/npcs/pyoro/requests/resolve',{requestId:req.id,action:'cancel'});});
-    actions.append(report,cancel);card.append(actions);active.append(card);
-  }
-  if(!r.active.length)active.textContent='引き受けているお願いはありません。';
-  for(const offer of r.offers){
-    const card=pyoroRequestCard(offer.title,offer.description);
-    const p=document.createElement('p');p.className='muted tiny';p.textContent='必要：'+offer.items.map(i=>`${i.name} ×${i.needed}`).join('、');card.append(p);
-    const b=document.createElement('button');b.className='secondary small';b.textContent='引き受ける';b.disabled=!r.canAccept;b.onclick=handler(()=>pyoroRequestUpdate('/npcs/pyoro/requests/accept',{templateKey:offer.key}));card.append(b);offers.append(card);
-  }
-  if(!r.offers.length)offers.textContent='今日は新しく引き受けられるお願いがありません。';
-  for(const req of r.history){const p=document.createElement('p');p.className='muted tiny';p.textContent=`${req.title}：${req.status==='completed'?'完了':'取消'}${req.affinityGain?'（親密度 +'+req.affinityGain+'pt）':''}`;history.append(p);}
-  if(!r.history.length)history.textContent='まだ記録はありません。';
-  await renderCookingRequestsInNpcPage('pyoro');
-}
+// v0.18.7.8: 赤色の獣も黄色い獣と同じお願い画面を使う。
+async function loadPyoroRequests(message=''){return renderNpcRequests('pyoro',message);}
 async function loadPyoroGifts(){
  const data=await api('/npcs/pyoro/gifts');const inbox=$('#pyoro-gift-inbox'),history=$('#pyoro-gift-history'),inventory=$('#pyoro-gift-inventory');inbox.replaceChildren();history.replaceChildren();inventory.replaceChildren();
  const present=g=>{const card=pyoroRequestCard(g.name,g.description);if(g.image){const image=document.createElement('img');image.src=encodeURI(g.image);image.alt='';image.loading='lazy';image.style.cssText='width:100%;max-width:230px;border-radius:12px;display:block;margin:8px 0;';card.append(image);}return card;};
@@ -1584,15 +1545,25 @@ document.querySelectorAll('.history-all-link').forEach(btn=>btn.addEventListener
 bind('#npc-gifts-back',async()=>{if(giftReturn==='npc')await openNpc(npcReturn);else await openHall();});
 // v0.6 黄色い獣のお願い。表示情報はすべてサーバーから取得する。
 let requestBusy=false;
-const showRequestsMessage=(text)=>{const el=$('#npc-requests-message');el.textContent=text;el.classList.remove('hidden');};
-async function openNpcRequests(message=''){
-  const {requests}=await api('/npcs/paper/requests');
-  const activeList=$('#npc-requests-active'),availableList=$('#npc-requests-available'),historyList=$('#npc-requests-history');
+// v0.18.7.8: 表示・納品操作を共有し、APIとNPCのセリフはそれぞれ維持する。
+async function openNpcRequests(message=''){return renderNpcRequests('paper',message);}
+async function renderNpcRequests(npcId,message=''){
+  const isPaper=npcId==='paper',npcName=isPaper?'黄色い獣':'赤色の獣';
+  const endpoint='/npcs/'+npcId+'/requests';
+  const {requests}=await api(endpoint);
+  const activeList=$(isPaper?'#npc-requests-active':'#pyoro-request-active');
+  const availableList=$(isPaper?'#npc-requests-available':'#pyoro-request-offers');
+  const historyList=$(isPaper?'#npc-requests-history':'#pyoro-request-history');
+  const messageEl=$(isPaper?'#npc-requests-message':'#pyoro-request-message');
   activeList.replaceChildren();availableList.replaceChildren();historyList.replaceChildren();
-  $('#npc-request-daily-status').textContent=`今日の受注 ${requests.acceptedToday} / ${requests.dailyLimit} 件（あと ${requests.remainingToday} 件）`;
-  $('#npc-request-daily-note').textContent=`日本時間 ${requests.day} の日替わり候補です。受注は1日3件まで。達成・キャンセルしても回数は戻りません。受注済みのお願いは翌日以降も続けられます。`;
-
-  if(message)showRequestsMessage(message);else $('#npc-requests-message').classList.add('hidden');
+  $(isPaper?'#npc-request-daily-status':'#pyoro-request-status').textContent=`今日の受注 ${requests.acceptedToday} / ${requests.dailyLimit} 件（あと ${requests.remainingToday} 件）`;
+  $(isPaper?'#npc-request-daily-note':'#pyoro-request-daily-note').textContent=`日本時間 ${requests.day} の日替わり候補です。受注は1日3件まで。達成・キャンセルしても回数は戻りません。受注済みのお願いは翌日以降も続けられます。`;
+  messageEl.textContent=message;messageEl.classList.toggle('hidden',!message);
+  const dailyExhausted=requests.remainingToday<=0||requests.acceptedToday>=requests.dailyLimit;
+  const candidates=dailyExhausted?[]:isPaper?[...requests.templates,...(requests.permanent||[])]:requests.offers;
+  // 上限に達したら素材・常設・料理の候補欄全体を隠す。受注済みと履歴は残す。
+  $('#'+npcId+'-request-offer-section').classList.toggle('hidden',dailyExhausted);
+  $('#'+npcId+'-request-limit-note').classList.toggle('hidden',!dailyExhausted);
   const subHeading=(name,description)=>{const div=document.createElement('div');div.innerHTML=`<strong>${safe(name)}</strong><p class="muted tiny">${safe(description)}</p>`;return div;};
   for(const req of requests.active){
     const card=document.createElement('article');card.className='request-card';card.append(subHeading(req.title,'預けた素材は完了報告まで保管されます。'));
@@ -1611,42 +1582,45 @@ async function openNpcRequests(message=''){
           e.preventDefault();const quantity=Number(input.value);
           if(!Number.isSafeInteger(quantity)||quantity<1||quantity>item.remaining||quantity>item.owned)throw new Error('素材の個数を確認してください。');
           if(requestBusy)return;requestBusy=true;button.disabled=true;
-          try{const data=await api('/npcs/paper/requests/donate','POST',{requestId:req.id,itemId:item.id,quantity});await openNpcRequests(data.message);}finally{requestBusy=false;}
+          try{const data=await api(endpoint+'/donate','POST',{requestId:req.id,itemId:item.id,quantity});await renderNpcRequests(npcId,data.message);}finally{requestBusy=false;button.disabled=item.owned<1;}
         }));row.append(form);
       }
       list.append(row);
     }
     card.append(list);
-    if(ready){const note=document.createElement('p');note.className='request-ready';note.textContent='素材が揃ったよ！ 黄色い獣本人に報告しよう。';card.append(note);}
+    if(ready){const note=document.createElement('p');note.className='request-ready';note.textContent=`素材が揃ったよ！ ${npcName}本人に報告しよう。`;card.append(note);}
     const actions=document.createElement('div');actions.className='actions';
-    const report=document.createElement('button');report.className='primary small';report.textContent='黄色い獣に報告する';report.disabled=!ready;
+    const report=document.createElement('button');report.className='primary small';report.textContent=npcName+'に報告する';report.disabled=!ready;
     report.onclick=handler(async()=>{
       if(requestBusy)return;requestBusy=true;report.disabled=true;
-      try{const data=await api('/npcs/paper/requests/resolve','POST',{requestId:req.id,action:'report'});await openNpcRequests(data.message);}finally{requestBusy=false;}
+      try{const data=await api(endpoint+'/resolve','POST',{requestId:req.id,action:'report'});await renderNpcRequests(npcId,data.message);}finally{requestBusy=false;report.disabled=!ready;}
     });
     const cancel=document.createElement('button');cancel.className='secondary small';cancel.textContent='お願いを取り消す';
     cancel.onclick=handler(async()=>{
       if(!confirm('このお願いを取り消しますか？ 預けた素材はすべて返却されます。'))return;
       if(requestBusy)return;requestBusy=true;cancel.disabled=true;
-      try{const data=await api('/npcs/paper/requests/resolve','POST',{requestId:req.id,action:'cancel'});await openNpcRequests(data.message);}finally{requestBusy=false;}
+      try{const data=await api(endpoint+'/resolve','POST',{requestId:req.id,action:'cancel'});await renderNpcRequests(npcId,data.message);}finally{requestBusy=false;cancel.disabled=false;}
     });actions.append(report,cancel);card.append(actions);activeList.append(card);
   }
   if(!requests.active.length)activeList.innerHTML='<p class="muted">今、引き受けているお願いはありません。</p>';
-  for(const t of [...requests.templates,...(requests.permanent||[])]){
+  for(const t of candidates){
     const card=document.createElement('article');card.className='request-card';card.append(subHeading(`${t.mode==='permanent'?'［常設］':'［今日の候補］'}${t.items.some(i=>FOREST_MATERIALS.some(m=>m.id===i.id))?'［森］':''} ${t.title}`,t.description));
     const p=document.createElement('div');p.className='muted tiny';p.innerHTML='必要素材：'+t.items.map(i=>`<span class="material-found-item">${matIcon(i.id)}${safe(i.name)} ×${i.needed}</span>`).join('、');card.append(p);
     const button=document.createElement('button');button.className='secondary small';button.textContent='このお願いを引き受ける';button.disabled=!requests.canAccept;
     button.onclick=handler(async()=>{
       if(requestBusy)return;requestBusy=true;button.disabled=true;
-      try{const data=await api('/npcs/paper/requests/accept','POST',{templateKey:t.key});await openNpcRequests(data.message);}finally{requestBusy=false;}
+      try{const data=await api(endpoint+'/accept','POST',{templateKey:t.key});await renderNpcRequests(npcId,data.message);}finally{requestBusy=false;button.disabled=!requests.canAccept;}
     });card.append(button);availableList.append(card);
   }
-  if(!requests.templates.length&&!(requests.permanent||[]).length)availableList.innerHTML='<p class="muted">今日の候補はすべて受注済み、または完了しました。また明日見にきてね。</p>';
-  if(!requests.canAccept){const p=document.createElement('p');p.className='muted tiny';p.textContent='今日の受注上限、または同時受注3件の上限に達しています。';availableList.prepend(p);}
-  for(const r of requests.history){const p=document.createElement('div');p.className='request-history-entry';p.textContent=`${r.title} — ${r.status==='completed'?'完了':'取り消し'}（${jstDate(r.resolvedAt||r.createdAt)}）`;historyList.append(p);}
+  if(!dailyExhausted&&!candidates.length)availableList.innerHTML='<p class="muted">今日の素材のお願いはありません。</p>';
+  if(!dailyExhausted&&!requests.canAccept){const p=document.createElement('p');p.className='muted tiny';p.textContent='今日の受注上限、または同時受注3件の上限に達しています。';availableList.prepend(p);}
+  for(const r of requests.history){const p=document.createElement('div');p.className='request-history-entry';p.textContent=`${r.title} — ${r.status==='completed'?'完了':'取り消し'}${(r.resolvedAt||r.createdAt||r.completedAt)?'（'+jstDate(r.resolvedAt||r.completedAt||r.createdAt)+'）':''}${r.affinityGain?'（親密度 +'+r.affinityGain+'pt）':''}`;historyList.append(p);}
   if(!requests.history.length)historyList.textContent='まだ履歴はありません。';
-  await renderCookingRequestsInNpcPage('paper');
-  show('npc-requests');
+  await renderCookingRequestsInNpcPage(npcId,dailyExhausted);
+  // 料理の受注済みがあれば、素材が空でも『お願いなし』と表示しない。
+  if(!requests.active.length&&$('#'+npcId+'-cooking-active').children.length)activeList.replaceChildren();
+  if(!requests.history.length&&$('#'+npcId+'-cooking-history').children.length)historyList.replaceChildren();
+  show(isPaper?'npc-requests':'pyoro-requests');
 }
 
 // v0.11 言葉帳。全住人が共有する言葉だけを表示し、個別の関係履歴とは分けて保存。

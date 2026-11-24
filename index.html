@@ -93,7 +93,7 @@
   }
 </style>
   <script src="data/sea-items.js?v=0.17.0.3" defer></script>
-  <script src="script.js?v=0.18.7.7" defer></script>
+  <script src="script.js?v=0.18.7.8" defer></script>
   <script src="data/cooking.js?v=0.18.7.5" defer></script>
   <script src="data/sea-game.js?v=0.17.1.5" defer></script>
 <style>
@@ -145,7 +145,7 @@
 #pyoro-feeding-page .npc-feed-summary p{margin:4px 0 0}
 #pyoro-feeding-page #pyoro-feed-list h3{margin:18px 0 12px}
 #pyoro-feeding-page #pyoro-feed-list button{width:100%}
-#pyoro-requests-page .request-card{margin-bottom:12px}
+
 </style>
 <style>
 /* v0.18.5: 赤色の獣の会話フォームを黄色い獣のUIと完全に同じ指定へ。 */
@@ -599,18 +599,17 @@
   </div>
 </section>
 <section id="pyoro-requests-page" class="page hidden narrow">
-  <button id="pyoro-requests-back" class="back" type="button">← 赤色の獣のプロフィールへ</button>
-  <div class="panel">
-    <span class="eyebrow">THE RED BEAST'S REQUESTS</span><h1>赤色の獣からのお願い</h1>
-    <p class="muted">同時に3件まで。素材は少しずつ預けられます。途中で断れば、預けた素材はすべて返却されるよ。</p>
-    <div id="pyoro-request-section">
-      <p id="pyoro-request-status" class="request-daily-status"></p><p id="pyoro-request-message" class="notice hidden" role="status" aria-live="polite"></p>
-      <h2>引き受けたお願い</h2><div id="pyoro-request-active" class="choice-list"></div><div id="pyoro-cooking-active" class="choice-list"></div>
-      <h2>今日のお願い・普段のお願い</h2><div id="pyoro-request-offers" class="choice-list"></div><div id="pyoro-cooking-offers" class="choice-list"></div>
-      <details><summary>終わったお願いの履歴</summary><div id="pyoro-request-history"></div><div id="pyoro-cooking-history"></div></details>
-    </div>
-  </div>
-</section>
+        <button class="back" id="pyoro-requests-back">← 赤色の獣のプロフィールへ</button>
+        <div class="panel"><span class="eyebrow">THE RED BEAST'S REQUESTS</span><h1>赤色の獣からのお願い</h1>
+        <p class="muted">同時に3件まで。素材は少しずつ預けられます。途中で断れば、預けた素材はすべて返却されるよ。</p>
+        <p id="pyoro-request-status" class="request-daily-status"></p><p id="pyoro-request-daily-note" class="muted tiny"></p>
+        <div id="pyoro-request-message" class="notice hidden" role="status" aria-live="polite"></div>
+        <div class="section-top"><h2>引き受けたお願い</h2></div><div id="pyoro-request-active" class="request-list"></div><div id="pyoro-cooking-active" class="request-list"></div>
+        <p id="pyoro-request-limit-note" class="muted hidden">今日のお願いは受注上限に達しました。また明日見にきてね。</p>
+        <section id="pyoro-request-offer-section"><div class="section-top"><h2>今日のお願い</h2></div><div id="pyoro-request-offers" class="request-list"></div><div id="pyoro-cooking-offers" class="request-list"></div></section>
+        <details><summary>終わったお願いの履歴</summary><div id="pyoro-request-history" class="request-list details-content"></div><div id="pyoro-cooking-history" class="request-list details-content"></div></details>
+        </div>
+      </section>
 <!-- v0.18.3: 赤色の獣の言葉帳 / 日記 / 贈り物を黄色い獣と同じ独立画面へ -->
 <section id="pyoro-words-page" class="page hidden narrow">
   <button id="pyoro-words-back" class="back" type="button">← お話に戻る</button>
@@ -752,7 +751,8 @@
         <p id="npc-request-daily-status" class="request-daily-status"></p><p id="npc-request-daily-note" class="muted tiny"></p>
         <div id="npc-requests-message" class="notice hidden" role="status" aria-live="polite"></div>
         <div class="section-top"><h2>引き受けたお願い</h2></div><div id="npc-requests-active" class="request-list"></div><div id="paper-cooking-active" class="request-list"></div>
-        <div class="section-top"><h2>今日のお願い・常設のお願い</h2></div><div id="npc-requests-available" class="request-list"></div><div id="paper-cooking-offers" class="request-list"></div>
+        <p id="paper-request-limit-note" class="muted hidden">今日のお願いは受注上限に達しました。また明日見にきてね。</p>
+        <section id="paper-request-offer-section"><div class="section-top"><h2>今日のお願い・常設のお願い</h2></div><div id="npc-requests-available" class="request-list"></div><div id="paper-cooking-offers" class="request-list"></div></section>
         <details><summary>終わったお願いの履歴</summary><div id="npc-requests-history" class="request-list details-content"></div><div id="paper-cooking-history" class="request-list details-content"></div></details>
         </div>
       </section>
@@ -997,7 +997,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.7.7</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.7.8</span></footer>
   </div>
 </body>
 </html>
