@@ -403,7 +403,7 @@ function ghRender(){
  if(potKey!==ghPotKey){ghPotKey=potKey;$('#gh-pots').innerHTML=Array.from({length:5},(_,i)=>{
   const flower=ready?c.pots[i]:null, src=flower?`plant${ghFlowers[flower.id.replace('GH_FLOWER_','')]}.webp`:growing?phase:state==='planted'?'plant3.webp':'plantEmpty.webp';
   const label=flower?`${ghName(flower.id)} ×${flower.quantity}本`:state==='empty'?'空き':growing?'育成中':'種まき済み';
-  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.19.0.3" alt=""><span>${safe(label)}</span></div>`;
+  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.19.0.4" alt=""><span>${safe(label)}</span></div>`;
  }).join('');}
  $('#gh-can').innerHTML=ghData.canColor?`<img src="${ghDir}jouro${ghData.canColor}.webp" alt="じょうろ">${({B:'青',G:'緑',R:'赤',Y:'黄'})[ghData.canColor]}のじょうろ`:'じょうろを受け取っていません';
  $('#gh-owned').textContent=`種：${ghQuantity('LENT_SEED')}袋　腐葉土：${ghQuantity('S0047')}個　肥料：${ghQuantity('GH_FERTILIZER')}個`;
@@ -542,7 +542,7 @@ async function openHall(){const data=await api('/hall');resident=data.resident;$
   paperActor.classList.toggle('hidden',!paperHere);
   if(paperHere){paintPaper('#hall-paper-image',paperHere);$('#hall-paper-label').textContent=paperHere.state.activity==='sleeping'?'黄色い獣はおやすみ中':'黄色い獣に会う';}
   $('#npc-list').innerHTML=data.npcs.map(n=>`<article class="npc-card">${n.id==='paper'&&paperVisual?`<img class="npc-list-portrait" src="${safe(encodeURI(paperImage(paperExpression(n))))}" alt="">`:n.id==='pyoro'?`<img class="npc-list-portrait" src="${safe(encodeURI(pyoroImage(pyoroExpression(n))))}" alt="">`:'<div class="avatar" aria-hidden="true">✦</div>'}<div><strong>${safe(n.id==='pyoro'?'赤色の獣':n.name)}</strong><div class="muted">${safe(stateText(n))} · ${safe(n.state.activityLabel)}</div></div><button class="secondary small" data-npc="${safe(n.id)}">詳細を見る</button></article>`).join('');
-  $('#doors').innerHTML=data.hall.doors.map(d=>`<article class="door-card" data-door-card="${safe(d.id)}"><span class="door-glyph">◇</span><div class="door-card-copy"><strong>${safe(d.id==='forest'&&d.status==='available'?'森':d.id==='sea'&&d.status==='available'?'海':d.id==='unknown'?(d.status==='available'?'工房':'正面の扉'):d.name)}</strong>${['forest','cave','sea','moon','greenhouse'].includes(d.id)||(d.id==='unknown'&&d.status==='available')||(d.status!=='available'&&d.id!=='unknown')?'':`<div class="muted">${d.status==='available'?'入口の採取ができます':'まだ扉は開かない'}</div>`}</div>${d.status==='available'?`<button class="secondary small" data-door="${safe(d.id)}">${d.id==='unknown'?'工房へ':d.id==='moon'?'月の扉へ':'探索する'}</button>`:`<span class="tag">${['forest','sea','moon'].includes(d.id)?'未解放':'準備中'}</span>`}</article>`).join('');
+  $('#doors').innerHTML=data.hall.doors.map(d=>`<article class="door-card" data-door-card="${safe(d.id)}"><span class="door-glyph">◇</span><div class="door-card-copy"><strong>${safe(d.id==='moon'&&d.status==='available'?'商店':d.id==='greenhouse'&&d.status==='available'?'温室':d.id==='forest'&&d.status==='available'?'森':d.id==='sea'&&d.status==='available'?'海':d.id==='unknown'?(d.status==='available'?'工房':'正面の扉'):d.name)}</strong>${['forest','cave','sea','moon','greenhouse'].includes(d.id)||(d.id==='unknown'&&d.status==='available')||(d.status!=='available'&&d.id!=='unknown')?'':`<div class="muted">${d.status==='available'?'入口の採取ができます':'まだ扉は開かない'}</div>`}</div>${d.status==='available'?`<button class="secondary small" data-door="${safe(d.id)}">${d.id==='unknown'?'工房へ':d.id==='moon'?'商店へ':d.id==='greenhouse'?'温室へ':'探索する'}</button>`:`<span class="tag">${['forest','sea','moon'].includes(d.id)?'未解放':'準備中'}</span>`}</article>`).join('');
   $('#doors').querySelector('[data-door="cave"]')?.addEventListener('click',handler(()=>enterHallCave()));
   $('#doors').querySelector('[data-door="forest"]')?.addEventListener('click',handler(openForest));
   $('#doors').querySelector('[data-door="sea"]')?.addEventListener('click',handler(async()=>{if(!await checkSeaEvents())await window.KAGARISO_SEA.open();}));
@@ -1288,7 +1288,7 @@ function renderNpc(moved){const n=currentNpc;
   $('#npc-life-actions').classList.toggle('hidden',!n.diaryUnlocked);
   $('#npc-affinity').textContent='♥'.repeat(n.affinity)+'♡'.repeat(10-n.affinity);
   $('#npc-relationship').textContent=`あなたとの関係：${n.relationship}`;
-  $('#npc-relationship-detail').textContent=`${n.relationship}（好感度 ${n.affinity}/10）`;
+  $('#npc-relationship-detail').textContent=n.relationship;
   $('#npc-life-status').innerHTML=['energy','hunger','mood'].map((k)=>{const labels={energy:'元気',hunger:'空腹',mood:'気分'};const descriptions={energy:n.state.energyLabel,hunger:n.state.hungerLabel,mood:n.state.moodLabel};return `<div class="life-item"><span>${labels[k]}</span><strong>${safe(descriptions[k])}</strong></div>`;}).join('');
   $('#rest-btn').disabled=n.state.activity!=='awake';
   $('#wake-btn').disabled=n.state.activity!=='sleeping'||n.affinity<3;
@@ -2183,14 +2183,14 @@ async function checkGameNotifications(){
     const moonKey=`kagariso-moon-unlocked-v0.18.7.1:${id}`;
     if(localStorage.getItem(moonKey)!==data.moon.unlockedAt){
       localStorage.setItem(moonKey,data.moon.unlockedAt);
-      pushGameNotice('誰かが料理50種類を完成させた！ ホールの月の扉が開いたようです。',openMoonDoor,'月の扉へ','あとで行く');
+      pushGameNotice('誰かが料理50種類を完成させた！ ホールの月の扉が開いたようです。',openMoonDoor,'商店へ','あとで行く');
       if(activePage==='hall'){
         moonDoorUnlocked=true;
         positionHallCaveDoor();
         const moonCard=$('#doors').querySelector('[data-door-card="moon"]');
-        if(moonCard){moonCard.querySelector('.tag')?.remove();
+        if(moonCard){moonCard.querySelector('.tag')?.remove(); const name=moonCard.querySelector('.door-card-copy strong'); if(name)name.textContent='商店';
           if(!moonCard.querySelector('[data-door="moon"]')){
-            const b=document.createElement('button');b.type='button';b.className='secondary small';b.dataset.door='moon';b.textContent='月の扉へ';b.addEventListener('click',handler(openMoonDoor));moonCard.append(b);
+            const b=document.createElement('button');b.type='button';b.className='secondary small';b.dataset.door='moon';b.textContent='商店へ';b.addEventListener('click',handler(openMoonDoor));moonCard.append(b);
           }
         }
       }
