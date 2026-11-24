@@ -93,7 +93,8 @@
   }
 </style>
   <script src="data/sea-items.js?v=0.17.0.3" defer></script>
-  <script src="script.js?v=0.18.7.13" defer></script>
+  <script src="data/greenhouse-data.js?v=0.19.0" defer></script>
+  <script src="script.js?v=0.19.0" defer></script>
   <script src="data/cooking.js?v=0.18.7.5" defer></script>
   <script src="data/sea-game.js?v=0.17.1.5" defer></script>
 <style>
@@ -246,6 +247,9 @@
 .lent-panel #lent-chat-send{width:100%;margin-top:10px;}.lent-chat-panel{border-top:1px solid var(--line);padding-top:18px;margin-top:22px;}
 @media(max-width:490px){.lent-offer{flex-direction:column;align-items:stretch;}}
 </style>
+<style>
+#gh-stage{position:relative;overflow:hidden;border-radius:12px;min-height:200px;background:#303b36;isolation:isolate} .gh-background{width:100%;display:block;aspect-ratio:16/9;object-fit:cover} #gh-pots{position:absolute;bottom:5%;left:0;right:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:end;gap:0} .gh-pot{min-width:0;text-align:center;color:white;text-shadow:0 1px 3px #000;font-size:clamp(9px,2.3vw,14px)} .gh-pot img,.gh-pot svg{display:block;width:100%;aspect-ratio:1;object-fit:contain;filter:drop-shadow(0 3px 3px #0005)} .gh-pot span{display:block;background:#222437cf;border-radius:4px;margin:0 2px;padding:3px 0;min-height:2em} #gh-watering{position:absolute;width:31%;top:14%;z-index:5;pointer-events:none;transform:scaleX(var(--gh-flip,1));transition:left .18s ease} #gh-watering.gh-pour{animation:gh-pour .7s ease-in-out} @keyframes gh-pour{0%{transform:scaleX(var(--gh-flip,1)) rotate(-8deg);opacity:0}25%,75%{transform:scaleX(var(--gh-flip,1)) rotate(-15deg);opacity:1}100%{transform:scaleX(var(--gh-flip,1)) rotate(-4deg);opacity:.8}} .gh-wet img{filter:brightness(.85)} #gh-can{display:flex;align-items:center;gap:10px} #gh-can img{width:82px;object-fit:contain} #gh-prep label{display:block;margin:10px 0} #gh-prep input[type=checkbox]{width:auto} #gh-bar{width:100%;accent-color:#b99bdf} .gh-result-row{display:flex;gap:10px;align-items:center;margin:8px 0} .gh-result-row img{width:64px;height:64px;object-fit:contain;border-radius:6px} .gh-result-row span{flex:1} .gh-tabs,.gh-qty{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:12px 0} .gh-qty input{width:72px;max-width:25%;text-align:center} .gh-selected{border-color:#e6bb82!important;color:#e6bb82!important} .gh-recipe select{width:100%;margin-top:5px} .gh-recipe{margin:10px 0} @media(prefers-reduced-motion:reduce){#gh-watering.gh-pour{animation:none}}
+</style>
 </head>
 <body>
   <div class="ambient ambient-a" aria-hidden="true"></div><div class="ambient ambient-b" aria-hidden="true"></div>
@@ -292,7 +296,12 @@
         <button type="button" id="greenhouse-back-hall" class="back">← ホールへ戻る</button>
         <div class="panel"><span class="eyebrow">THE GREENHOUSE</span><h1>温室</h1>
           <p>紫色の扉の先には、花を育てるための場所が用意されていた。</p>
-          <p class="muted">花や綿、糸を吐く花の栽培は、これから始まります。</p>
+          <div id="gh-stage"><img class="gh-background" src="images/backgrounds/greenhouse.webp" alt="温室"><div id="gh-pots"></div><img id="gh-watering" class="hidden" alt=""></div>
+          <div id="gh-can"></div><p id="gh-owned" class="muted"></p><p id="gh-status" class="scene" role="status"></p>
+          <button id="gh-plant" class="primary">種を植える（1袋）</button>
+          <div id="gh-prep" class="hidden"><label><input type="checkbox" id="gh-compost"> 腐葉土を使う（5分に短縮）</label><label><input type="checkbox" id="gh-fertilizer"> 肥料を使う（1鉢5本確定）</label><button id="gh-water" class="primary">水をあげる</button></div>
+          <div id="gh-progress" class="hidden"><progress id="gh-bar" max="100" value="0"></progress><p id="gh-clock"></p></div>
+          <button id="gh-harvest" class="primary hidden">まとめて収穫する</button><div id="gh-result"></div><button id="gh-catalog" class="secondary">図鑑を見る</button>
         </div>
       </section>
       <section id="moon-page" class="page hidden narrow">
@@ -322,14 +331,14 @@
           <section id="lent-seed-reward" class="lent-seed-reward hidden">
             <h2>商人からの贈り物</h2>
             <p id="lent-seed-message">「……ありがとう。場所は用意したから、あとはがんばれ。」</p>
-            <img src="images/materials/lent_seed.webp" alt="商人から渡される花の種" class="lent-seed-image" loading="lazy">
+            <img src="images/greenhouse/tane2.webp" alt="商人から渡される花の種" class="lent-seed-image" loading="lazy">
             <button type="button" id="lent-seed-claim" class="primary">種を受け取る</button>
             <p id="lent-seed-status" class="muted tiny"></p>
             <button type="button" id="lent-enter-greenhouse" class="secondary">温室へ</button>
           </section>
           <section class="lent-shop">
             <h2>物々交換</h2>
-            <div id="lent-offers"></div>
+            <div id="gh-shop"></div><div id="lent-offers"></div>
 
           </section>
           <section id="lent-conversation" class="hidden lent-chat-panel">
@@ -989,7 +998,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.7.13</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.19.0</span></footer>
   </div>
 </body>
 </html>

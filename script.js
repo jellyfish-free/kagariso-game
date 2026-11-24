@@ -44,7 +44,7 @@ let moonDoorUnlocked=false;
 let greenhouseUnlocked=false;
 let seaState=null;
 const FOREST_COMMON=new Set(["C026","C002","S0005","S0007","C028"]);
-const MATERIALS=[...(window.KAGARISO_MATERIALS||[]),...FOREST_MATERIALS,...SEA_ITEMS].map(m=>['S0039','S0040'].includes(m.id)?{...m,rarity:5}:m);
+const MATERIALS=[...(window.KAGARISO_MATERIALS||[]),...FOREST_MATERIALS,...SEA_ITEMS,...(window.KAGARISO_GREENHOUSE?.items||[])].map(m=>['S0039','S0040'].includes(m.id)?{...m,rarity:5}:m);
 const materialById=id=>MATERIALS.find(m=>m.id===id);
 const matIcon=(id)=>{const m=materialById(id);return m?`<img class="material-thumb" src="${safe(m.image)}" alt="" loading="lazy" onerror="this.style.display='none'">`:'';};
 
@@ -347,10 +347,13 @@ function renderLent(p){
  const reward=$('#lent-seed-reward');
  reward.classList.toggle('hidden',!quest?.completed);
  if(quest?.completed){
-  $('#lent-seed-claim').classList.toggle('hidden',!!quest.seedClaimed);
+  $('#lent-seed-claim').classList.toggle('hidden',!!quest.canClaimed);
+  $('#lent-seed-claim').textContent=quest.seedClaimed?'じょうろを受け取る':'商人の話を聞く';
+  $('#lent-seed-claim').onclick=ghShowReward;
+  $('#lent-seed-message').textContent=quest.canClaimed?'「ごひいきに♡」':'商人があなたを待っている。';
   $('#lent-seed-claim').disabled=lentBusy||p.activity!=='open';
-  $('#lent-seed-status').textContent=quest.seedClaimed?'種を受け取った。紫色の扉が開かれている。':p.activity==='open'?'商人から種を受け取ろう。':'商人が店にいるとき、種を受け取れる。';
-  $('#lent-enter-greenhouse').classList.toggle('hidden',!quest.seedClaimed);
+  $('#lent-seed-status').textContent=quest.canClaimed?'報酬を受け取った。紫色の扉が開かれている。':p.activity==='open'?'商人から種を受け取ろう。':'商人が店にいるとき、種を受け取れる。';
+  $('#lent-enter-greenhouse').classList.toggle('hidden',!quest.canClaimed);
  }
  const questBox=$('#lent-flower-quest'),intro=$('#lent-flower-intro'),qStatus=$('#lent-flower-progress');
  questBox.classList.toggle('hidden',!!quest?.completed);
@@ -364,10 +367,11 @@ function renderLent(p){
   $('#lent-flower-donate').disabled=lentBusy||p.activity!=='open'||quest.owned<1||quest.remaining<1;
   $('#lent-flower-qty').disabled=lentBusy||p.activity!=='open'||quest.owned<1||quest.remaining<1;
  }
+ ghRenderShop(p);
  const box=$('#lent-offers');box.replaceChildren();
  if(!quest?.completed){const msg=document.createElement('p');msg.className='muted';msg.textContent='共同納品を達成すると物々交換が始まります。';box.append(msg);return;}
  if(!p.canTrade){const msg=document.createElement('p');msg.className='muted';msg.textContent=p.activity==='away'?'商人は留守にしています。': '商人は眠っています。取引はできません。';box.append(msg);return;}
- if(!p.offers?.length){const msg=document.createElement('p');msg.className='muted';msg.textContent='ただいま交換品の準備中です。';box.append(msg);return;}
+ if(!p.offers?.length){const msg=document.createElement('p');msg.className='muted';return;}
  for(const offer of p.offers){
   const row=document.createElement('div');row.className='lent-offer';
   const left=document.createElement('div');left.className='lent-offer-copy';
@@ -378,10 +382,102 @@ function renderLent(p){
   left.append(strong,desc);row.append(left,button);box.append(row);
  }
 }
+// 温室：画面の時計は表示専用。実際の完了判定はWorkerが行う。
+const GH=window.KAGARISO_GREENHOUSE;
+const ghDir='images/greenhouse/growing/';
+const ghFlowers={GREEN:'Green',RED:'Red',WHITE:'White',YELLOW:'Yellow',BLACK:'Black',BLUE:'Blue',SILK:'Silk',COTTON:'Cotton'};
+let ghData=null,ghBusy=false,ghTimer=null,ghOffset=0,ghShopCategory='園芸用品',ghShopRender=0,ghPotKey='';
+const ghName=id=>materialById(id)?.name||id;
+const ghImage=id=>materialById(id)?.image||'';
+const ghQuantity=id=>Number(ghData?.owned?.[id]||0);
+function ghSet(data){ghData=data;ghOffset=data.serverNow-Date.now();ghRender();}
+function ghRender(){
+ if(!ghData||activePage!=='greenhouse')return;
+ const c=ghData.cycle, state=c?.state||'empty', now=Date.now()+ghOffset, ready=state==='ready', growing=state==='growing';
+ const ratio=growing?Math.max(0,Math.min(1,(now-c.startedMs)/(c.finishMs-c.startedMs))):0;
+ const phase=ratio>=.8?'plant5.webp':ratio>=.5?'plant4.webp':'plant3.webp';
+ const potKey=JSON.stringify([state,phase,ready?c.pots:null]);
+ if(potKey!==ghPotKey){ghPotKey=potKey;$('#gh-pots').innerHTML=Array.from({length:5},(_,i)=>{
+  const flower=ready?c.pots[i]:null, src=flower?`plant${ghFlowers[flower.id.replace('GH_FLOWER_','')]}.webp`:growing?phase:state==='planted'?'plant3.webp':'';
+  const label=flower?`${ghName(flower.id)} ×${flower.quantity}本`:state==='empty'?'空き':growing?'育成中':'種まき済み';
+  return `<div class="gh-pot">${src?`<img src="${ghDir+src}" alt="">`:'<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M16 42L28 88Q50 96 72 88L84 42Z" fill="#b27e5d" stroke="#d6ac82" stroke-width="3"/><ellipse cx="50" cy="42" rx="36" ry="12" fill="#c59471"/><ellipse cx="50" cy="42" rx="29" ry="8" fill="#614633"/></svg>'}<span>${safe(label)}</span></div>`;
+ }).join('');}
+ $('#gh-can').innerHTML=ghData.canColor?`<img src="${ghDir}jouro${ghData.canColor}.webp" alt="じょうろ">${({B:'青',G:'緑',R:'赤',Y:'黄'})[ghData.canColor]}のじょうろ`:'じょうろを受け取っていません';
+ $('#gh-owned').textContent=`種：${ghQuantity('LENT_SEED')}袋　腐葉土：${ghQuantity('S0047')}個　肥料：${ghQuantity('GH_FERTILIZER')}個`;
+ $('#gh-plant').classList.toggle('hidden',state!=='empty');$('#gh-plant').disabled=ghBusy||!ghData.canColor||ghQuantity('LENT_SEED')<1;
+ $('#gh-prep').classList.toggle('hidden',state!=='planted');$('#gh-water').disabled=ghBusy||!ghData.canColor;
+ for(const [selector,id] of [['#gh-compost','S0047'],['#gh-fertilizer','GH_FERTILIZER']]){const el=$(selector);el.disabled=ghBusy||ghQuantity(id)<1;if(ghQuantity(id)<1||state!=='planted')el.checked=false;}
+ $('#gh-progress').classList.toggle('hidden',!growing);$('#gh-bar').value=ratio*100;
+ const remaining=Math.max(0,Math.ceil((c?.finishMs-now)/1000));$('#gh-clock').textContent=growing?`開花まで ${Math.floor(remaining/60)}分${String(remaining%60).padStart(2,'0')}秒` :'';
+ $('#gh-harvest').classList.toggle('hidden',!ready);$('#gh-harvest').disabled=ghBusy;
+ $('#gh-status').textContent=!ghData.canColor?'商人のところでじょうろを受け取ろう。':state==='empty'?'種を1袋植えると、5つの鉢が埋まります。':state==='planted'?'水をあげると育成が始まります。':ready?`花が咲きました！ 合計${c.pots.reduce((n,p)=>n+p.quantity,0)}本を収穫できます。`:'すくすく育っています……';
+ if(growing&&remaining===0&&!ghBusy){ghBusy=true;api('/greenhouse').then(ghSet).catch(e=>toast(e.message)).finally(()=>{ghBusy=false;});}
+}
+async function ghAnimate(color){
+ if(!color||activePage!=='greenhouse')return;
+ const stage=$('#gh-stage'),can=$('#gh-watering');can.src=ghDir+'jouro'+color+'.webp';can.classList.remove('hidden');
+ try{for(let i=0;i<5;i++){
+  if(activePage!=='greenhouse')break;
+  const pot=$('#gh-pots').children[i];can.style.left=`${i<3?(i+.5)*20-5:(i+.5)*20-26}%`;can.style.setProperty('--gh-flip',i<3?'1':'-1');can.classList.add('gh-pour');$('#gh-status').textContent=`${i+1} / 5　水をあげています……`;
+  pot?.classList.add('gh-wet');await new Promise(r=>setTimeout(r,700));can.classList.remove('gh-pour');await new Promise(r=>setTimeout(r,100));
+ }}finally{can.classList.add('hidden');can.classList.remove('gh-pour');}
+}
+async function ghDo(action){
+ if(ghBusy||!ghData)return;ghBusy=true;
+ const body={cycleId:ghData.cycle?.id,compost:$('#gh-compost').checked,fertilizer:$('#gh-fertilizer').checked};
+ ghRender();
+ try{const result=await api('/greenhouse/'+action,'POST',body);
+  if(action==='water'){ghData=result;ghOffset=result.serverNow-Date.now();await ghAnimate(result.canColor);}
+  ghSet(result);
+  if(action==='harvest'){
+   const sums={};for(const x of result.harvested||[])sums[x.id]=(sums[x.id]||0)+x.quantity;
+   $('#gh-result').innerHTML='<h3>今回の収穫</h3>'+Object.entries(sums).map(([id,n])=>`<div class="gh-result-row"><img src="${safe(ghImage(id))}" alt=""><span>${safe(ghName(id))}</span><strong>×${n}</strong></div>`).join('');
+  }else if(action==='plant')$('#gh-result').replaceChildren();
+ }catch(e){toast(e.message);try{ghSet(await api('/greenhouse'));}catch(_){}}
+ finally{ghBusy=false;ghRender();}
+}
+$('#gh-plant').onclick=()=>ghDo('plant');$('#gh-water').onclick=()=>ghDo('water');$('#gh-harvest').onclick=()=>ghDo('harvest');
+$('#gh-catalog').onclick=handler(openMaterialCatalog);
+function ghShowReward(){
+ const p=lentCurrentProfile;if(!p?.flowerQuest?.completed||p.activity!=='open'||lentBusy)return;
+ let i=0;const box=$('#lent-seed-message'),button=$('#lent-seed-claim');
+ const dialogue=GH.event.dialogue;box.textContent='「'+dialogue[0]+'」';button.textContent='次へ';
+ button.onclick=handler(async()=>{
+  if(lentBusy)return;
+  if(++i<dialogue.length){box.textContent='「'+dialogue[i]+'」';button.textContent=i===dialogue.length-1?'報酬を受け取る':'次へ';return;}
+  lentBusy=true;button.disabled=true;
+  try{const result=await api('/lent/flowers/reward','POST',{});lentBusy=false;renderLent(result.profile);$('#lent-seed-message').textContent='種とじょうろを受け取った。紫色の扉の先に温室がある。';$('#lent-message').textContent='「ごひいきに♡」';toast('じょうろを受け取った！');}
+  finally{lentBusy=false;button.disabled=false;}
+ });
+}
+function ghRenderShop(p){
+ const host=$('#gh-shop');host.replaceChildren();const ticket=++ghShopRender;
+ if(!p?.canTrade)return;
+ api('/greenhouse/shop').then(data=>{
+  if(ticket!==ghShopRender||activePage!=='moon'||!data.canTrade)return;
+  const cats=['園芸用品','染料','生地','裁縫素材'];
+  host.innerHTML=`<div class="gh-tabs">${cats.map(x=>`<button class="secondary small ${x===ghShopCategory?'gh-selected':''}" data-gh-cat="${x}">${x}</button>`).join('')}</div><div id="gh-recipes"></div>`;
+  host.querySelectorAll('[data-gh-cat]').forEach(b=>b.onclick=()=>{ghShopCategory=b.dataset.ghCat;ghRenderShop(p);});
+  for(const recipe of GH.recipes.filter(x=>x.category===ghShopCategory)){
+   const item=GH.items.find(x=>x.id===recipe.result.id),card=document.createElement('article');card.className='request-card gh-recipe';
+   const desc=recipe.alternatives.map(a=>a.map(x=>`${ghName(x.id)}×${x.quantity}`).join(' ＋ '));
+   card.innerHTML=`<div class="gh-result-row"><img src="${safe(item.image)}" alt=""><div><strong>${safe(item.name)}</strong><p class="muted tiny">所持：${data.owned[item.id]||0}個</p></div></div><label>交換素材<select class="gh-alt">${desc.map((x,i)=>`<option value="${i}">${safe(x)}</option>`).join('')}</select></label><p class="muted tiny gh-cost"></p><div class="gh-qty"><button class="secondary small" data-step="-10">−10</button><input type="number" min="1" value="1" inputmode="numeric"><button class="secondary small" data-step="10">＋10</button><button class="secondary small" data-step="max">最大</button></div><button class="primary gh-exchange">交換する</button>`;
+   const sel=card.querySelector('select'),input=card.querySelector('input'),btn=card.querySelector('.gh-exchange');
+   const max=()=>Math.min(1000,...recipe.alternatives[Number(sel.value)].map(x=>Math.floor((data.owned[x.id]||0)/x.quantity)));
+   const refresh=()=>{const m=max();input.max=String(m);input.value=String(Math.max(1,Math.min(m||1,Math.floor(Number(input.value)||1))));btn.disabled=m<1||lentBusy;card.querySelector('.gh-cost').textContent=recipe.alternatives[Number(sel.value)].map(x=>`${ghName(x.id)}：所持${data.owned[x.id]||0}個 / 必要${x.quantity*Number(input.value)}個`).join('　');};
+   sel.onchange=refresh;input.onchange=refresh;input.oninput=()=>{card.querySelector('.gh-cost').textContent=recipe.alternatives[Number(sel.value)].map(x=>`${ghName(x.id)}：所持${data.owned[x.id]||0}個 / 必要${x.quantity*(Number(input.value)||0)}個`).join('　');};
+   card.querySelectorAll('[data-step]').forEach(b=>b.onclick=()=>{input.value=String(b.dataset.step==='max'?max():Number(input.value)+Number(b.dataset.step));refresh();});
+   btn.onclick=handler(async()=>{if(lentBusy)return;refresh();const quantity=Number(input.value);if(quantity>max())return;if(!confirm(`${item.name}を${quantity}個交換しますか？`))return;lentBusy=true;btn.disabled=true;try{await api('/greenhouse/trade','POST',{recipeId:recipe.id,alternative:Number(sel.value),quantity,operationId:crypto.randomUUID()});toast(`${item.name}を${quantity}個交換しました。`);}finally{lentBusy=false;if(activePage==='moon'){const r=await api('/lent');renderLent(r.lent);}}});
+   refresh();host.querySelector('#gh-recipes').append(card);
+  }
+ }).catch(e=>{if(ticket===ghShopRender)host.textContent=e.message;});
+}
+
 async function openGreenhouse(){
  const h=await api('/hall');greenhouseUnlocked=!!h.greenhouseUnlocked;
  if(!greenhouseUnlocked){toast('紫色の扉はまだ開かない。');return;}
- show('greenhouse');
+ const data=await api('/greenhouse');
+ show('greenhouse');ghPotKey='';$('#gh-result').replaceChildren();ghSet(data);clearInterval(ghTimer);ghTimer=setInterval(()=>{if(activePage!=='greenhouse'){clearInterval(ghTimer);ghTimer=null;return;}if(!ghBusy)ghRender();},1000);
 }
 async function openMoonDoor(){
  const hall=await api('/hall');
@@ -404,13 +500,6 @@ $('#lent-flower-donate').addEventListener('click',handler(async()=>{
   $('#lent-message').textContent=result.message;$('#lent-message').classList.remove('hidden');
   if(result.quest.completed)toast('共同納品達成！ 商人の物々交換が解放されました。');
  }finally{lentBusy=false;if(result)renderLent(result.profile);else $('#lent-flower-donate').disabled=false;}
-}));
-$('#lent-seed-claim').addEventListener('click',handler(async()=>{
- if(lentBusy)return;lentBusy=true;
- try{const result=await api('/lent/flowers/reward','POST',{});
-  $('#lent-message').textContent=result.message;$('#lent-message').classList.remove('hidden');
-  renderLent(result.profile);toast('種を受け取った。紫色の扉が解放された！');
- }finally{lentBusy=false;}
 }));
 $('#lent-enter-greenhouse').addEventListener('click',handler(openGreenhouse));
 $('#greenhouse-back-moon').addEventListener('click',handler(openMoonDoor));
@@ -682,7 +771,7 @@ async function openMaterialCatalog(){
  ]);
  const discovered=new Set(discovery.ids||[]);
  const forestReady=Boolean(forestState?.unlocked&&forestState?.seen&&forestState?.eligible);
- const materials=MATERIALS.filter(m=>(m.source!=='森'||forestReady)&&(m.source!=='海'||Boolean(seaState?.unlocked&&seaState?.eligible))).map(m=>({id:m.id,name:m.name,image:m.image,rarity:m.rarity,
+ const materials=MATERIALS.filter(m=>(!window.KAGARISO_GREENHOUSE.items.some(x=>x.id===m.id)||greenhouseUnlocked||discovered.has(m.id))&&(m.source!=='森'||forestReady)&&(m.source!=='海'||Boolean(seaState?.unlocked&&seaState?.eligible))).map(m=>({id:m.id,name:m.name,image:m.image,rarity:m.rarity,
    category:m.category,description:m.description,kind:'material',source:m.source||'洞窟',found:discovered.has(m.id)}));
  const events=(eventData.items||[]).map(e=>({id:e.id,name:e.name,description:e.description,
    kind:'event',source:e.source||'その他',found:true}));
@@ -751,7 +840,7 @@ function renderInventoryItems(){
   else if(mode==='rarity-asc') items.sort((a,b)=>rarity(a)-rarity(b)||byName(a,b));
   else if(mode==='category') items.sort((a,b)=>String(a.category||'').localeCompare(String(b.category||''),'ja')||byName(a,b));
   else if(mode==='source') items.sort((a,b)=>String(a.source||'').localeCompare(String(b.source||''),'ja')||byName(a,b));
-  $('#inventory-list').innerHTML=items.length?items.map(i=>`<article class="inventory-item">${(i.kind==='gift'||i.kind==='cooked')&&i.image?`<img class="material-thumb" src="${safe(i.image)}" loading="lazy" alt="" onerror="this.replaceWith(document.createTextNode('✧'))">`:matIcon(i.id)}<div><strong>${safe(i.name)}</strong><div class="muted tiny">${safe(i.category)} · ${safe(i.source)}${i.kind==='gift'||i.kind==='cooked'?'':` · ${'★'.repeat(Math.max(1,Math.min(5,i.rarity)))}`}</div></div><strong>×${Number(i.quantity)}</strong></article>`).join(''):'<p class="muted">該当する持ち物はありません。</p>';
+  $('#inventory-list').innerHTML=items.length?items.map(i=>`<article class="inventory-item">${(i.kind==='gift'||i.kind==='cooked')&&i.image?`<img class="material-thumb" src="${safe(i.image)}" loading="lazy" alt="" onerror="this.replaceWith(document.createTextNode('✧'))">`:matIcon(i.id)}<div><strong>${safe(i.name)}</strong><div class="muted tiny">${safe(i.category)} · ${safe(i.source)}${i.kind==='gift'||i.kind==='cooked'?'':` · ${'★'.repeat(i.rarity==null?0:Math.max(1,Math.min(5,i.rarity)))}`}</div></div><strong>×${Number(i.quantity)}</strong></article>`).join(''):'<p class="muted">該当する持ち物はありません。</p>';
 }
 async function openInventory(from='hall'){
   inventoryReturn=from;
@@ -1491,7 +1580,7 @@ async function openNpcGifts(from='hall',message=''){
   const select=$('#gift-receiver');select.replaceChildren();
   for(const r of recip.residents){const opt=document.createElement('option');opt.value=r.id;opt.textContent=r.name;select.append(opt);}
   if(!recip.residents.length){const opt=document.createElement('option');opt.value='';opt.textContent='ほかの住人がまだいません';select.append(opt);}
-  giftInventory=(await api('/inventory')).items.filter(i=>i.quantity>0&&materialById(i.id));
+  giftInventory=(await api('/inventory')).items.filter(i=>i.quantity>0&&materialById(i.id)&&materialById(i.id).transferable!==false);
   $('#gift-send-rows').replaceChildren();$('#gift-send-message').value='';
   if(giftInventory.length)addGiftRow();
  }
@@ -1924,7 +2013,7 @@ const ADMIN_MATERIALS=[
   ['C026','廃木材'],['C002','金属スクラップ'],['C008','洞窟キノコ'],['C001','ごつごつした石'],['C003','湿った粘土'],['C004','赤錆鉱石'],['C005','青白い水晶'],['C006','呼吸する石'],
   ['C009','岩陰の豆'],['C010','白い根菜'],['C011','鈴鳴り苔'],['C012','眠り茸'],['C013','逆さに咲く花'],['C014','洞窟鳥の卵'],['C015','洞窟鳥の羽根'],['C016','抜け落ちた牙'],['C017','脱皮した透明な皮'],['C018','洞窟獣の柔らかな毛'],['C021','岩蜜'],['C022','甘い地底果汁'],['C020','夜光の雫'],['C025','折れた木の棒'],['C027','丈夫な地下蔓'],['C028','色褪せた布'],['C029','しなやかな根木'],['C023','光る石'],['C019','誰のものでもない卵'],['C024','いつまでも冷たい水']
 ];
-for(const m of MATERIALS)if(!ADMIN_MATERIALS.some(x=>x[0]===m.id))ADMIN_MATERIALS.push([m.id,m.name]);
+for(const m of MATERIALS)if(m.transferable!==false&&!ADMIN_MATERIALS.some(x=>x[0]===m.id))ADMIN_MATERIALS.push([m.id,m.name]);
 const blankAdminRequest=()=>({key:null,npcId:'paper',title:'',description:'',acceptText:'えへへ！ ありがとぉ！',completeText:'やったぁ！ ありがとぉ！',difficulty:2,minSection:1,mode:'daily',giftKind:'food',enabled:true,revision:0,items:[{id:'C008',needed:3}]});
 const adminRequestListRender=()=>{
   const q=$('#admin-request-search').value.trim().toLowerCase();
