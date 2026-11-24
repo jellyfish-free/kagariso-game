@@ -345,8 +345,8 @@ function renderLent(p){
  if(p.aiUnlocked){const u=p.aiUsage||{used:0,limit:5};$('#lent-chat-usage').textContent=`(${u.used}/${u.limit}回)`;$('#lent-chat-send').disabled=!p.canChat||u.used>=5||lentBusy;$('#lent-chat-input').disabled=!p.canChat;}
  const quest=p.flowerQuest;
  const reward=$('#lent-seed-reward');
- reward.classList.toggle('hidden',!quest?.completed);
  const received=!!(quest?.seedClaimed&&quest?.canClaimed);
+ reward.classList.toggle('hidden',!quest?.completed||received);
  $('#lent-shop').classList.toggle('hidden',!received);
  $('#lent-seed-image').classList.toggle('hidden',!received);
  if(quest?.completed){
@@ -401,9 +401,9 @@ function ghRender(){
  const phase=ratio>=.8?'plant5.webp':ratio>=.5?'plant4.webp':'plant3.webp';
  const potKey=JSON.stringify([state,phase,ready?c.pots:null]);
  if(potKey!==ghPotKey){ghPotKey=potKey;$('#gh-pots').innerHTML=Array.from({length:5},(_,i)=>{
-  const flower=ready?c.pots[i]:null, src=flower?`plant${ghFlowers[flower.id.replace('GH_FLOWER_','')]}.webp`:growing?phase:state==='planted'?'plant3.webp':'';
+  const flower=ready?c.pots[i]:null, src=flower?`plant${ghFlowers[flower.id.replace('GH_FLOWER_','')]}.webp`:growing?phase:state==='planted'?'plant3.webp':'plantEmpty.webp';
   const label=flower?`${ghName(flower.id)} ×${flower.quantity}本`:state==='empty'?'空き':growing?'育成中':'種まき済み';
-  return `<div class="gh-pot">${src?`<img src="${ghDir+src}" alt="">`:'<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M16 42L28 88Q50 96 72 88L84 42Z" fill="#b27e5d" stroke="#d6ac82" stroke-width="3"/><ellipse cx="50" cy="42" rx="36" ry="12" fill="#c59471"/><ellipse cx="50" cy="42" rx="29" ry="8" fill="#614633"/></svg>'}<span>${safe(label)}</span></div>`;
+  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.19.0.3" alt=""><span>${safe(label)}</span></div>`;
  }).join('');}
  $('#gh-can').innerHTML=ghData.canColor?`<img src="${ghDir}jouro${ghData.canColor}.webp" alt="じょうろ">${({B:'青',G:'緑',R:'赤',Y:'黄'})[ghData.canColor]}のじょうろ`:'じょうろを受け取っていません';
  $('#gh-owned').textContent=`種：${ghQuantity('LENT_SEED')}袋　腐葉土：${ghQuantity('S0047')}個　肥料：${ghQuantity('GH_FERTILIZER')}個`;
@@ -414,7 +414,7 @@ function ghRender(){
  const remaining=Math.max(0,Math.ceil((c?.finishMs-now)/1000));$('#gh-clock').textContent=growing?`開花まで ${Math.floor(remaining/60)}分${String(remaining%60).padStart(2,'0')}秒` :'';
  $('#gh-harvest').classList.toggle('hidden',!ready);$('#gh-harvest').disabled=ghBusy;
  $('#gh-status').textContent=!ghData.canColor?'商人のところでじょうろを受け取ろう。':state==='empty'?'種を1袋植えると、5つの鉢が埋まります。':state==='planted'?'水をあげると育成が始まります。':ready?`花が咲きました！ 合計${c.pots.reduce((n,p)=>n+p.quantity,0)}本を収穫できます。`:'すくすく育っています……';
- if(growing&&remaining===0&&!ghBusy){ghBusy=true;api('/greenhouse').then(ghSet).catch(e=>toast(e.message)).finally(()=>{ghBusy=false;});}
+ if(growing&&remaining===0&&!ghBusy){ghBusy=true;api('/greenhouse').then(data=>{ghSet(data);if(data.cycle?.state==='ready')checkGameNotifications().catch(console.warn);}).catch(e=>toast(e.message)).finally(()=>{ghBusy=false;});}
 }
 async function ghAnimate(color){
  if(!color||activePage!=='greenhouse')return;
@@ -449,7 +449,7 @@ function ghShowReward(){
   if(lentBusy)return;
   if(i<dialogue.length-1){i++;box.textContent='「'+dialogue[i]+'」';button.textContent=i===dialogue.length-1?'報酬を受け取る':'次へ';return;}
   lentBusy=true;button.disabled=true;
-  try{const result=await api('/lent/flowers/reward','POST',{});lentBusy=false;renderLent(result.profile);$('#lent-seed-message').textContent='商人から種を受け取った。';$('#lent-message').textContent='「ごひいきに♡」';}
+  try{const result=await api('/lent/flowers/reward','POST',{});lentBusy=false;renderLent(result.profile);$('#lent-message').textContent='「ごひいきに♡」';if(activePage==='moon')$('#lent-reward-confirm').showModal();}
   finally{lentBusy=false;button.disabled=false;}
  });
 }
@@ -505,6 +505,7 @@ $('#lent-flower-donate').addEventListener('click',handler(async()=>{
  }finally{lentBusy=false;if(result)renderLent(result.profile);else $('#lent-flower-donate').disabled=false;}
 }));
 $('#lent-enter-greenhouse').addEventListener('click',handler(openGreenhouse));
+$('#lent-reward-close').onclick=()=>$('#lent-reward-confirm').close();
 $('#greenhouse-back-moon').addEventListener('click',handler(openMoonDoor));
 $('#greenhouse-back-hall').addEventListener('click',handler(openHall));
 $('#lent-chat-send').addEventListener('click',handler(async()=>{
@@ -541,7 +542,7 @@ async function openHall(){const data=await api('/hall');resident=data.resident;$
   paperActor.classList.toggle('hidden',!paperHere);
   if(paperHere){paintPaper('#hall-paper-image',paperHere);$('#hall-paper-label').textContent=paperHere.state.activity==='sleeping'?'黄色い獣はおやすみ中':'黄色い獣に会う';}
   $('#npc-list').innerHTML=data.npcs.map(n=>`<article class="npc-card">${n.id==='paper'&&paperVisual?`<img class="npc-list-portrait" src="${safe(encodeURI(paperImage(paperExpression(n))))}" alt="">`:n.id==='pyoro'?`<img class="npc-list-portrait" src="${safe(encodeURI(pyoroImage(pyoroExpression(n))))}" alt="">`:'<div class="avatar" aria-hidden="true">✦</div>'}<div><strong>${safe(n.id==='pyoro'?'赤色の獣':n.name)}</strong><div class="muted">${safe(stateText(n))} · ${safe(n.state.activityLabel)}</div></div><button class="secondary small" data-npc="${safe(n.id)}">詳細を見る</button></article>`).join('');
-  $('#doors').innerHTML=data.hall.doors.map(d=>`<article class="door-card" data-door-card="${safe(d.id)}"><span class="door-glyph">◇</span><div class="door-card-copy"><strong>${safe(d.id==='forest'&&d.status==='available'?'森':d.id==='sea'&&d.status==='available'?'海':d.id==='unknown'?(d.status==='available'?'工房':'正面の扉'):d.name)}</strong>${['forest','cave','sea','moon'].includes(d.id)||(d.id==='unknown'&&d.status==='available')||(d.status!=='available'&&d.id!=='unknown')?'':`<div class="muted">${d.status==='available'?'入口の採取ができます':'まだ扉は開かない'}</div>`}</div>${d.status==='available'?`<button class="secondary small" data-door="${safe(d.id)}">${d.id==='unknown'?'工房へ':d.id==='moon'?'月の扉へ':'探索する'}</button>`:`<span class="tag">${['forest','sea','moon'].includes(d.id)?'未解放':'準備中'}</span>`}</article>`).join('');
+  $('#doors').innerHTML=data.hall.doors.map(d=>`<article class="door-card" data-door-card="${safe(d.id)}"><span class="door-glyph">◇</span><div class="door-card-copy"><strong>${safe(d.id==='forest'&&d.status==='available'?'森':d.id==='sea'&&d.status==='available'?'海':d.id==='unknown'?(d.status==='available'?'工房':'正面の扉'):d.name)}</strong>${['forest','cave','sea','moon','greenhouse'].includes(d.id)||(d.id==='unknown'&&d.status==='available')||(d.status!=='available'&&d.id!=='unknown')?'':`<div class="muted">${d.status==='available'?'入口の採取ができます':'まだ扉は開かない'}</div>`}</div>${d.status==='available'?`<button class="secondary small" data-door="${safe(d.id)}">${d.id==='unknown'?'工房へ':d.id==='moon'?'月の扉へ':'探索する'}</button>`:`<span class="tag">${['forest','sea','moon'].includes(d.id)?'未解放':'準備中'}</span>`}</article>`).join('');
   $('#doors').querySelector('[data-door="cave"]')?.addEventListener('click',handler(()=>enterHallCave()));
   $('#doors').querySelector('[data-door="forest"]')?.addEventListener('click',handler(openForest));
   $('#doors').querySelector('[data-door="sea"]')?.addEventListener('click',handler(async()=>{if(!await checkSeaEvents())await window.KAGARISO_SEA.open();}));
@@ -557,6 +558,14 @@ async function openHall(){const data=await api('/hall');resident=data.resident;$
   show('hall');
   positionHallCaveDoor();
   if(data.requiredStory){toast('先に洞窟での大切な物語を体験しよう。');await openCave(1);return;}
+  // 温室の収穫可能通知：住人本人の栽培1回につき1度。
+  if(data.greenhouse?.readyCycleId&&prefs.greenhouse){
+    const ghNoticeKey=`kagariso-gh-ready:${id}`;
+    if(localStorage.getItem(ghNoticeKey)!==data.greenhouse.readyCycleId){
+      pushGameNotice('温室の花が咲きました！ 収穫できるようになりました。',openGreenhouse,'温室へ','あとで行く');
+      localStorage.setItem(ghNoticeKey,data.greenhouse.readyCycleId);
+    }
+  }
   if(data.forest?.unlocked&&data.forest.eligible&&!data.forest.seen){showForestEvent(false);return;}
   if(await checkSeaEvents())return;
   checkGameNotifications().catch(console.warn);
@@ -2149,7 +2158,7 @@ bind('#admin-gift-show-history',async()=>{
 
 // v0.15.1: 通知は本人のブラウザに保存。受信データや既読状態は変更しない。
 const notificationKey=()=>`kagariso-notify-v1:${resident?.id||''}`;
-function notificationPrefs(){try{return {npc:true,resident:true,cave:true,...JSON.parse(localStorage.getItem(notificationKey())||'{}')};}catch{return {npc:true,resident:true,cave:true};}}
+function notificationPrefs(){try{return {npc:true,resident:true,cave:true,greenhouse:true,...JSON.parse(localStorage.getItem(notificationKey())||'{}')};}catch{return {npc:true,resident:true,cave:true,greenhouse:true};}}
 function pushGameNotice(message,action,goLabel="確認する",closeLabel="閉じる"){
  const stack=$('#game-notifications');const card=document.createElement('div');card.className='game-notification';
  const title=document.createElement('div');title.textContent=message;title.setAttribute('role','status');
@@ -2195,6 +2204,14 @@ async function checkGameNotifications(){
       localStorage.setItem(flowerKey,data.lentFlower.completedAt);
     }
   }
+  // 温室の収穫可能通知：住人本人の栽培1回につき1度。
+  if(data.greenhouse?.readyCycleId&&prefs.greenhouse){
+    const ghNoticeKey=`kagariso-gh-ready:${id}`;
+    if(localStorage.getItem(ghNoticeKey)!==data.greenhouse.readyCycleId){
+      pushGameNotice('温室の花が咲きました！ 収穫できるようになりました。',openGreenhouse,'温室へ','あとで行く');
+      localStorage.setItem(ghNoticeKey,data.greenhouse.readyCycleId);
+    }
+  }
   if(data.forest?.unlocked&&data.forest.eligible&&!data.forest.seen){
     if(activePage==='hall'){updateForestHall(data.forest);showForestEvent(false);}
     else if(!['forest-event','forest'].includes(activePage)&&prefs.cave){
@@ -2217,10 +2234,10 @@ async function checkGameNotifications(){
   localStorage.setItem(key,JSON.stringify(['npc','resident','pyoro'].flatMap(kind=>(data[kind]||[]).map(g=>kind+':'+g.id))));
  }finally{noticeBusy=false;}
 }
-const openNoticeSettings=()=>{const prefs=notificationPrefs();for(const kind of ['npc','resident','cave'])$('#notify-'+kind).checked=prefs[kind];$('#notification-settings').showModal();};
+const openNoticeSettings=()=>{const prefs=notificationPrefs();for(const kind of ['npc','resident','cave','greenhouse'])$('#notify-'+kind).checked=prefs[kind];$('#notification-settings').showModal();};
 bind('#open-notification-settings',openNoticeSettings);
 bind('#close-notification-settings',()=>$('#notification-settings').close());
-for(const kind of ['npc','resident','cave'])$('#notify-'+kind).addEventListener('change',()=>{const prefs=notificationPrefs();prefs[kind]=$('#notify-'+kind).checked;localStorage.setItem(notificationKey(),JSON.stringify(prefs));});
+for(const kind of ['npc','resident','cave','greenhouse'])$('#notify-'+kind).addEventListener('change',()=>{const prefs=notificationPrefs();prefs[kind]=$('#notify-'+kind).checked;localStorage.setItem(notificationKey(),JSON.stringify(prefs));});
 setInterval(()=>{if(!document.hidden)refreshCaveStatus().catch(console.warn);},15000);
 setInterval(()=>checkGameNotifications().catch(console.warn),30000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){refreshCaveStatus().catch(console.warn);checkGameNotifications().catch(console.warn);}});
