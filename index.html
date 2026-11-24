@@ -94,7 +94,7 @@
 </style>
   <script src="data/sea-items.js?v=0.17.0.3" defer></script>
   <script src="data/greenhouse-data.js?v=0.19.0" defer></script>
-  <script src="script.js?v=0.19.0" defer></script>
+  <script src="script.js?v=0.19.0.1" defer></script>
   <script src="data/cooking.js?v=0.18.7.5" defer></script>
   <script src="data/sea-game.js?v=0.17.1.5" defer></script>
 <style>
@@ -250,6 +250,11 @@
 <style>
 #gh-stage{position:relative;overflow:hidden;border-radius:12px;min-height:200px;background:#303b36;isolation:isolate} .gh-background{width:100%;display:block;aspect-ratio:16/9;object-fit:cover} #gh-pots{position:absolute;bottom:5%;left:0;right:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:end;gap:0} .gh-pot{min-width:0;text-align:center;color:white;text-shadow:0 1px 3px #000;font-size:clamp(9px,2.3vw,14px)} .gh-pot img,.gh-pot svg{display:block;width:100%;aspect-ratio:1;object-fit:contain;filter:drop-shadow(0 3px 3px #0005)} .gh-pot span{display:block;background:#222437cf;border-radius:4px;margin:0 2px;padding:3px 0;min-height:2em} #gh-watering{position:absolute;width:31%;top:14%;z-index:5;pointer-events:none;transform:scaleX(var(--gh-flip,1));transition:left .18s ease} #gh-watering.gh-pour{animation:gh-pour .7s ease-in-out} @keyframes gh-pour{0%{transform:scaleX(var(--gh-flip,1)) rotate(-8deg);opacity:0}25%,75%{transform:scaleX(var(--gh-flip,1)) rotate(-15deg);opacity:1}100%{transform:scaleX(var(--gh-flip,1)) rotate(-4deg);opacity:.8}} .gh-wet img{filter:brightness(.85)} #gh-can{display:flex;align-items:center;gap:10px} #gh-can img{width:82px;object-fit:contain} #gh-prep label{display:block;margin:10px 0} #gh-prep input[type=checkbox]{width:auto} #gh-bar{width:100%;accent-color:#b99bdf} .gh-result-row{display:flex;gap:10px;align-items:center;margin:8px 0} .gh-result-row img{width:64px;height:64px;object-fit:contain;border-radius:6px} .gh-result-row span{flex:1} .gh-tabs,.gh-qty{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:12px 0} .gh-qty input{width:72px;max-width:25%;text-align:center} .gh-selected{border-color:#e6bb82!important;color:#e6bb82!important} .gh-recipe select{width:100%;margin-top:5px} .gh-recipe{margin:10px 0} @media(prefers-reduced-motion:reduce){#gh-watering.gh-pour{animation:none}}
 </style>
+  <style>
+  /* v0.19.0.1: 商人の報酬画像をカード内に収める。 */
+  #lent-seed-reward {min-width:0;}
+  #lent-seed-reward .lent-seed-image {display:block;width:120px;max-width:100%;height:auto;max-height:120px;object-fit:contain;margin:10px auto;border-radius:8px;box-sizing:border-box;}
+  </style>
 </head>
 <body>
   <div class="ambient ambient-a" aria-hidden="true"></div><div class="ambient ambient-b" aria-hidden="true"></div>
@@ -998,7 +1003,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.19.0</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.19.0.1</span></footer>
   </div>
 </body>
 </html>

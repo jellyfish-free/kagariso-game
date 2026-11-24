@@ -498,7 +498,7 @@ $('#lent-flower-donate').addEventListener('click',handler(async()=>{
  let result=null;
  try{result=await api('/lent/flowers/donate','POST',{quantity:qty});
   $('#lent-message').textContent=result.message;$('#lent-message').classList.remove('hidden');
-  if(result.quest.completed)toast('共同納品達成！ 商人の物々交換が解放されました。');
+  if(result.quest.completed){toast('共同納品達成！ 商人の物々交換が解放されました。');checkGameNotifications().catch(console.warn);}
  }finally{lentBusy=false;if(result)renderLent(result.profile);else $('#lent-flower-donate').disabled=false;}
 }));
 $('#lent-enter-greenhouse').addEventListener('click',handler(openGreenhouse));
@@ -2182,6 +2182,14 @@ async function checkGameNotifications(){
           }
         }
       }
+    }
+  }
+  // 共同納品達成を住人ごと・端末ごとに一度通知する。
+  if(data.lentFlower?.completedAt && prefs.cave){
+    const flowerKey=`kagariso-lent-flower-completed:${id}`;
+    if(localStorage.getItem(flowerKey)!==data.lentFlower.completedAt){
+      pushGameNotice('逆さに咲く花が1,000個集まりました！ 商人があなたを待っています。',openMoonDoor,'商人に会いに行く','あとで行く');
+      localStorage.setItem(flowerKey,data.lentFlower.completedAt);
     }
   }
   if(data.forest?.unlocked&&data.forest.eligible&&!data.forest.seen){
