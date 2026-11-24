@@ -346,11 +346,14 @@ function renderLent(p){
  const quest=p.flowerQuest;
  const reward=$('#lent-seed-reward');
  reward.classList.toggle('hidden',!quest?.completed);
+ const received=!!(quest?.seedClaimed&&quest?.canClaimed);
+ $('#lent-shop').classList.toggle('hidden',!received);
+ $('#lent-seed-image').classList.toggle('hidden',!received);
  if(quest?.completed){
   $('#lent-seed-claim').classList.toggle('hidden',!!quest.canClaimed);
   $('#lent-seed-claim').textContent=quest.seedClaimed?'じょうろを受け取る':'商人の話を聞く';
   $('#lent-seed-claim').onclick=ghShowReward;
-  $('#lent-seed-message').textContent=quest.canClaimed?'「ごひいきに♡」':'商人があなたを待っている。';
+  $('#lent-seed-message').textContent=received?'商人から種を受け取った。':'商人があなたを待っている。';
   $('#lent-seed-claim').disabled=lentBusy||p.activity!=='open';
   $('#lent-seed-status').textContent=quest.canClaimed?'報酬を受け取った。紫色の扉が開かれている。':p.activity==='open'?'商人から種を受け取ろう。':'商人が店にいるとき、種を受け取れる。';
   $('#lent-enter-greenhouse').classList.toggle('hidden',!quest.canClaimed);
@@ -359,7 +362,7 @@ function renderLent(p){
  questBox.classList.toggle('hidden',!!quest?.completed);
  intro.textContent=quest?.completed?'「……へえ、こんなに集まったのか。これなら商売ができそうだ。」':'「ここで商売しようと思うんだけど……そもそも交換できるものなんてあんの？」';
  if(quest){
-  qStatus.textContent=quest.completed?'共同納品達成！ 物々交換が解放されました。':`逆さに咲く花：${quest.donated} / ${quest.target}個（あと${quest.remaining}個）`;
+  qStatus.textContent=quest.completed?'共同納品達成！ 商人から報酬を受け取ろう。':`逆さに咲く花：${quest.donated} / ${quest.target}個（あと${quest.remaining}個）`;
   $('#lent-flower-owned').textContent=`あなたの所持数：${quest.owned}個　あなたの納品：${quest.personalDonated}個`;
   $('#lent-flower-qty').max=String(Math.min(quest.owned,quest.remaining,1000));
   const qtyInput=$('#lent-flower-qty');qtyInput.value=String(Math.max(1,Math.min(Number(qtyInput.max),Number(qtyInput.value)||1)));
@@ -369,7 +372,7 @@ function renderLent(p){
  }
  ghRenderShop(p);
  const box=$('#lent-offers');box.replaceChildren();
- if(!quest?.completed){const msg=document.createElement('p');msg.className='muted';msg.textContent='共同納品を達成すると物々交換が始まります。';box.append(msg);return;}
+ if(!received)return;
  if(!p.canTrade){const msg=document.createElement('p');msg.className='muted';msg.textContent=p.activity==='away'?'商人は留守にしています。': '商人は眠っています。取引はできません。';box.append(msg);return;}
  if(!p.offers?.length){const msg=document.createElement('p');msg.className='muted';return;}
  for(const offer of p.offers){
@@ -439,20 +442,20 @@ async function ghDo(action){
 $('#gh-plant').onclick=()=>ghDo('plant');$('#gh-water').onclick=()=>ghDo('water');$('#gh-harvest').onclick=()=>ghDo('harvest');
 $('#gh-catalog').onclick=handler(openMaterialCatalog);
 function ghShowReward(){
- const p=lentCurrentProfile;if(!p?.flowerQuest?.completed||p.activity!=='open'||lentBusy)return;
+ const p=lentCurrentProfile;if(!p?.flowerQuest?.completed||p.activity!=='open'||lentBusy||p.flowerQuest.canClaimed)return;
  let i=0;const box=$('#lent-seed-message'),button=$('#lent-seed-claim');
  const dialogue=GH.event.dialogue;box.textContent='「'+dialogue[0]+'」';button.textContent='次へ';
  button.onclick=handler(async()=>{
   if(lentBusy)return;
-  if(++i<dialogue.length){box.textContent='「'+dialogue[i]+'」';button.textContent=i===dialogue.length-1?'報酬を受け取る':'次へ';return;}
+  if(i<dialogue.length-1){i++;box.textContent='「'+dialogue[i]+'」';button.textContent=i===dialogue.length-1?'報酬を受け取る':'次へ';return;}
   lentBusy=true;button.disabled=true;
-  try{const result=await api('/lent/flowers/reward','POST',{});lentBusy=false;renderLent(result.profile);$('#lent-seed-message').textContent='種とじょうろを受け取った。紫色の扉の先に温室がある。';$('#lent-message').textContent='「ごひいきに♡」';toast('じょうろを受け取った！');}
+  try{const result=await api('/lent/flowers/reward','POST',{});lentBusy=false;renderLent(result.profile);$('#lent-seed-message').textContent='商人から種を受け取った。';$('#lent-message').textContent='「ごひいきに♡」';}
   finally{lentBusy=false;button.disabled=false;}
  });
 }
 function ghRenderShop(p){
  const host=$('#gh-shop');host.replaceChildren();const ticket=++ghShopRender;
- if(!p?.canTrade)return;
+ if(!p?.flowerQuest?.seedClaimed||!p?.flowerQuest?.canClaimed||!p?.canTrade)return;
  api('/greenhouse/shop').then(data=>{
   if(ticket!==ghShopRender||activePage!=='moon'||!data.canTrade)return;
   const cats=['園芸用品','染料','生地','裁縫素材'];
@@ -498,7 +501,7 @@ $('#lent-flower-donate').addEventListener('click',handler(async()=>{
  let result=null;
  try{result=await api('/lent/flowers/donate','POST',{quantity:qty});
   $('#lent-message').textContent=result.message;$('#lent-message').classList.remove('hidden');
-  if(result.quest.completed){toast('共同納品達成！ 商人の物々交換が解放されました。');checkGameNotifications().catch(console.warn);}
+  if(result.quest.completed){toast('共同納品達成！ 商人があなたを待っています。');checkGameNotifications().catch(console.warn);}
  }finally{lentBusy=false;if(result)renderLent(result.profile);else $('#lent-flower-donate').disabled=false;}
 }));
 $('#lent-enter-greenhouse').addEventListener('click',handler(openGreenhouse));
