@@ -1878,7 +1878,7 @@ const openAdminEditor=async()=>{
  $('#admin-requests-panel').classList.add('hidden');
  $('#admin-conversations-panel').classList.remove('hidden');
   const me=await adminApi('/me');
-  $('#admin-logged-name').textContent=me.admin.displayName;
+  $('#admin-logged-name').textContent=me.admin.displayName;syncAdminNpc();
   const data=await adminApi('/topics?npc=paper');adminTopicsCache=data.topics||[];
   adminSelected=structuredClone(adminTopicsCache.find(t=>t.id===adminSelected?.id)||adminTopicsCache[0]||blankAdminTopic());
   adminEditForm();adminList();show('admin-editor');
@@ -2009,7 +2009,7 @@ const adminGiftListRender=()=>{
  const q=$('#admin-gift-search').value.trim().toLowerCase(),list=$('#admin-gift-list');list.replaceChildren();
  const rows=adminGiftCache.filter(g=>!q||`${g.itemId} ${g.name}`.toLowerCase().includes(q));
  $('#admin-gift-count').textContent=`${rows.length} / ${adminGiftCache.length}件`;
- rows.forEach(g=>{const b=document.createElement('button');b.type='button';b.className='admin-topic-option';b.textContent=`${g.enabled?'':'［無効］'}${g.name} (${g.itemId})`;if(g.itemId===adminGiftSelected?.itemId)b.classList.add('admin-selected');b.onclick=()=>{adminGiftSelected=structuredClone(g);adminGiftForm();adminGiftListRender();};list.append(b);});
+ rows.forEach(g=>{const b=document.createElement('button');b.type='button';b.className='secondary small admin-topic-button';b.textContent=`${g.enabled?'':'［無効］'}${g.name} (${g.itemId})`;if(g.itemId===adminGiftSelected?.itemId)b.classList.add('admin-selected');b.onclick=()=>{adminGiftSelected=structuredClone(g);adminGiftForm();adminGiftListRender();};list.append(b);});
 };
 const adminGiftPreview=()=>{
  const path=$('#admin-gift-image').value.trim(),img=$('#admin-gift-preview-img');
@@ -2359,7 +2359,7 @@ let pyoroAdminSection='topics',pyoroAdminRows=[],pyoroAdminSelected=null;
 const pyoroAdminSections=new Set(['topics','requests','gifts','foods','profile']);
 const pyoroAdminInput=(key,v,multiline=false,opts={})=>{
  const id='pyoro-field-'+key, label=opts.label||key;
- if(opts.checkbox)return `<label><input id="${id}" type="checkbox" ${v?'checked':''}> ${safe(label)}</label>`;
+ if(opts.checkbox)return `<label class="admin-enabled"><input id="${id}" type="checkbox" ${v?'checked':''}> ${safe(label)}</label>`;
  if(opts.select)return `<label for="${id}">${safe(label)}</label><select id="${id}">${opts.select.map(([val,name])=>`<option value="${safe(val)}" ${val===v?'selected':''}>${safe(name)}</option>`).join('')}</select>`;
  const settings=opts.number?`type="number" min="${opts.min??1}" max="${opts.max??99}"`:'type="text"';
  const html=multiline?`<textarea id="${id}" rows="${opts.rows||3}" maxlength="${opts.maxlength||3000}" required>${safe(v??'')}</textarea>`:`<input id="${id}" ${settings} value="${safe(v??'')}" maxlength="${opts.maxlength||500}" required>`;
@@ -2371,24 +2371,27 @@ const pyoroAdminFields=()=>{
  const r=pyoroAdminSelected,el=$('#pyoro-admin-fields');
  if(!r){el.textContent='設定を選んでください。';$('#pyoro-admin-save').disabled=true;return;}
  $('#pyoro-admin-save').disabled=false;
- let html=`<p class="muted tiny">設定ID：${safe(r.id)}</p>`;
+ let html=`<p class="muted tiny">ID: ${safe(r.id)}</p>`;
+ const grid=(...fields)=>'<div class="admin-fields-grid">'+fields.map(f=>'<div>'+f+'</div>').join('')+'</div>';
+ const readonly=(label,value)=>`<label>${safe(label)}</label><input type="text" value="${safe(value)}" disabled>`;
  if(pyoroAdminSection==='topics'){
-  html+=pyoroAdminInput('label',r.label,false,{label:'住人が選ぶ会話'})+'<h3>返答一覧</h3><div id="pyoro-reply-list"></div><button type="button" id="pyoro-add-reply" class="secondary small">＋ 返答を追加</button>'+pyoroAdminInput('condition',r.condition||'any',false,{label:'出現条件',select:adminConditionOptions})+pyoroAdminInput('minAffinity',r.minAffinity||1,false,{label:'必要親密度',number:true,min:1,max:10})+pyoroAdminInput('weight',r.weight||1,false,{label:'抽選重み',number:true,min:1,max:10});
-  html+=pyoroAdminInput('enabled',r.enabled,false,{label:'ランダム3択に出す',checkbox:true});
+  html+=pyoroAdminInput('label',r.label,false,{label:'住人の選択肢',maxlength:90})+grid(readonly('カテゴリ','日常（現在は固定）'),pyoroAdminInput('condition',r.condition||'any',false,{label:'話題の出現条件',select:adminConditionOptions}),pyoroAdminInput('minAffinity',r.minAffinity||1,false,{label:'必要な親密度（♡）',number:true,min:1,max:10}),pyoroAdminInput('weight',r.weight||1,false,{label:'抽選の重み（1〜10）',number:true,min:1,max:10}));
+  html+=pyoroAdminInput('enabled',r.enabled,false,{label:'抽選対象として有効にする',checkbox:true});
+  html+='<div class="section-top"><h3>赤色の獣の返答と条件</h3><p class="muted tiny">「条件なし」の返答を最低1つ用意してね。</p></div><div id="pyoro-reply-list"></div><button type="button" id="pyoro-add-reply" class="secondary small">＋ 返答を追加</button><div id="pyoro-topic-preview" class="admin-preview"></div>';
  }
  if(pyoroAdminSection==='requests'){
-  html+=pyoroAdminInput('title',r.title,false,{label:'お願いの名前'})+pyoroAdminInput('description',r.description,true,{label:'説明'});
-  html+=pyoroAdminInput('acceptText',r.acceptText||'「お、おう！ じゃあ、おまえにたのむぞ！」',true,{label:'受注時の台詞'})+pyoroAdminInput('completeText',r.completeText||'「おぉ！ ありがとな！ ……おれいは、ちゃんとつくってからわたすからな！」',true,{label:'達成時の台詞'});
-  html+=pyoroAdminInput('giftKind',r.giftKind,false,{label:'返礼品の種類',select:[['food','食べ物'],['craft','工作'],['decoration','装飾']]});
+  html+=pyoroAdminInput('title',r.title,false,{label:'お願いの名前'})+pyoroAdminInput('description',r.description,true,{label:'お願いの説明',maxlength:400});
+  html+=pyoroAdminInput('acceptText',r.acceptText||'「お、おう！ じゃあ、おまえにたのむぞ！」',true,{label:'引き受けたときの台詞',rows:2,maxlength:260})+pyoroAdminInput('completeText',r.completeText||'「おぉ！ ありがとな！ ……おれいは、ちゃんとつくってからわたすからな！」',true,{label:'達成したときの台詞',rows:2,maxlength:260});
+  html+=grid(readonly('難易度','未対応'),readonly('必要な洞窟エリア','未対応'),readonly('出現形式','日替わり抽選（固定）'),pyoroAdminInput('giftKind',r.giftKind,false,{label:'お礼の種類',select:[['food','食べ物'],['craft','工作'],['decoration','装飾']]}));
   html+=pyoroAdminInput('enabled',r.enabled,false,{label:'お願いの候補として有効',checkbox:true});
-  html+='<h3>必要素材（すでに受注中のお願いは変更できません）</h3>';
+  html+='<h3>必要素材（最大6種類）</h3><p class="muted tiny">受注中のお願いは、必要素材を変更できません。</p>';
   html+='<div id="pyoro-admin-materials"></div><button type="button" class="secondary small" id="pyoro-admin-add-material">＋ 素材を追加</button>';
  }
  if(pyoroAdminSection==='gifts'){
-  html+=`<p class="muted tiny">種類：${safe(r.giftKind)}／品質：${safe(r.quality)}（この2項目は変更不可）</p>`;
-  html+=pyoroAdminInput('name',r.name,false,{label:'返礼品名'})+pyoroAdminInput('description',r.description,true,{label:'説明'});
-  html+=pyoroAdminInput('image',r.image,false,{label:'画像パス（images/gifts/pyoro/*.webp）'});
-  html+=`<img src="${safe(r.image)}" alt="返礼品プレビュー" style="display:block;width:150px;max-width:100%;border-radius:12px;margin-top:12px">`;
+  html=readonly('返礼品ID（変更不可）',r.id)+pyoroAdminInput('name',r.name,false,{label:'返礼品の名前',maxlength:90})+pyoroAdminInput('description',r.description,true,{label:'説明文',maxlength:500});
+  html+=pyoroAdminInput('image',r.image,false,{label:'画像のパス（GitHubに先に配置）',maxlength:160});
+  html+='<p class="muted tiny">画像は images/gifts/pyoro/ にWebPで配置してね。</p><div class="admin-gift-preview"><img id="pyoro-gift-preview-img" alt="画像プレビュー"><strong id="pyoro-gift-preview-title"></strong></div>';
+  html+=grid(readonly('お礼の系統',({food:'食べ物',craft:'工作',decoration:'装飾'})[r.giftKind]||r.giftKind),readonly('品質',r.quality==='good'?'成功作':'失敗作'),readonly('抽選の重み','未対応（成功率80％・失敗率20％固定）'),readonly('抽選対象として有効','固定'));
  }
  if(pyoroAdminSection==='foods'){
   html+=`<p class="muted tiny">区分：${r.kind==='meal'?'ごはん':'おやつ'}（食材ID・区分は変更不可）</p>`;
@@ -2399,8 +2402,8 @@ const pyoroAdminFields=()=>{
  if(pyoroAdminSection==='profile'){
   html+=pyoroAdminInput('name',r.name,false,{label:'表示名'})+pyoroAdminInput('description',r.description,true,{label:'プロフィールの説明',maxlength:500});
   html+=pyoroAdminInput('personality',r.personality,true,{label:'プロフィールの性格',maxlength:600});
-  html+=pyoroAdminInput('prompt',r.prompt,true,{label:'赤色の獣のAI人格・口調（黄色い獣とは別）',rows:8,maxlength:3000});
-  html+='<h3>生活リズム（日本時間）</h3>';
+  html+=pyoroAdminInput('prompt',r.prompt,true,{label:'基本人格・口調（現在は一括編集）',rows:8,maxlength:3000});
+  html+='<p class="muted tiny">一人称・二人称・好み・会話のお手本は現在この文章で管理します。個別編集と人格テストは未対応です。</p><h3>生活リズム（日本時間）</h3>';
   html+=pyoroAdminInput('hungerMinutes',Math.round(Number(r.hungerIntervalMs||180000)/60000),false,{label:'空腹度が+1になるまで（分）',number:true,min:1,max:60});
   html+=pyoroAdminInput('sleepStart',r.sleepStart??23,false,{label:'睡眠開始時刻（時）',number:true,min:0,max:23});
   html+=pyoroAdminInput('sleepEnd',r.sleepEnd??7,false,{label:'起床時刻（時）',number:true,min:0,max:23});
@@ -2408,10 +2411,11 @@ const pyoroAdminFields=()=>{
   html+=`<p class="muted tiny">現在の生活状態：${safe(r.life?`空腹 ${r.life.hunger} / 体力 ${r.life.energy} / 機嫌 ${r.life.mood} / ${r.life.activity}`:'発見前のため未開始')}。この画面から現在値を初期化しません。</p>`;
  }
  el.innerHTML=html;
+ if(pyoroAdminSection==='gifts'){const preview=()=>{const img=$('#pyoro-gift-preview-img'),path=pyoroAdminValue('image').trim();img.classList.toggle('hidden',!path);if(path){img.onerror=()=>img.classList.add('hidden');img.src=encodeURI(path);}$('#pyoro-gift-preview-title').textContent=pyoroAdminValue('name')||'返礼品名';};for(const k of ['image','name'])$('#pyoro-field-'+k).addEventListener('input',preview);preview();}
  if(pyoroAdminSection==='topics'){
   r.replies=r.replies||[{when:'any',text:r.response||''}];
-  const list=$('#pyoro-reply-list'),add=$('#pyoro-add-reply');
-  const draw=()=>{list.replaceChildren();r.replies.forEach((reply,i)=>{const row=document.createElement('div');row.className='admin-request-item-row';const select=document.createElement('select');select.innerHTML=makeSelectOptions(adminConditionOptions,reply.when);select.value=reply.when;select.onchange=()=>reply.when=select.value;const text=document.createElement('textarea');text.value=reply.text;text.rows=3;text.maxLength=260;text.required=true;text.oninput=()=>reply.text=text.value;const del=document.createElement('button');del.type='button';del.className='secondary small';del.textContent='削除';del.disabled=r.replies.length<=1;del.onclick=()=>{r.replies.splice(i,1);draw();};row.append(select,text,del);list.append(row);});add.disabled=r.replies.length>=8;};
+  const list=$('#pyoro-reply-list'),add=$('#pyoro-add-reply');const preview=()=>{$('#pyoro-topic-preview').textContent=`住人：「${pyoroAdminValue('label')||'（質問）'}」\n赤色の獣：${r.replies[0]?.text||'（返答）'}`;};$('#pyoro-field-label').addEventListener('input',preview);
+  const draw=()=>{list.replaceChildren();r.replies.forEach((reply,i)=>{const row=document.createElement('div');row.className='admin-reply-row';const select=document.createElement('select');select.innerHTML=makeSelectOptions(adminConditionOptions,reply.when);select.value=reply.when;select.onchange=()=>{reply.when=select.value;preview();};const text=document.createElement('textarea');text.value=reply.text;text.rows=2;text.maxLength=260;text.required=true;text.oninput=()=>{reply.text=text.value;preview();};const del=document.createElement('button');del.type='button';del.className='secondary small';del.textContent='この返答を削除';del.disabled=r.replies.length<=1;del.onclick=()=>{r.replies.splice(i,1);draw();};row.append(select,text,del);list.append(row);});add.disabled=r.replies.length>=8;preview();};
   draw();add.onclick=()=>{if(r.replies.length<8){r.replies.push({when:'any',text:''});draw();}};
  }
  if(pyoroAdminSection==='requests'){
@@ -2424,34 +2428,41 @@ const pyoroAdminList=()=>{
  const list=$('#pyoro-admin-list'),q=$('#pyoro-admin-search').value.trim().toLowerCase();list.replaceChildren();
  const visible=pyoroAdminRows.filter(r=>`${r.id} ${r.name||r.label||r.title||''}`.toLowerCase().includes(q));
  $('#pyoro-admin-count').textContent=`${visible.length} / ${pyoroAdminRows.length}件`;
- visible.forEach(r=>{const b=document.createElement('button');b.className='admin-topic-option';b.type='button';b.textContent=`${r.name||r.label||r.title||r.id} (${r.id})`;
+ visible.forEach(r=>{const b=document.createElement('button');b.className='secondary small admin-topic-button';b.type='button';b.textContent=`${r.enabled===0||r.enabled===false?'［無効］':''}${r.name||r.label||r.title||r.id}${pyoroAdminSection==='gifts'?' ('+r.id+')':''}`;
  if(pyoroAdminSelected?.id===r.id)b.classList.add('admin-selected');b.onclick=()=>{pyoroAdminSelected=structuredClone(r);pyoroAdminFields();pyoroAdminList();};list.append(b);});
 };
 const pyoroAdminLoad=async()=>{
- const data=await adminApi('/pyoro/config?section='+encodeURIComponent(pyoroAdminSection));
- if($('#admin-npc-target').value!=='pyoro')return;
+ const section=pyoroAdminSection;const data=await adminApi('/pyoro/config?section='+encodeURIComponent(section));
+ if($('#admin-npc-target').value!=='pyoro'||section!==pyoroAdminSection||$('#admin-pyoro-panel').classList.contains('hidden'))return;
  pyoroAdminRows=data.items||[];
  pyoroAdminSelected=structuredClone(pyoroAdminRows.find(r=>r.id===pyoroAdminSelected?.id)||pyoroAdminRows[0]||null);
- $('#pyoro-admin-new-topic').classList.toggle('hidden',!['topics','requests'].includes(pyoroAdminSection));$('#pyoro-admin-new-topic').textContent=pyoroAdminSection==='requests'?'＋ お願いを追加':'＋ 話題を追加';
+ $('#pyoro-admin-title').textContent={topics:'会話内容の編集',requests:'お願いの編集',gifts:'返礼品の編集',foods:'食事・おやつの編集',profile:'AI人格エディター'}[pyoroAdminSection];
+ $('#pyoro-admin-search-label').textContent={topics:'話題を検索',requests:'お願いを検索',gifts:'返礼品を検索',foods:'食材を検索',profile:'設定を検索'}[pyoroAdminSection];
+ $('#pyoro-admin-search').placeholder={topics:'質問・IDで検索',requests:'依頼名で検索',gifts:'名前・返礼品IDで検索',foods:'食材IDで検索',profile:''}[pyoroAdminSection];
+ $('#pyoro-admin-save').textContent={topics:'変更を保存',requests:'お願いを保存',gifts:'返礼品を保存',foods:'設定を保存',profile:'人格設定を保存'}[pyoroAdminSection];
+ $('#pyoro-admin-save').classList.toggle('admin-request-save',['requests','gifts'].includes(pyoroAdminSection));
+ $('#pyoro-admin-sidebar').classList.toggle('hidden',pyoroAdminSection==='profile');$('#pyoro-admin-layout').classList.toggle('profile-layout',pyoroAdminSection==='profile');$('#pyoro-profile-refresh').classList.toggle('hidden',pyoroAdminSection!=='profile');
+ $('#pyoro-admin-new-topic').classList.toggle('hidden',!['topics','requests'].includes(pyoroAdminSection));$('#pyoro-admin-new-topic').textContent=pyoroAdminSection==='requests'?'＋ 新しいお願い':'＋ 新しい話題';
  $('#pyoro-admin-note').textContent={topics:'話題はランダム3択から表示されます。',requests:'受注中の必要素材・返礼品ジャンルは変更できません。',gifts:'6種類の成功作・失敗作を個別に編集できます。ID・品質・制作確率は固定です。',foods:'赤色の獣だけの食材・回復量・返答を編集します。',profile:'赤色の獣のプロフィールとAI人格を編集します。現在の生活状態は変更しません。'}[pyoroAdminSection];
- $('#pyoro-admin-tabs').querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.pyoroSection===pyoroAdminSection));
+ $('#pyoro-admin-history-title').textContent={topics:'管理者の編集履歴（直近100件）',requests:'お願い編集履歴（直近100件）',gifts:'返礼品編集履歴（直近100件）',foods:'編集履歴',profile:'編集履歴'}[pyoroAdminSection];
  pyoroAdminList();pyoroAdminFields();
 };
 const pyoroAdminShow=async(section='topics')=>{
  if(!pyoroAdminSections.has(section))return;
- pyoroAdminSection=section;pyoroAdminSelected=null;
+ pyoroAdminSection=section;pyoroAdminSelected=null;$('#pyoro-admin-search').value='';$('#pyoro-admin-audit').replaceChildren();$('#admin-sea-panel').classList.add('hidden');$('#admin-recovery-panel').classList.add('hidden');clearAdminRecovery();
  for(const id of ['admin-stats-panel','admin-quest-panel','admin-material-panel','admin-conversations-panel','admin-requests-panel','admin-gifts-panel','admin-ai-panel'])$('#'+id).classList.add('hidden');
  $('#admin-pyoro-panel').classList.remove('hidden');
  await pyoroAdminLoad();
 };
+const syncAdminNpc=()=>{const red=$('#admin-npc-target').value==='pyoro';$('#admin-current-npc').textContent=red?'赤色の獣':'黄色い獣';$('#admin-show-pyoro-foods').classList.toggle('hidden',!red);};
 $('#admin-npc-target').addEventListener('change',handler(async()=>{
- if($('#admin-npc-target').value==='pyoro')await pyoroAdminShow('topics');
- else{await openAdminEditor();}
+ syncAdminNpc();if($('#admin-npc-target').value==='pyoro'){const section=!$('#admin-requests-panel').classList.contains('hidden')?'requests':!$('#admin-gifts-panel').classList.contains('hidden')?'gifts':!$('#admin-ai-panel').classList.contains('hidden')?'profile':'topics';await pyoroAdminShow(section);}
+ else{const section=pyoroAdminSection;await openAdminEditor();const button={requests:'admin-show-request-editor',gifts:'admin-show-gift-editor',profile:'admin-show-ai-editor'}[section];if(button)$('#'+button).click();}
 }));
 // Prevent the original paper-only editors from running when editing pyoro.
 const pyoroAdminRoute={
  'admin-show-dialogue-editor':'topics','admin-show-request-editor':'requests',
- 'admin-show-gift-editor':'gifts','admin-show-ai-editor':'profile'
+ 'admin-show-gift-editor':'gifts','admin-show-ai-editor':'profile','admin-show-pyoro-foods':'foods'
 };
 for(const [id,section] of Object.entries(pyoroAdminRoute)){
  $('#'+id).addEventListener('click',e=>{
@@ -2463,7 +2474,7 @@ for(const [id,section] of Object.entries(pyoroAdminRoute)){
 for(const id of ['admin-show-material-editor','admin-show-quest-editor','admin-show-stats']){
  $('#'+id).addEventListener('click',()=>$('#admin-pyoro-panel').classList.add('hidden'));
 }
-$('#pyoro-admin-tabs').addEventListener('click',handler(async e=>{const section=e.target.closest('[data-pyoro-section]')?.dataset.pyoroSection;if(section)await pyoroAdminShow(section);}));
+bind('#pyoro-profile-refresh',pyoroAdminLoad);
 $('#pyoro-admin-search').addEventListener('input',pyoroAdminList);
 bind('#pyoro-admin-refresh',pyoroAdminLoad);
 bind('#pyoro-admin-new-topic',()=>{

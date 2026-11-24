@@ -93,18 +93,21 @@
   }
 </style>
   <script src="data/sea-items.js?v=0.17.0.3" defer></script>
-  <script src="script.js?v=0.18.7.11" defer></script>
+  <script src="script.js?v=0.18.7.12" defer></script>
   <script src="data/cooking.js?v=0.18.7.5" defer></script>
   <script src="data/sea-game.js?v=0.17.1.5" defer></script>
 <style>
  .admin-npc-selector{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:14px 0 18px;}
  .admin-npc-selector select{max-width:260px;min-width:160px;}
  .admin-npc-selector .tiny{flex-basis:100%;margin:0;}
- #admin-pyoro-panel{padding-top:8px;}
- #admin-pyoro-panel .pyoro-admin-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;}
- #admin-pyoro-panel .pyoro-admin-tabs button.active{border-color:#d9ad7c;color:#f0c894;}
- #pyoro-admin-fields label{display:block;margin-top:14px;}
- #pyoro-admin-fields input:not([type=checkbox]),#pyoro-admin-fields textarea,#pyoro-admin-fields select{width:100%;max-width:100%;}
+ #pyoro-admin-layout.profile-layout{display:block;}
+ #pyoro-admin-layout.profile-layout .admin-editor-main{max-width:none;}
+ #admin-editor-page .admin-enabled input[type=checkbox]{width:auto;flex:0 0 auto;}
+ #admin-editor-page .admin-reply-row{grid-template-columns:minmax(0,1fr) minmax(0,2fr) auto;}
+ @media(max-width:650px){#admin-editor-page .admin-reply-row{grid-template-columns:1fr;}}
+ #admin-editor-page .admin-fields-grid>div{min-width:0;}
+ #admin-editor-page .admin-topic-button{font:inherit; font-size:.85rem;}
+ #pyoro-admin-fields .admin-gift-preview img{object-fit:contain;}
  .pyoro-material-admin-row{display:flex;align-items:center;gap:10px;margin:9px 0;}
  .pyoro-material-admin-row input:first-child{flex:1;}.pyoro-material-admin-row input[type=number]{width:90px!important;}
  .pyoro-audit-row{font-size:.82rem;opacity:.85;margin:6px 0;}
@@ -864,11 +867,11 @@
   </section>
   <section id="admin-editor-page" class="page hidden">
     <button class="back" id="admin-editor-back" type="button">← ゲームへ戻る</button>
-    <div class="panel"><div class="admin-editor-head"><div><span class="eyebrow">DIALOGUE EDITOR</span><h1>NPC会話エディター</h1><p class="muted">管理者：<span id="admin-logged-name"></span> ／ 現在のNPC：黄色い獣</p></div><button class="secondary small" id="admin-logout">管理者ログアウト</button></div>
+    <div class="panel"><div class="admin-editor-head"><div><span class="eyebrow">DIALOGUE EDITOR</span><h1>NPC会話エディター</h1><p class="muted">管理者：<span id="admin-logged-name"></span> ／ 現在のNPC：<span id="admin-current-npc">黄色い獣</span></p></div><button class="secondary small" id="admin-logout">管理者ログアウト</button></div>
       <div class="admin-npc-selector"><label for="admin-npc-target">管理するNPC</label>
       <select id="admin-npc-target" aria-label="管理するNPC"><option value="paper">黄色い獣（paper）</option><option value="pyoro">赤色の獣（pyoro）</option></select>
       <p class="muted tiny">対象NPCのデータだけを編集します。住人データの初期化は行いません。</p></div>
-      <div class="admin-editor-switch"><button id="admin-show-dialogue-editor" class="secondary small" type="button">会話エディター</button><button id="admin-show-request-editor" class="secondary small" type="button">お願いエディター</button><button id="admin-show-gift-editor" class="secondary small" type="button">返礼品エディター</button><button id="admin-show-ai-editor" class="secondary small" type="button">AI人格エディター</button><button id="admin-show-quest-editor" class="secondary small" type="button">クエストエディター</button><button id="admin-show-material-editor" class="secondary small" type="button">素材エディター</button><button id="admin-show-sea-editor" class="secondary small" type="button">海の難易度・発見イベント</button><button id="admin-show-stats" class="secondary small" type="button">管理者ダッシュボード</button><button id="admin-show-recovery" class="secondary small" type="button">住人の復旧コード</button></div>
+      <div class="admin-editor-switch"><button id="admin-show-dialogue-editor" class="secondary small" type="button">会話エディター</button><button id="admin-show-request-editor" class="secondary small" type="button">お願いエディター</button><button id="admin-show-gift-editor" class="secondary small" type="button">返礼品エディター</button><button id="admin-show-ai-editor" class="secondary small" type="button">AI人格エディター</button><button id="admin-show-pyoro-foods" class="secondary small hidden" type="button">食事・おやつエディター</button><button id="admin-show-quest-editor" class="secondary small" type="button">クエストエディター</button><button id="admin-show-material-editor" class="secondary small" type="button">素材エディター</button><button id="admin-show-sea-editor" class="secondary small" type="button">海の難易度・発見イベント</button><button id="admin-show-stats" class="secondary small" type="button">管理者ダッシュボード</button><button id="admin-show-recovery" class="secondary small" type="button">住人の復旧コード</button></div>
       <section id="admin-recovery-panel" class="hidden" aria-label="住人の復旧コード再発行">
   <h2>住人の復旧コード再発行</h2>
   <p class="muted">選択した住人の復旧コードを新しくします。住人情報・持ち物・親密度・図鑑・思い出は変更されません。</p>
@@ -888,23 +891,12 @@
   </div>
 </section>
       <section id="admin-pyoro-panel" class="hidden" aria-label="赤色の獣の設定">
-  <h2>赤色の獣・個別管理</h2>
-  <div class="actions pyoro-admin-tabs" id="pyoro-admin-tabs">
-    <button class="secondary small" type="button" data-pyoro-section="topics">選択式会話</button>
-    <button class="secondary small" type="button" data-pyoro-section="requests">お願い</button>
-    <button class="secondary small" type="button" data-pyoro-section="gifts">返礼品</button>
-    <button class="secondary small" type="button" data-pyoro-section="foods">食事・おやつ</button>
-    <button class="secondary small" type="button" data-pyoro-section="profile">プロフィール・AI人格</button>
-  </div>
-  <p class="muted tiny">黄色い獣の編集内容には影響しません。受注中のお願いの必要素材は変更不可。返礼品の成功率80％・失敗率20％は固定です。</p>
-  <div class="admin-editor-layout"><aside class="admin-sidebar"><label for="pyoro-admin-search">設定を検索</label><input id="pyoro-admin-search" placeholder="名前・IDで検索">
-  <p id="pyoro-admin-count" class="muted tiny"></p><button id="pyoro-admin-refresh" class="secondary small" type="button">再読み込み</button>
-  <button id="pyoro-admin-new-topic" class="secondary small hidden" type="button">＋ 話題を追加</button>
+  <div class="admin-editor-layout" id="pyoro-admin-layout"><aside class="admin-sidebar" id="pyoro-admin-sidebar"><label id="pyoro-admin-search-label" for="pyoro-admin-search">話題を検索</label><input id="pyoro-admin-search" placeholder="名前・IDで検索">
+  <p id="pyoro-admin-count" class="muted tiny"></p><div class="actions"><button id="pyoro-admin-new-topic" class="secondary small hidden" type="button">＋ 新しい話題</button><button id="pyoro-admin-refresh" class="secondary small" type="button">再読み込み</button></div>
   <div id="pyoro-admin-list" class="admin-topic-list"></div></aside>
-  <div class="admin-editor-main"><p id="pyoro-admin-note" class="muted"></p>
-  <form id="pyoro-admin-form"><div id="pyoro-admin-fields"></div>
+  <div class="admin-editor-main"><form id="pyoro-admin-form"><h2 id="pyoro-admin-title">会話内容の編集</h2><p id="pyoro-admin-note" class="muted tiny"></p><button id="pyoro-profile-refresh" class="secondary small hidden" type="button">再読み込み</button><div id="pyoro-admin-fields"></div>
   <button type="submit" class="primary" id="pyoro-admin-save">このNPCの設定を保存</button></form>
-  <details><summary>最近の編集履歴</summary><div id="pyoro-admin-audit"></div><button id="pyoro-admin-audit-refresh" type="button" class="secondary small">履歴を更新</button></details>
+  <details><summary id="pyoro-admin-history-title">管理者の編集履歴（直近100件）</summary><div id="pyoro-admin-audit" class="details-content"></div><button id="pyoro-admin-audit-refresh" type="button" class="secondary small">履歴を更新</button></details>
   </div></div>
 </section>
 <section id="admin-sea-panel" class="hidden admin-quest" aria-label="海の釣り難易度と発見イベント管理">
@@ -997,7 +989,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.7.11</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.18.7.12</span></footer>
   </div>
 </body>
 </html>
