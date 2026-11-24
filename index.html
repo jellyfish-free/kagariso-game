@@ -94,7 +94,7 @@
 </style>
   <script src="data/sea-items.js?v=0.17.0.3" defer></script>
   <script src="data/greenhouse-data.js?v=0.19.0" defer></script>
-  <script src="script.js?v=0.20.1.1" defer></script>
+  <script src="script.js?v=0.20.2" defer></script>
   <script src="data/cooking.js?v=0.18.7.5" defer></script>
   <script src="data/sea-game.js?v=0.17.1.5" defer></script>
 <style>
@@ -348,7 +348,7 @@
               <img id="hall-paper-image" alt="黄色い獣" loading="eager"><span id="hall-paper-label">黄色い獣に会う</span>
             </button>
             <button type="button" id="hall-pyoro-actor" data-hall-slot="4" class="npc-actor hidden" aria-label="赤色の獣のプロフィールを見る"><img src="images/npc/pyoro/normal.webp" alt="赤色の獣"><span id="hall-pyoro-label">赤色の獣に会う</span></button>
-          </div><div class="section-top"><h2>ここにいる住人たち</h2><p class="muted">居場所は、住人全員で共有されています。</p></div><div id="npc-list" class="npc-list"></div><section id="hall-build" class="cave-construction hidden" style="margin-top:18px"></section><div class="section-top"><h2>不思議な扉</h2><p class="muted">扉の向こうには、新しい探索が待っている。</p></div><div id="doors" class="doors"></div></section>
+          </div><div class="section-top"><h2>ここにいる住人たち</h2><p class="muted">居場所は、住人全員で共有されています。</p></div><div id="npc-list" class="npc-list"></div><div id="private-room-links" class="actions hidden"></div><section id="hall-build" class="cave-construction hidden" style="margin-top:18px"></section><div class="section-top"><h2>不思議な扉</h2><p class="muted">扉の向こうには、新しい探索が待っている。</p></div><div id="doors" class="doors"></div></section>
       <section id="greenhouse-page" class="page hidden narrow">
         <button type="button" id="greenhouse-back-moon" class="back">← 商人の部屋へ戻る</button>
         <button type="button" id="greenhouse-back-hall" class="back">← ホールへ戻る</button>
@@ -863,7 +863,7 @@
           <button type="button" id="gift-history-bottom-back" class="secondary gift-history-bottom-back">← 通信箱に戻る</button>
         </div>
       </section>
-      <section id="room-page" class="page hidden narrow"><button class="back" data-back="npc">← プロフィールへ</button><div class="panel story"><div class="big-icon">⌂</div><span class="eyebrow">THE YELLOW BEAST'S ROOM</span><h1>黄色い獣の部屋</h1><div id="room-message" class="scene"></div><p class="muted">小さな部屋には、ふかふかの寝床や、黄色い獣のお気に入りのものが置かれている。</p><button class="primary" id="room-talk">黄色い獣と話す</button></div></section>
+      <section id="private-room-page" class="page hidden narrow"><button class="back" id="private-room-back">← ホールへ</button><div class="panel"><h1 id="private-room-title"></h1><div style="position:relative"><img id="private-room-bg" style="width:100%;display:block;border-radius:10px" alt="自室"><div id="private-room-actor" style="position:absolute;width:22%;transform:translateX(-50%)"><span id="private-room-sleep" style="position:absolute;right:0;top:0;color:white;text-shadow:0 1px 4px black">Zzz</span><img style="width:100%" alt="獣"></div></div><p id="private-room-status"></p><button id="private-room-talk" class="primary">会いに行く</button></div></section><section id="room-page" class="page hidden narrow"><button class="back" data-back="npc">← プロフィールへ</button><div class="panel story"><div class="big-icon">⌂</div><span class="eyebrow">THE YELLOW BEAST'S ROOM</span><h1>黄色い獣の部屋</h1><div id="room-message" class="scene"></div><p class="muted">小さな部屋には、ふかふかの寝床や、黄色い獣のお気に入りのものが置かれている。</p><button class="primary" id="room-talk">黄色い獣と話す</button></div></section>
 
       <section id="npc-feeding-page" class="page hidden narrow">
         <button class="back" id="npc-feeding-back">← お話に戻る</button>
@@ -1056,7 +1056,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.20.1.1</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.20.2</span></footer>
   </div>
 </body>
 </html>
