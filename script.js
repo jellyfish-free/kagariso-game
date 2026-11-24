@@ -14,11 +14,12 @@ let pendingRecovery='';
 let inventoryReturn='hall';
 let gathering=false;
 let npcReturn='hall', mandatoryStory=false;
-const pages=['auth','recovery','hall','npc','conversation','room','private-room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-diary','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor','forest-event','forest','forest-area','forest-memories','sea','sea-event','pyoro','pyoro-conversation','pyoro-history','pyoro-feeding','pyoro-requests','pyoro-words','pyoro-word-history','pyoro-diary','pyoro-gifts','pair-memories','workshop','cooking','cooking-recipe','moon','greenhouse'];
+const pages=['auth','recovery','hall','npc','conversation','room','private-room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-diary','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor','forest-event','forest','forest-area','forest-memories','sea','sea-event','pyoro','pyoro-conversation','pyoro-history','pyoro-feeding','pyoro-requests','pyoro-words','pyoro-word-history','pyoro-diary','pyoro-gifts','pair-memories','workshop','clothing','cooking','cooking-recipe','moon','greenhouse'];
 let activePage='';
 const show=(name)=>{
   const changed=activePage!==name; activePage=name;
   pages.forEach(p=>$(`#${p}-page`).classList.toggle('hidden',p!==name));
+  if(name==='workshop')refreshClothing();
   if(name!=='npc'&&profileTimer){clearInterval(profileTimer);profileTimer=null;}
   if(name!=='pyoro'&&pyoroProfileTimer){clearInterval(pyoroProfileTimer);pyoroProfileTimer=null;}
   if(changed){if(name!=='cave')caveOpening++;window.scrollTo({top:0,behavior:'instant'});}
@@ -31,6 +32,13 @@ const api=async(path,method='GET',payload)=>{
   if(!response.ok){if(response.status===401&&path!=='/recover'){token='';localStorage.removeItem(SESSION_KEY);show('auth');}throw new Error(data.error||'処理に失敗しました。');}
   return data;
 };
+let clothingCheck=0;
+async function refreshClothing(){
+ const check=++clothingCheck,button=$('#workshop-enter-clothing');button.disabled=true;button.classList.add('workshop-choice-disabled');$('#clothing-status').textContent='確認中';
+ try{const data=await api('/clothing/unlock');if(check!==clothingCheck)return;button.disabled=!data.unlocked;button.classList.toggle('workshop-choice-disabled',!data.unlocked);$('#clothing-status').textContent=data.unlocked?'':'未解放';$('#clothing-hint').textContent=data.unlocked?'裁縫や染色を行う場所':'温室で花を収穫すると解放されます';}catch(e){if(check===clothingCheck)$('#clothing-status').textContent='未確認';}
+}
+$('#workshop-enter-clothing').onclick=async()=>{try{if((await api('/clothing/unlock')).unlocked)show('clothing');}catch(e){toast(e.message);}};
+$('#clothing-back').onclick=()=>show('workshop');
 window.KAGARISO_SEA_BRIDGE={api,show,openHall:()=>openHall(),checkEvents:()=>checkSeaEvents()};
 window.KAGARISO_COOKING_BRIDGE={api,show,openHall:()=>openHall(),checkEvents:()=>checkSeaEvents()};
 const openCookingFromProfile=()=>window.KAGARISO_COOKING.open();
@@ -464,7 +472,7 @@ function ghRender(){
  if(potKey!==ghPotKey){ghPotKey=potKey;$('#gh-pots').innerHTML=Array.from({length:5},(_,i)=>{
   const flower=ready?c.pots[i]:null, src=flower?`plant${ghFlowers[flower.id.replace('GH_FLOWER_','')]}.webp`:growing?phase:state==='planted'?'plant3.webp':'plantEmpty.webp';
   const label=flower?`${ghName(flower.id)} ×${flower.quantity}本`:state==='empty'?'空き':growing?'育成中':'種まき済み';
-  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.20.6.2" alt=""><span>${safe(label)}</span></div>`;
+  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.20.6.3" alt=""><span>${safe(label)}</span></div>`;
  }).join('');}
  $('#gh-can').innerHTML=ghData.canColor?`<img src="${ghDir}jouro${ghData.canColor}.webp" alt="じょうろ">${({B:'青',G:'緑',R:'赤',Y:'黄'})[ghData.canColor]}のじょうろ`:'じょうろを受け取っていません';
  $('#gh-owned').textContent=`種：${ghQuantity('LENT_SEED')}袋　腐葉土：${ghQuantity('S0047')}個　肥料：${ghQuantity('GH_FERTILIZER')}個`;
@@ -494,6 +502,7 @@ async function ghDo(action){
   if(action==='water'){ghData=result;ghOffset=result.serverNow-Date.now();await ghAnimate(result.canColor);}
   ghSet(result);
   if(action==='harvest'){
+   if(result.clothingJustUnlocked)toast('工房の「服飾」が解放されました！');
    const sums={};for(const x of result.harvested||[])sums[x.id]=(sums[x.id]||0)+x.quantity;
    $('#gh-result').innerHTML='<h3>今回の収穫</h3>'+Object.entries(sums).map(([id,n])=>`<div class="gh-result-row"><img src="${safe(ghImage(id))}" alt=""><span>${safe(ghName(id))}</span><strong>×${n}</strong></div>`).join('');
   }else if(action==='plant')$('#gh-result').replaceChildren();
