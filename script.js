@@ -404,7 +404,7 @@ function ghRender(){
  if(potKey!==ghPotKey){ghPotKey=potKey;$('#gh-pots').innerHTML=Array.from({length:5},(_,i)=>{
   const flower=ready?c.pots[i]:null, src=flower?`plant${ghFlowers[flower.id.replace('GH_FLOWER_','')]}.webp`:growing?phase:state==='planted'?'plant3.webp':'plantEmpty.webp';
   const label=flower?`${ghName(flower.id)} ×${flower.quantity}本`:state==='empty'?'空き':growing?'育成中':'種まき済み';
-  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.19.0.6" alt=""><span>${safe(label)}</span></div>`;
+  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.19.0.7" alt=""><span>${safe(label)}</span></div>`;
  }).join('');}
  $('#gh-can').innerHTML=ghData.canColor?`<img src="${ghDir}jouro${ghData.canColor}.webp" alt="じょうろ">${({B:'青',G:'緑',R:'赤',Y:'黄'})[ghData.canColor]}のじょうろ`:'じょうろを受け取っていません';
  $('#gh-owned').textContent=`種：${ghQuantity('LENT_SEED')}袋　腐葉土：${ghQuantity('S0047')}個　肥料：${ghQuantity('GH_FERTILIZER')}個`;
@@ -775,6 +775,10 @@ async function openStory(storyId,replay){
 }
 // v0.9.2 図鑑: 素材は45枠を常時公開し、イベント品・プレゼントは取得後のみ追加。
 // ジャンル／発見状態／入手場所を独立して絞り込める。
+const SOURCE_ORDER=['洞窟','森','海','料理','商人との交換','温室','その他'];
+const sourceGroup=s=>s==='初回イベント'||s==='商人と交換'?'商人との交換':SOURCE_ORDER.includes(s)?s:'その他';
+const sourceRank=s=>SOURCE_ORDER.indexOf(sourceGroup(s));
+const sourceLabel=s=>s==='初回イベント'||s==='商人と交換'?'商人との交換':s;
 async function openMaterialCatalog(){
  const [discovery,eventData,giftData,giftStats]=await Promise.all([
    api('/materials/discovered'),
@@ -800,7 +804,7 @@ async function openMaterialCatalog(){
  const giftTotal=Math.max(gifts.length,Number(giftStats.total)||0);
  const foundByNpc=new Map();gifts.forEach(g=>foundByNpc.set(g.source,(foundByNpc.get(g.source)||0)+1));
  const giftUnknown=(giftStats.byNpc||[{name:'黄色い獣',count:giftTotal}]).flatMap(({name,count})=>Array.from({length:Math.max(0,Number(count)-(foundByNpc.get(name)||0))},(_,n)=>({id:`gift-unknown-${name}-${n}`,name:'？？？？？',kind:'gift',source:name,found:false})));
- const entries=[...materials,...events,...gifts,...giftUnknown];
+ const entries=[...materials,...events,...gifts,...giftUnknown].sort((a,b)=>sourceRank(a.source)-sourceRank(b.source));
  const progress=$('#catalog-progress');
  progress.textContent=`素材：${materials.filter(m=>m.found).length} / ${materials.length} ｜ イベントアイテム：${events.length?events.length:"-"} ｜ プレゼント：${gifts.length}/${giftTotal}`;
  const kindLabels={material:'素材',event:'イベントアイテム',gift:'プレゼント',crafted:'作製物'};
@@ -810,7 +814,7 @@ async function openMaterialCatalog(){
    const kind=$('#catalog-kind').value;
    const source=$('#catalog-source').value;
    const selected=entries.filter(m=>(state==='all'||(state==='found'?m.found:!m.found))
-     &&(kind==='all'||m.kind===kind)&&(source==='all'||m.source===source||(forestReady&&source==='森'&&m.kind==='material'&&FOREST_COMMON.has(m.id)))
+     &&(kind==='all'||m.kind===kind)&&(source==='all'||sourceGroup(m.source)===source||(forestReady&&source==='森'&&m.kind==='material'&&FOREST_COMMON.has(m.id)))
      &&(rarity==='all'||(m.kind==='material'&&Number(m.rarity)===Number(rarity)))&&(!query||(m.found&&m.name.toLowerCase().includes(query))));
    $('#catalog-results').textContent=`表示：${selected.length} 件`;
    $('#material-catalog-grid').innerHTML=selected.map(item=>{
@@ -821,7 +825,7 @@ async function openMaterialCatalog(){
        :found?'<span class="catalog-placeholder" aria-hidden="true">✧</span>'
        :'<div class="material-missing-icon" aria-hidden="true">？</div>';
      const subtitle=found
-       ?`${safe(kindLabels[item.kind]||item.kind)} · ${safe(forestReady&&item.kind==='material'&&FOREST_COMMON.has(item.id)?'洞窟・森':item.source)}${item.kind==='material'?' · '+safe(item.category)+' · '+'★'.repeat(item.rarity):''}`
+       ?`${safe(kindLabels[item.kind]||item.kind)} · ${safe(forestReady&&item.kind==='material'&&FOREST_COMMON.has(item.id)?'洞窟・森':sourceLabel(item.source))}${item.kind==='material'?' · '+safe(item.category)+' · '+'★'.repeat(item.rarity):''}`
        :item.kind==='gift'?'未入手のプレゼント':'未発見素材';
      return `<article class="material-catalog-card ${found?'':'undiscovered'}"><div class="material-catalog-image">${thumb}</div><strong>${found?safe(item.name):'？？？？？'}</strong><div class="muted tiny">${subtitle}</div>${found&&item.description?`<p class="muted tiny">${safe(item.description)}</p>`:''}${found&&item.kind==='material'&&forestReady&&FOREST_AREAS.some(a=>a.spots.some(sp=>sp.items.includes(item.id)))?`<p class="muted tiny">森：${safe(FOREST_AREAS.flatMap(a=>a.spots.filter(sp=>sp.items.includes(item.id)).map(sp=>a.name+' / '+sp.name)).join('、'))}</p>`:''}</article>`;
    }).join('')||'<p class="muted catalog-empty">該当する品はまだありません。</p>';
@@ -829,10 +833,10 @@ async function openMaterialCatalog(){
  const sourceSelect=$('#catalog-source');
  // Rebuild options rather than hiding native select options (mobile browsers may expose them).
  const previousSource=sourceSelect.value;
- const sources=new Set(['洞窟','黄色い獣','その他',...entries.map(e=>e.source).filter(Boolean),...(forestReady?['森']:[])]);
+ const sources=new Set(SOURCE_ORDER);
  if(!forestReady)sources.delete('森');if(!seaState?.unlocked||!seaState?.eligible)sources.delete('海');
  sourceSelect.replaceChildren(new Option('すべて','all'),...[...sources].map(source=>new Option(source,source)));
- sourceSelect.value=[...sourceSelect.options].some(o=>o.value===previousSource)?previousSource:'all';
+ sourceSelect.value=[...sourceSelect.options].some(o=>o.value===sourceLabel(previousSource))?sourceLabel(previousSource):'all';
  for(const selector of ['#catalog-filter','#catalog-kind','#catalog-source','#catalog-rarity'])$(selector).onchange=render;
  $('#catalog-search').oninput=render;
  render();show('material-catalog');
@@ -842,7 +846,7 @@ let inventorySortItems=[];
 function renderInventoryItems(){
   const mode=$('#inventory-sort').value;
   const sourceFilter=$('#inventory-source').value;
-  const items=inventorySortItems.filter(i=>sourceFilter==='all'||i.source===sourceFilter||(sourceFilter==='森'&&i.kind==='material'&&FOREST_COMMON.has(i.id)));
+  const items=inventorySortItems.filter(i=>sourceFilter==='all'||sourceGroup(i.source)===sourceFilter||(sourceFilter==='森'&&i.kind==='material'&&FOREST_COMMON.has(i.id)));
   const byName=(a,b)=>String(a.name||'').localeCompare(String(b.name||''),'ja');
   const rarity=i=>Number(i.rarity)||0;
   const count=i=>Number(i.quantity)||0;
@@ -852,8 +856,9 @@ function renderInventoryItems(){
   else if(mode==='rarity-desc') items.sort((a,b)=>rarity(b)-rarity(a)||byName(a,b));
   else if(mode==='rarity-asc') items.sort((a,b)=>rarity(a)-rarity(b)||byName(a,b));
   else if(mode==='category') items.sort((a,b)=>String(a.category||'').localeCompare(String(b.category||''),'ja')||byName(a,b));
-  else if(mode==='source') items.sort((a,b)=>String(a.source||'').localeCompare(String(b.source||''),'ja')||byName(a,b));
-  $('#inventory-list').innerHTML=items.length?items.map(i=>`<article class="inventory-item">${(i.kind==='gift'||i.kind==='cooked')&&i.image?`<img class="material-thumb" src="${safe(i.image)}" loading="lazy" alt="" onerror="this.replaceWith(document.createTextNode('✧'))">`:matIcon(i.id)}<div><strong>${safe(i.name)}</strong><div class="muted tiny">${safe(i.category)} · ${safe(i.source)}${i.kind==='gift'||i.kind==='cooked'?'':` · ${'★'.repeat(i.rarity==null?0:Math.max(1,Math.min(5,i.rarity)))}`}</div></div><strong>×${Number(i.quantity)}</strong></article>`).join(''):'<p class="muted">該当する持ち物はありません。</p>';
+  else if(mode==='source') items.sort((a,b)=>sourceRank(a.source)-sourceRank(b.source)||byName(a,b));
+  else items.sort((a,b)=>sourceRank(a.source)-sourceRank(b.source));
+  $('#inventory-list').innerHTML=items.length?items.map(i=>`<article class="inventory-item">${(i.kind==='gift'||i.kind==='cooked')&&i.image?`<img class="material-thumb" src="${safe(i.image)}" loading="lazy" alt="" onerror="this.replaceWith(document.createTextNode('✧'))">`:matIcon(i.id)}<div><strong>${safe(i.name)}</strong><div class="muted tiny">${safe(i.category)} · ${safe(sourceLabel(i.source))}${i.kind==='gift'||i.kind==='cooked'?'':` · ${'★'.repeat(i.rarity==null?0:Math.max(1,Math.min(5,i.rarity)))}`}</div></div><strong>×${Number(i.quantity)}</strong></article>`).join(''):'<p class="muted">該当する持ち物はありません。</p>';
 }
 async function openInventory(from='hall'){
   inventoryReturn=from;
@@ -861,10 +866,10 @@ async function openInventory(from='hall'){
   inventorySortItems=[...serverItems.filter(i=>materialById(i.id)).map(i=>({...i,source:materialById(i.id)?.source||'洞窟',kind:'material'})),...ownedGifts.map(g=>({...g,id:g.itemId,category:'プレゼント',source:g.npcName||'黄色い獣',kind:'gift',rarity:0})),...ownedCooked.map(d=>({...d,id:d.id,source:'料理',kind:'cooked',rarity:0}))]; // 所持素材と受取済み返礼品を統合
   const sourceSelect=$('#inventory-source');const selectedSource=sourceSelect.value;
   const forestReady=Boolean(forestState?.unlocked&&forestState?.seen&&forestState?.eligible);
-  const sources=new Set(['洞窟','黄色い獣','その他',...inventorySortItems.map(i=>i.source),...(forestReady?['森']:[]),...(seaState?.unlocked&&seaState?.eligible?['海']:[])]);
+  const sources=new Set(SOURCE_ORDER);
   if(!forestReady)sources.delete('森');if(!seaState?.unlocked||!seaState?.eligible)sources.delete('海');
   sourceSelect.replaceChildren(new Option('すべて','all'),...[...sources].map(source=>new Option(source,source)));
-  sourceSelect.value=[...sourceSelect.options].some(o=>o.value===selectedSource)?selectedSource:'all';
+  sourceSelect.value=[...sourceSelect.options].some(o=>o.value===sourceLabel(selectedSource))?sourceLabel(selectedSource):'all';
   renderInventoryItems();
   show('inventory');
 }
