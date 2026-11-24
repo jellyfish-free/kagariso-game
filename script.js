@@ -2128,28 +2128,30 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden){refreshCa
 
 // v0.12.1 AI人格管理・名前の明示登録
 let aiProfileRevision=0;
-const aiProfileFields=['personality','speech','firstPerson','secondPerson','likes','dislikes','avoid'];
+const aiProfileFields=['personality','speech','firstPerson','secondPerson','likes','dislikes','avoid','name','description','profilePersonality','extraPrompt','hungerMinutes','sleepStart','sleepEnd','restStart'];
+const editorNpc=()=>$('#admin-npc-target').value;
+let aiLoadedNpc=null;
 const loadAiProfile=async()=>{
- const {profile}=await adminApi('/ai-profile');aiProfileRevision=profile.revision;
+ const npc=editorNpc();aiLoadedNpc=null;$('#ai-profile-test-result').textContent='';$('#ai-profile-audit-list').replaceChildren();const {profile}=await adminApi('/ai-profile?npcId='+npc);if(npc!==editorNpc())return;aiLoadedNpc=npc;aiProfileRevision=profile.revision;$('#ai-profile-target').textContent='対象NPC：'+(npc==='paper'?'黄色い獣（paper）':'赤色の獣（pyoro）');
  $('#ai-profile-revision').textContent=`改訂 ${profile.revision}`;
  for(const k of aiProfileFields)$('#ai-profile-'+k).value=profile[k];
  $('#ai-profile-examples').value=profile.examples.map(e=>e.user+'\t'+e.assistant).join('\n');
 };
 bind('#admin-show-ai-editor',async()=>{
  for(const id of ['admin-stats-panel','admin-conversations-panel','admin-requests-panel','admin-gifts-panel','admin-material-panel','admin-quest-panel'])$('#'+id).classList.add('hidden');
- $('#admin-ai-panel').classList.remove('hidden');await loadAiProfile();
+ $('#admin-pyoro-panel').classList.add('hidden');$('#admin-sea-panel').classList.add('hidden');$('#admin-recovery-panel').classList.add('hidden');$('#admin-ai-panel').classList.remove('hidden');await loadAiProfile();
 });
 bind('#ai-profile-reload',loadAiProfile);
 $('#ai-profile-form').addEventListener('submit',handler(async e=>{
- e.preventDefault();const body={revision:aiProfileRevision};for(const k of aiProfileFields)body[k]=$('#ai-profile-'+k).value;
+ e.preventDefault();if(aiLoadedNpc!==editorNpc())return;const body={revision:aiProfileRevision,npcId:aiLoadedNpc};for(const k of aiProfileFields)body[k]=$('#ai-profile-'+k).value;
  body.examples=$('#ai-profile-examples').value.split(/\r?\n/).filter(x=>x.trim()).map(line=>{const [user,...parts]=line.split('\t');return {user,assistant:parts.join('\t')};});
  await adminApi('/ai-profile/save','POST',body);await loadAiProfile();toast('AI人格を保存しました。');
 }));
 $('#ai-profile-test-form').addEventListener('submit',handler(async e=>{
  e.preventDefault();const b=e.currentTarget.querySelector('button');b.disabled=true;
- try{const r=await adminApi('/ai-profile/test','POST',{message:$('#ai-profile-test-message').value});$('#ai-profile-test-result').textContent=r.response;}finally{b.disabled=false;}
+ try{const r=await adminApi('/ai-profile/test','POST',{npcId:editorNpc(),message:$('#ai-profile-test-message').value});$('#ai-profile-test-result').textContent=r.response;}finally{b.disabled=false;}
 }));
-bind('#ai-profile-audit',async()=>{const {history}=await adminApi('/ai-profile/audit');const el=$('#ai-profile-audit-list');el.replaceChildren();for(const row of history){const p=document.createElement('p');p.textContent=`改訂 ${row.revision} ／ ${row.display_name} ／ ${jstDate(row.created_at)}`;el.append(p);}});
+bind('#ai-profile-audit',async()=>{const {history}=await adminApi('/ai-profile/audit?npcId='+editorNpc());const el=$('#ai-profile-audit-list');el.replaceChildren();for(const row of history){const p=document.createElement('p');p.textContent=`改訂 ${row.revision} ／ ${row.display_name} ／ ${jstDate(row.created_at)}`;el.append(p);}});
 $('#npc-name-form').addEventListener('submit',handler(async e=>{e.preventDefault();const b=e.currentTarget.querySelector('button');b.disabled=true;try{const r=await api('/npcs/paper/ai/name','POST',{nickname:$('#npc-name-input').value});$('#speech-line').textContent=r.response;$('#npc-name-input').value='';toast('呼び名を教えました。');}finally{b.disabled=false;}}));
 
 let rateAreas=[],rateData=null,rateLoadVersion=0,rateCoverage=null;
@@ -2355,6 +2357,7 @@ bind('#overview-excel',()=>{if(!overviewData||!adminToken||!overviewSheets.lengt
 
 
 // v0.17.0.9: A dedicated red-beast editor safely coexists with the original paper editor.
+let pyoroAdminLoadedNpc=null;
 let pyoroAdminSection='topics',pyoroAdminRows=[],pyoroAdminSelected=null;
 const pyoroAdminSections=new Set(['topics','requests','gifts','foods','profile']);
 const pyoroAdminInput=(key,v,multiline=false,opts={})=>{
@@ -2371,7 +2374,7 @@ const pyoroAdminFields=()=>{
  const r=pyoroAdminSelected,el=$('#pyoro-admin-fields');
  if(!r){el.textContent='設定を選んでください。';$('#pyoro-admin-save').disabled=true;return;}
  $('#pyoro-admin-save').disabled=false;
- let html=`<p class="muted tiny">ID: ${safe(r.id)}</p>`;
+ let html=pyoroAdminSection==='foods'?`<h3>${safe(r.name)}</h3>`:`<p class="muted tiny">ID: ${safe(r.id)}</p>`;
  const grid=(...fields)=>'<div class="admin-fields-grid">'+fields.map(f=>'<div>'+f+'</div>').join('')+'</div>';
  const readonly=(label,value)=>`<label>${safe(label)}</label><input type="text" value="${safe(value)}" disabled>`;
  if(pyoroAdminSection==='topics'){
@@ -2394,7 +2397,7 @@ const pyoroAdminFields=()=>{
   html+=grid(readonly('お礼の系統',({food:'食べ物',craft:'工作',decoration:'装飾'})[r.giftKind]||r.giftKind),readonly('品質',r.quality==='good'?'成功作':'失敗作'),readonly('抽選の重み','未対応（成功率80％・失敗率20％固定）'),readonly('抽選対象として有効','固定'));
  }
  if(pyoroAdminSection==='foods'){
-  html+=`<p class="muted tiny">区分：${r.kind==='meal'?'ごはん':'おやつ'}（食材ID・区分は変更不可）</p>`;
+  html+=`<p class="muted tiny">区分：${r.kind==='meal'?'ごはん':'おやつ'}（${r.source==='recipe'?'料理':'素材'}・区分は変更不可）</p>`;
   html+=pyoroAdminInput('restore',r.restore,false,{label:'空腹度の回復量',number:true,min:1,max:100});
   html+=pyoroAdminInput('reply',r.reply,true,{label:'食べたときの返答',maxlength:260});
   html+=pyoroAdminInput('enabled',r.enabled,false,{label:'この食材を有効にする',checkbox:true});
@@ -2429,44 +2432,44 @@ const pyoroAdminList=()=>{
  const visible=pyoroAdminRows.filter(r=>`${r.id} ${r.name||r.label||r.title||''}`.toLowerCase().includes(q));
  $('#pyoro-admin-count').textContent=`${visible.length} / ${pyoroAdminRows.length}件`;
  visible.forEach(r=>{const b=document.createElement('button');b.className='secondary small admin-topic-button';b.type='button';b.textContent=`${r.enabled===0||r.enabled===false?'［無効］':''}${r.name||r.label||r.title||r.id}${pyoroAdminSection==='gifts'?' ('+r.id+')':''}`;
- if(pyoroAdminSelected?.id===r.id)b.classList.add('admin-selected');b.onclick=()=>{pyoroAdminSelected=structuredClone(r);pyoroAdminFields();pyoroAdminList();};list.append(b);});
+ if(pyoroAdminSelected?.id===r.id&&pyoroAdminSelected?.source===r.source)b.classList.add('admin-selected');b.onclick=()=>{pyoroAdminSelected=structuredClone(r);pyoroAdminFields();pyoroAdminList();};list.append(b);});
 };
 const pyoroAdminLoad=async()=>{
- const section=pyoroAdminSection;const data=await adminApi('/pyoro/config?section='+encodeURIComponent(section));
- if($('#admin-npc-target').value!=='pyoro'||section!==pyoroAdminSection||$('#admin-pyoro-panel').classList.contains('hidden'))return;
- pyoroAdminRows=data.items||[];
- pyoroAdminSelected=structuredClone(pyoroAdminRows.find(r=>r.id===pyoroAdminSelected?.id)||pyoroAdminRows[0]||null);
+ const section=pyoroAdminSection,npc=editorNpc();const data=await adminApi(section==='foods'?'/npc-foods?npcId='+npc:'/pyoro/config?section='+encodeURIComponent(section));
+ if(npc!==editorNpc()||(npc!=='pyoro'&&section!=='foods')||section!==pyoroAdminSection||$('#admin-pyoro-panel').classList.contains('hidden'))return;
+ pyoroAdminLoadedNpc=npc;pyoroAdminRows=data.items||[];
+ pyoroAdminSelected=structuredClone(pyoroAdminRows.find(r=>r.id===pyoroAdminSelected?.id&&r.source===pyoroAdminSelected?.source)||pyoroAdminRows[0]||null);
  $('#pyoro-admin-title').textContent={topics:'会話内容の編集',requests:'お願いの編集',gifts:'返礼品の編集',foods:'食事・おやつの編集',profile:'AI人格エディター'}[pyoroAdminSection];
  $('#pyoro-admin-search-label').textContent={topics:'話題を検索',requests:'お願いを検索',gifts:'返礼品を検索',foods:'食材を検索',profile:'設定を検索'}[pyoroAdminSection];
- $('#pyoro-admin-search').placeholder={topics:'質問・IDで検索',requests:'依頼名で検索',gifts:'名前・返礼品IDで検索',foods:'食材IDで検索',profile:''}[pyoroAdminSection];
+ $('#pyoro-admin-search').placeholder={topics:'質問・IDで検索',requests:'依頼名で検索',gifts:'名前・返礼品IDで検索',foods:'食材名・料理名で検索',profile:''}[pyoroAdminSection];
  $('#pyoro-admin-save').textContent={topics:'変更を保存',requests:'お願いを保存',gifts:'返礼品を保存',foods:'設定を保存',profile:'人格設定を保存'}[pyoroAdminSection];
  $('#pyoro-admin-save').classList.toggle('admin-request-save',['requests','gifts'].includes(pyoroAdminSection));
  $('#pyoro-admin-sidebar').classList.toggle('hidden',pyoroAdminSection==='profile');$('#pyoro-admin-layout').classList.toggle('profile-layout',pyoroAdminSection==='profile');$('#pyoro-profile-refresh').classList.toggle('hidden',pyoroAdminSection!=='profile');
  $('#pyoro-admin-new-topic').classList.toggle('hidden',!['topics','requests'].includes(pyoroAdminSection));$('#pyoro-admin-new-topic').textContent=pyoroAdminSection==='requests'?'＋ 新しいお願い':'＋ 新しい話題';
- $('#pyoro-admin-note').textContent={topics:'話題はランダム3択から表示されます。',requests:'受注中の必要素材・返礼品ジャンルは変更できません。',gifts:'6種類の成功作・失敗作を個別に編集できます。ID・品質・制作確率は固定です。',foods:'赤色の獣だけの食材・回復量・返答を編集します。',profile:'赤色の獣のプロフィールとAI人格を編集します。現在の生活状態は変更しません。'}[pyoroAdminSection];
+ $('#pyoro-admin-note').textContent={topics:'話題はランダム3択から表示されます。',requests:'受注中の必要素材・返礼品ジャンルは変更できません。',gifts:'6種類の成功作・失敗作を個別に編集できます。ID・品質・制作確率は固定です。',foods:'選択中のNPCの食材・料理の回復量、返答、有効状態を編集します。',profile:'赤色の獣のプロフィールとAI人格を編集します。現在の生活状態は変更しません。'}[pyoroAdminSection];
  $('#pyoro-admin-history-title').textContent={topics:'管理者の編集履歴（直近100件）',requests:'お願い編集履歴（直近100件）',gifts:'返礼品編集履歴（直近100件）',foods:'編集履歴',profile:'編集履歴'}[pyoroAdminSection];
  pyoroAdminList();pyoroAdminFields();
 };
 const pyoroAdminShow=async(section='topics')=>{
  if(!pyoroAdminSections.has(section))return;
- pyoroAdminSection=section;pyoroAdminSelected=null;$('#pyoro-admin-search').value='';$('#pyoro-admin-audit').replaceChildren();$('#admin-sea-panel').classList.add('hidden');$('#admin-recovery-panel').classList.add('hidden');clearAdminRecovery();
+ pyoroAdminLoadedNpc=null;pyoroAdminSection=section;pyoroAdminSelected=null;$('#pyoro-admin-search').value='';$('#pyoro-admin-audit').replaceChildren();$('#admin-sea-panel').classList.add('hidden');$('#admin-recovery-panel').classList.add('hidden');clearAdminRecovery();
  for(const id of ['admin-stats-panel','admin-quest-panel','admin-material-panel','admin-conversations-panel','admin-requests-panel','admin-gifts-panel','admin-ai-panel'])$('#'+id).classList.add('hidden');
  $('#admin-pyoro-panel').classList.remove('hidden');
  await pyoroAdminLoad();
 };
-const syncAdminNpc=()=>{const red=$('#admin-npc-target').value==='pyoro';$('#admin-current-npc').textContent=red?'赤色の獣':'黄色い獣';$('#admin-show-pyoro-foods').classList.toggle('hidden',!red);};
+const syncAdminNpc=()=>{const red=$('#admin-npc-target').value==='pyoro';$('#admin-current-npc').textContent=red?'赤色の獣':'黄色い獣';$('#admin-show-pyoro-foods').classList.remove('hidden');};
 $('#admin-npc-target').addEventListener('change',handler(async()=>{
- syncAdminNpc();if($('#admin-npc-target').value==='pyoro'){const section=!$('#admin-requests-panel').classList.contains('hidden')?'requests':!$('#admin-gifts-panel').classList.contains('hidden')?'gifts':!$('#admin-ai-panel').classList.contains('hidden')?'profile':'topics';await pyoroAdminShow(section);}
+ syncAdminNpc();if(!$('#admin-ai-panel').classList.contains('hidden')){await loadAiProfile();return;}if(!$('#admin-pyoro-panel').classList.contains('hidden')&&pyoroAdminSection==='foods'){await pyoroAdminShow('foods');return;}if($('#admin-npc-target').value==='pyoro'){const section=!$('#admin-requests-panel').classList.contains('hidden')?'requests':!$('#admin-gifts-panel').classList.contains('hidden')?'gifts':!$('#admin-ai-panel').classList.contains('hidden')?'profile':'topics';await pyoroAdminShow(section);}
  else{const section=pyoroAdminSection;await openAdminEditor();const button={requests:'admin-show-request-editor',gifts:'admin-show-gift-editor',profile:'admin-show-ai-editor'}[section];if(button)$('#'+button).click();}
 }));
 // Prevent the original paper-only editors from running when editing pyoro.
 const pyoroAdminRoute={
  'admin-show-dialogue-editor':'topics','admin-show-request-editor':'requests',
- 'admin-show-gift-editor':'gifts','admin-show-ai-editor':'profile','admin-show-pyoro-foods':'foods'
+ 'admin-show-gift-editor':'gifts','admin-show-pyoro-foods':'foods'
 };
 for(const [id,section] of Object.entries(pyoroAdminRoute)){
  $('#'+id).addEventListener('click',e=>{
-  if($('#admin-npc-target').value!=='pyoro')return;
+  if($('#admin-npc-target').value!=='pyoro'&&section!=='foods'){$('#admin-pyoro-panel').classList.add('hidden');return;}
   e.stopImmediatePropagation();e.preventDefault();
   pyoroAdminShow(section).catch(error=>toast(error.message||'読み込めませんでした。'));
  },true);
@@ -2488,15 +2491,16 @@ $('#pyoro-admin-form').addEventListener('submit',handler(async e=>{
  if(pyoroAdminSection==='topics')Object.assign(body,{label:pyoroAdminValue('label'),replies:pyoroAdminSelected.replies,condition:pyoroAdminValue('condition'),minAffinity:Number(pyoroAdminValue('minAffinity')),weight:Number(pyoroAdminValue('weight')),enabled:pyoroAdminCheckbox('enabled')});
  if(pyoroAdminSection==='requests')Object.assign(body,{title:pyoroAdminValue('title'),description:pyoroAdminValue('description'),acceptText:pyoroAdminValue('acceptText'),completeText:pyoroAdminValue('completeText'),giftKind:pyoroAdminValue('giftKind'),enabled:pyoroAdminCheckbox('enabled'),items:(pyoroAdminSelected.items||[]).map((x,i)=>({id:$(`[data-pyoro-material-id="${i}"]`).value.trim(),needed:Number($(`[data-pyoro-material-needed="${i}"]`).value)}))});
  if(pyoroAdminSection==='gifts')Object.assign(body,{name:pyoroAdminValue('name'),description:pyoroAdminValue('description'),image:pyoroAdminValue('image')});
- if(pyoroAdminSection==='foods')Object.assign(body,{restore:Number(pyoroAdminValue('restore')),reply:pyoroAdminValue('reply'),enabled:pyoroAdminCheckbox('enabled')});
+ if(pyoroAdminSection==='foods'&&pyoroAdminLoadedNpc!==editorNpc())return;
+ if(pyoroAdminSection==='foods')Object.assign(body,{npcId:editorNpc(),source:pyoroAdminSelected.source,restore:Number(pyoroAdminValue('restore')),reply:pyoroAdminValue('reply'),enabled:pyoroAdminCheckbox('enabled')});
  if(pyoroAdminSection==='profile')Object.assign(body,{name:pyoroAdminValue('name'),description:pyoroAdminValue('description'),personality:pyoroAdminValue('personality'),prompt:pyoroAdminValue('prompt'),hungerMinutes:Number(pyoroAdminValue('hungerMinutes')),sleepStart:Number(pyoroAdminValue('sleepStart')),sleepEnd:Number(pyoroAdminValue('sleepEnd')),restStart:Number(pyoroAdminValue('restStart'))});
  const b=$('#pyoro-admin-save');b.disabled=true;
- try{await adminApi('/pyoro/config/save','POST',body);await pyoroAdminLoad();toast('赤色の獣の設定を保存しました。');}
+ try{await adminApi(body.section==='foods'?'/npc-foods/save':'/pyoro/config/save','POST',body);await pyoroAdminLoad();toast('NPCの設定を保存しました。');}
  finally{b.disabled=false;}
 }));
 bind('#pyoro-admin-audit-refresh',async()=>{
  const {history}=await adminApi('/pyoro/audit');
- $('#pyoro-admin-audit').replaceChildren(...history.map(x=>{const p=document.createElement('p');p.className='pyoro-audit-row';p.textContent=`${x.created_at} ／ ${x.section} ／ ${x.target_id}`;return p;}));
+ $('#pyoro-admin-audit').replaceChildren(...history.filter(x=>pyoroAdminSection!=='foods'||(x.section==='foods'&&(String(x.target_id).startsWith(editorNpc()+'/')||(editorNpc()==='pyoro'&&!String(x.target_id).includes('/'))))).map(x=>{const p=document.createElement('p');p.className='pyoro-audit-row';p.textContent=`${x.created_at} ／ ${x.section} ／ ${x.target_id}`;return p;}));
 });
 
 // v0.17.1 海の難易度・ぴょろ発見イベントの管理者操作
