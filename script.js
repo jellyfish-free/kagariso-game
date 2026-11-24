@@ -359,6 +359,8 @@ function renderLent(p){
   qStatus.textContent=quest.completed?'共同納品達成！ 物々交換が解放されました。':`逆さに咲く花：${quest.donated} / ${quest.target}個（あと${quest.remaining}個）`;
   $('#lent-flower-owned').textContent=`あなたの所持数：${quest.owned}個　あなたの納品：${quest.personalDonated}個`;
   $('#lent-flower-qty').max=String(Math.min(quest.owned,quest.remaining,1000));
+  const qtyInput=$('#lent-flower-qty');qtyInput.value=String(Math.max(1,Math.min(Number(qtyInput.max),Number(qtyInput.value)||1)));
+  document.querySelectorAll('[data-lent-step]').forEach(b=>b.disabled=lentBusy||p.activity!=='open'||Number(qtyInput.max)<1);
   $('#lent-flower-donate').disabled=lentBusy||p.activity!=='open'||quest.owned<1||quest.remaining<1;
   $('#lent-flower-qty').disabled=lentBusy||p.activity!=='open'||quest.owned<1||quest.remaining<1;
  }
@@ -390,10 +392,11 @@ async function openMoonDoor(){
  showLentLine(data.lent,'entry');
  show('moon');
 }
+document.querySelectorAll('[data-lent-step]').forEach(b=>b.onclick=()=>{const input=$('#lent-flower-qty'),max=Number(input.max);if(b.disabled||max<1)return;input.value=String(Math.max(1,Math.min(max,b.dataset.lentStep==='max'?max:(Number(input.value)||1)+Number(b.dataset.lentStep))));});
 $('#lent-flower-donate').addEventListener('click',handler(async()=>{
  if(lentBusy)return;
  const qty=Number($('#lent-flower-qty').value);
- if(!Number.isSafeInteger(qty)||qty<1){toast('納品する個数を入力してください。');return;}
+ if(!Number.isSafeInteger(qty)||qty<1||qty>Number($('#lent-flower-qty').max)){toast('納品する個数を入力してください。');return;}
  if(!confirm(`逆さに咲く花を${qty}個納品しますか？`))return;
  lentBusy=true;$('#lent-flower-donate').disabled=true;
  let result=null;
@@ -842,7 +845,7 @@ const paintPyoroProfile=(n,moved=false)=>{
 async function openPyoro(){
  const {npc}=await api('/npcs/pyoro');
  pyoroLastLocation=npc.state.location;
- $('#pyoro-open-kitchen').classList.toggle('hidden',!frontCookingUnlocked);
+ 
  $('#pyoro-move-notice').classList.add('hidden');
  $('#pyoro-life-action-result').classList.add('hidden');
  $('#pyoro-profile-more').open=false;
@@ -1029,10 +1032,13 @@ async function renderCookingRequestsInNpcPage(npcId,dailyExhausted=false){
  let d;
  try{const result=await api('/cooking/orders');d=result[npcId];if(!d)throw new Error('料理のお願いを確認できませんでした。');}
  catch(err){const note=document.createElement('p');note.className='muted tiny';note.textContent='料理のお願いを読み込めませんでした：'+err.message;offers.append(note);return;}
- const makeCard=(title,detail)=>{
+ const makeCard=(title,detail,image,owned)=>{
   const box=document.createElement('article');box.className='request-card';
   const h=document.createElement('h3');h.textContent='［料理］'+title;box.append(h);
   if(detail){const p=document.createElement('p');p.className='muted tiny';p.textContent=detail;box.append(p);}
+  const line=document.createElement('div');line.className='material-inline muted tiny';
+  if(image){const img=document.createElement('img');img.src=encodeURI(image);img.alt=title;img.loading='lazy';img.style.cssText='width:48px;height:48px;object-fit:contain';line.append(img);}
+  const label=document.createElement('span');label.textContent=title+' ×1'+(owned==null?'':'（持ち物 '+owned+'）');line.append(label);box.append(line);
   return box;
  };
  const refreshRequests=async(message)=>{await renderNpcRequests(npcId,message);};
@@ -1047,21 +1053,22 @@ async function renderCookingRequestsInNpcPage(npcId,dailyExhausted=false){
   }));box.append(button);
  };
  for(const req of d.active||[]){
-  const box=makeCard(req.name,'必要な料理：'+req.name+' ×1');
+  const box=makeCard(req.name,'必要な料理：'+req.name+' ×1',req.image,req.owned);
   const buttons=document.createElement('div');buttons.className='actions';
   addButton(buttons,'料理を渡す','primary small',{path:'resolve',body:{orderId:req.id,action:'complete'}});
   addButton(buttons,'取り消す','secondary small',{path:'resolve',body:{orderId:req.id,action:'cancel'}},'この料理のお願いを取り消しますか？');
+  if(req.owned!=null&&req.owned<1)buttons.firstElementChild.disabled=true;
   box.append(buttons);active.append(box);
  }
  for(const offer of (dailyExhausted||d.acceptedToday>=d.dailyLimit?[]:(d.offers||[]))){
-  const box=makeCard(offer.name,'完成した「'+offer.name+'」を1個渡すお願いです。');
+  const box=makeCard(offer.name,'完成した「'+offer.name+'」を1個渡すお願いです。',offer.image,offer.owned);
   const btn=document.createElement('button');btn.type='button';btn.className='secondary small';btn.textContent='このお願いを引き受ける';btn.disabled=!d.canAccept;
   btn.addEventListener('click',handler(async()=>{if(btn.disabled||requestBusy)return;requestBusy=true;btn.disabled=true;try{const r=await api('/cooking/orders/accept','POST',{npcId,recipeId:offer.recipeId});await refreshRequests(r.message||'引き受けたよ。');}finally{requestBusy=false;btn.disabled=false;}}));
   box.append(btn);offers.append(box);
  }
  for(const row of d.history||[]){const line=document.createElement('p');line.className='muted tiny';line.textContent='［料理］'+row.name+'：'+(row.status==='completed'?'完了':'取消');history.append(line);}
 }
-// v0.18.7.8: 赤色の獣も黄色い獣と同じお願い画面を使う。
+// v0.18.7.9: 赤色の獣も黄色い獣と同じお願い画面を使う。
 async function loadPyoroRequests(message=''){return renderNpcRequests('pyoro',message);}
 async function loadPyoroGifts(){
  const data=await api('/npcs/pyoro/gifts');const inbox=$('#pyoro-gift-inbox'),history=$('#pyoro-gift-history'),inventory=$('#pyoro-gift-inventory');inbox.replaceChildren();history.replaceChildren();inventory.replaceChildren();
@@ -1185,9 +1192,9 @@ bind('#paper-interactions-open',()=>openPairMemories('paper'));
 bind('#pyoro-interactions-open',()=>openPairMemories('pyoro'));
 bind('#pair-memories-back',()=>show(pairMemoriesFrom));
 bind('#pyoro-back',openHall);
-bind('#pyoro-open-kitchen',openCookingFromProfile);
-bind('#paper-open-kitchen',openCookingFromProfile);
-async function openNpc(from='hall'){$('#paper-open-kitchen').classList.toggle('hidden',!frontCookingUnlocked);npcReturn=from;const {npc}=await api('/npcs/paper');currentNpc=npc;lastLocation=npc.state.location;profileScene=npc.scene;$('#life-action-result').classList.add('hidden');$('#npc-move-notice').classList.add('hidden');renderNpc(false);show('npc');profileTimer=setInterval(async()=>{if(document.hidden)return;try{const {npc:updated}=await api('/npcs/paper');const old=lastLocation;currentNpc=updated;lastLocation=updated.state.location;renderNpc(old!==updated.state.location);}catch{}},15000);}
+
+
+async function openNpc(from='hall'){npcReturn=from;const {npc}=await api('/npcs/paper');currentNpc=npc;lastLocation=npc.state.location;profileScene=npc.scene;$('#life-action-result').classList.add('hidden');$('#npc-move-notice').classList.add('hidden');renderNpc(false);show('npc');profileTimer=setInterval(async()=>{if(document.hidden)return;try{const {npc:updated}=await api('/npcs/paper');const old=lastLocation;currentNpc=updated;lastLocation=updated.state.location;renderNpc(old!==updated.state.location);}catch{}},15000);}
 function renderNpc(moved){const n=currentNpc;
   $('#npc-diary-section').classList.toggle('hidden',!n.diaryUnlocked);
   $('#npc-after-rescue').classList.toggle('hidden',!n.diaryUnlocked);
@@ -1545,7 +1552,7 @@ document.querySelectorAll('.history-all-link').forEach(btn=>btn.addEventListener
 bind('#npc-gifts-back',async()=>{if(giftReturn==='npc')await openNpc(npcReturn);else await openHall();});
 // v0.6 黄色い獣のお願い。表示情報はすべてサーバーから取得する。
 let requestBusy=false;
-// v0.18.7.8: 表示・納品操作を共有し、APIとNPCのセリフはそれぞれ維持する。
+// v0.18.7.9: 表示・納品操作を共有し、APIとNPCのセリフはそれぞれ維持する。
 async function openNpcRequests(message=''){return renderNpcRequests('paper',message);}
 async function renderNpcRequests(npcId,message=''){
   const isPaper=npcId==='paper',npcName=isPaper?'黄色い獣':'赤色の獣';
@@ -2074,6 +2081,7 @@ async function checkGameNotifications(){
  noticeBusy=true;const session=token,id=resident.id;
  try{
   const data=await api('/notifications');if(token!==session||resident?.id!==id||document.hidden)return;
+  $('#pyoro-gifts-open').textContent='赤色の獣のプレゼントを見る'+(data.pyoro?.length?'（'+data.pyoro.length+'件）':'');
   const badge=$('#gift-ready-badge');badge.textContent=data.readyCount?`(${data.readyCount})`:'';badge.classList.toggle('hidden',!data.readyCount);
   const key=notificationKey()+':seen';let seen=[];try{seen=JSON.parse(localStorage.getItem(key)||'[]');}catch{}if(!Array.isArray(seen))seen=[];
   const known=new Set(seen),prefs=notificationPrefs();
@@ -2112,8 +2120,10 @@ async function checkGameNotifications(){
     pushGameNotice(`${title}贈り物が${fresh.length>1?fresh.length+'件':''}届きました！`,()=>openNpcGifts('hall'));
    }
   }
+  const red=data.pyoro||[];const freshRed=red.filter(g=>!known.has('pyoro:'+g.id));
+  if(freshRed.length&&prefs.npc&&activePage!=='pyoro-gifts')pushGameNotice('赤色の獣から贈り物が届きました！',async()=>{await loadPyoroGifts();show('pyoro-gifts');});
   // 未受取のIDだけ保持。受け取り済みを削除した後に同じIDが再登場することはない。
-  localStorage.setItem(key,JSON.stringify(['npc','resident'].flatMap(kind=>data[kind].map(g=>kind+':'+g.id))));
+  localStorage.setItem(key,JSON.stringify(['npc','resident','pyoro'].flatMap(kind=>(data[kind]||[]).map(g=>kind+':'+g.id))));
  }finally{noticeBusy=false;}
 }
 const openNoticeSettings=()=>{const prefs=notificationPrefs();for(const kind of ['npc','resident','cave'])$('#notify-'+kind).checked=prefs[kind];$('#notification-settings').showModal();};
@@ -2380,7 +2390,7 @@ const pyoroAdminFields=()=>{
   html+=pyoroAdminInput('giftKind',r.giftKind,false,{label:'返礼品の種類',select:[['food','食べ物'],['craft','工作'],['decoration','装飾']]});
   html+=pyoroAdminInput('enabled',r.enabled,false,{label:'お願いの候補として有効',checkbox:true});
   html+='<h3>必要素材（すでに受注中のお願いは変更できません）</h3>';
-  html+=(r.items||[]).map((x,i)=>`<div class="pyoro-material-admin-row"><input type="text" data-pyoro-material-id="${i}" aria-label="素材ID" value="${safe(x.id)}" maxlength="30" required><input type="number" data-pyoro-material-needed="${i}" aria-label="必要個数" min="1" max="99" value="${Number(x.needed)}" required></div>`).join('');
+  html+='<div id="pyoro-admin-materials"></div><button type="button" class="secondary small" id="pyoro-admin-add-material">＋ 素材を追加</button>';
  }
  if(pyoroAdminSection==='gifts'){
   html+=`<p class="muted tiny">種類：${safe(r.giftKind)}／品質：${safe(r.quality)}（この2項目は変更不可）</p>`;
@@ -2406,6 +2416,11 @@ const pyoroAdminFields=()=>{
   html+=`<p class="muted tiny">現在の生活状態：${safe(r.life?`空腹 ${r.life.hunger} / 体力 ${r.life.energy} / 機嫌 ${r.life.mood} / ${r.life.activity}`:'発見前のため未開始')}。この画面から現在値を初期化しません。</p>`;
  }
  el.innerHTML=html;
+ if(pyoroAdminSection==='requests'){
+  const list=$('#pyoro-admin-materials');
+  const draw=()=>{list.replaceChildren();r.items.forEach((item,i)=>{const row=document.createElement('div');row.className='admin-request-item-row';const sel=document.createElement('select');sel.dataset.pyoroMaterialId=i;sel.innerHTML=makeSelectOptions(ADMIN_MATERIALS,item.id);if(!Array.from(sel.options).some(o=>o.value===item.id))sel.add(new Option(item.id,item.id));sel.value=item.id;sel.onchange=()=>item.id=sel.value;const qty=document.createElement('input');qty.type='number';qty.min=1;qty.max=99;qty.required=true;qty.value=item.needed;qty.dataset.pyoroMaterialNeeded=i;qty.oninput=()=>item.needed=Number(qty.value);const del=document.createElement('button');del.type='button';del.className='secondary small';del.textContent='削除';del.disabled=r.items.length<=1;del.onclick=()=>{r.items.splice(i,1);draw();};row.append(sel,qty,del);list.append(row);});$('#pyoro-admin-add-material').disabled=r.items.length>=6;};
+  draw();$('#pyoro-admin-add-material').onclick=()=>{if(r.items.length<6){r.items.push({id:ADMIN_MATERIALS.find(x=>!r.items.some(i=>i.id===x[0]))?.[0]||ADMIN_MATERIALS[0][0],needed:1});draw();}};
+ }
 };
 const pyoroAdminList=()=>{
  const list=$('#pyoro-admin-list'),q=$('#pyoro-admin-search').value.trim().toLowerCase();list.replaceChildren();
