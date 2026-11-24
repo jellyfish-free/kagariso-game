@@ -96,7 +96,7 @@ const hallWeather=(day)=>{
 let hallBuildLevel=1, roomLevels={paper:0,pyoro:0};
 const privateRoomImage=(npc,level)=>{const t=hallJapanClock(),band=hallTimeBand(t.hour),cloud=hallWeather(t.day)!=='clear';return `images/backgrounds/${npc}RoomLv${level}-${band==='evening'?2:band==='night'?(cloud?5:3):cloud?4:1}.webp`;};
 function renderPrivateRoomLinks(data){if(!data?.rooms)return;roomLevels=data.rooms;const el=$('#private-room-links');el.innerHTML=Object.entries(roomLevels).filter(([,lv])=>lv>0).map(([npc,lv])=>`<button class="secondary" data-private-room="${npc}">${npc==='paper'?'黄色い獣':'赤色の獣'}のおへや Lv.${lv}</button>`).join('');el.classList.toggle('hidden',!Object.values(roomLevels).some(Boolean));el.querySelectorAll('button').forEach(btn=>btn.onclick=handler(()=>openPrivateRoom(btn.dataset.privateRoom)));}
-async function openPrivateRoom(npc){const data=await api('/hall');renderPrivateRoomLinks(data.build);const lv=roomLevels[npc];if(!lv)return;const n=data.npcs.find(x=>x.id===npc);$('#private-room-title').textContent=(npc==='paper'?'黄色い獣':'赤色の獣')+'のおへや Lv.'+lv;$('#private-room-bg').src=privateRoomImage(npc,lv);const here=n?.state.location==='room';const actor=$('#private-room-actor');actor.classList.toggle('hidden',!here);if(here){if(npc==='paper')paintPaper('#private-room-actor img',n);else paintPyoro('#private-room-actor img',n);actor.style.left=n.state.furnitureAction?(npc==='paper'?'53%':'65%'):n.state.activity==='sleeping'?'30%':lv>=3&&n.state.activity==='resting'?'65%':'53%';actor.style.bottom=n.state.furnitureAction?(npc==='paper'?'35%':'15%'):n.state.activity==='sleeping'?'30%':lv>=3&&n.state.activity==='resting'?'15%':'8%';$('#private-room-sleep').classList.toggle('hidden',n.state.activity!=='sleeping');}$('#private-room-status').textContent=here?n.state.activityLabel:'今はおへやにいないようだ。';$('#private-room-talk').classList.toggle('hidden',!here||n.state.activity==='sleeping');$('#private-room-talk').onclick=handler(()=>npc==='paper'?openNpc('hall'):openPyoro());show('private-room');}
+async function openPrivateRoom(npc){const data=await api('/hall');renderPrivateRoomLinks(data.build);const lv=roomLevels[npc];if(!lv)return;const n=data.npcs.find(x=>x.id===npc);$('#private-room-title').textContent=(npc==='paper'?'黄色い獣':'赤色の獣')+'のおへや Lv.'+lv;$('#private-room-bg').src=privateRoomImage(npc,lv);const here=n?.state.location==='room';const actor=$('#private-room-actor');actor.classList.toggle('hidden',!here);if(here){if(npc==='paper')paintPaper('#private-room-actor img',n);else paintPyoro('#private-room-actor img',n);actor.style.left=/^(desk_|shelf_)/.test(n.state.furnitureAction||'')?'86%':n.state.furnitureAction?(npc==='paper'?'53%':'65%'):n.state.activity==='sleeping'?'30%':lv>=3&&n.state.activity==='resting'?'65%':'53%';actor.style.bottom=/^(desk_|shelf_)/.test(n.state.furnitureAction||'')?'18%':n.state.furnitureAction?(npc==='paper'?'35%':'15%'):n.state.activity==='sleeping'?'30%':lv>=3&&n.state.activity==='resting'?'15%':'8%';$('#private-room-sleep').classList.toggle('hidden',n.state.activity!=='sleeping');}$('#private-room-status').textContent=here?n.state.activityLabel:'今はおへやにいないようだ。';$('#private-room-talk').classList.toggle('hidden',!here||n.state.activity==='sleeping');$('#private-room-talk').onclick=handler(()=>npc==='paper'?openNpc('hall'):openPyoro());show('private-room');}
 
 const hallBackgroundName=()=>{
   const t=hallJapanClock();
@@ -464,7 +464,7 @@ function ghRender(){
  if(potKey!==ghPotKey){ghPotKey=potKey;$('#gh-pots').innerHTML=Array.from({length:5},(_,i)=>{
   const flower=ready?c.pots[i]:null, src=flower?`plant${ghFlowers[flower.id.replace('GH_FLOWER_','')]}.webp`:growing?phase:state==='planted'?'plant3.webp':'plantEmpty.webp';
   const label=flower?`${ghName(flower.id)} ×${flower.quantity}本`:state==='empty'?'空き':growing?'育成中':'種まき済み';
-  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.20.4" alt=""><span>${safe(label)}</span></div>`;
+  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.20.5" alt=""><span>${safe(label)}</span></div>`;
  }).join('');}
  $('#gh-can').innerHTML=ghData.canColor?`<img src="${ghDir}jouro${ghData.canColor}.webp" alt="じょうろ">${({B:'青',G:'緑',R:'赤',Y:'黄'})[ghData.canColor]}のじょうろ`:'じょうろを受け取っていません';
  $('#gh-owned').textContent=`種：${ghQuantity('LENT_SEED')}袋　腐葉土：${ghQuantity('S0047')}個　肥料：${ghQuantity('GH_FERTILIZER')}個`;
@@ -642,6 +642,9 @@ const buildCompleteByQuest={
 Object.assign(buildCompleteByQuest,{paper_room:{title:'黄色い獣のおへやが完成しました！',lines:['黄色い獣「わぁ～！ ぼくのおへやだぁ！」']},paper_bed:{title:'黄色い獣のベッドが完成しました！',lines:['黄色い獣「ふかふかだぁ！」']},pyoro_room:{title:'赤色の獣のおへやが完成しました！',lines:['赤色の獣「……オレのおへやだ。ありがとう！」']}});
 Object.assign(buildCompleteByQuest,{"pyoro_bed": {"title": "赤色の獣のベッドが完成しました！", "lines": ["赤色の獣「うわっ、ふかふかだ！ ……ありがとうな！」"]}, "paper_rug": {"title": "黄色い獣のラグ・クッションが完成しました！", "lines": ["黄色い獣「えへへぇ、ずっとごろごろしていたいなぁ！」"]}, "pyoro_rug": {"title": "赤色の獣のラグ・クッションが完成しました！", "lines": ["赤色の獣「へへっ、これでオレもごろごろできるぞ！ ありがとな！」"]}});
 Object.assign(buildCompleteByQuest,{"paper_sofa": {"title": "黄色い獣の窓際ソファが完成しました！", "lines": ["黄色い獣「わぁ～！ ここ、ぽかぽかだねぇ！ ありがとう！」"]}, "pyoro_table": {"title": "赤色の獣のローテーブルが完成しました！", "lines": ["赤色の獣「へへっ、これでたからものもならべられるぞ！ ありがとな！」"]}});
+Object.assign(buildDialogues,{paper_desk:[['黄色い獣','ねぇねぇ、ぼく、えをかいたり、おはなしをかいたりしたいなぁ！'],['黄色い獣','ちいさなつくえとイスがあったらいいなぁ。'],['赤色の獣','できたらオレにもみせてくれよ。'],['黄色い獣','うん！ みんな、おてつだいしてくれる？']],pyoro_shelf:[['赤色の獣','オレも、ほんとかたからものをおくところがほしい……。'],['黄色い獣','ほんだなだねぇ！'],['赤色の獣','うん。きれいにならべたいんだ。'],['赤色の獣','……てつだってくれるか？']]});
+Object.assign(buildCompleteByQuest,{paper_desk:{title:'黄色い獣の机が完成しました！',lines:['黄色い獣「わぁ！ いっぱいえをかくねぇ！ ありがとう！」']},pyoro_shelf:{title:'赤色の獣の本棚が完成しました！',lines:['赤色の獣「へへっ、これでたいせつなものをしまえるぞ。ありがとな！」']}});
+function renderFurnitureSkills(id,n){const el=document.getElementById(id);if(!el)return;el.replaceChildren();for(const skill of n.skills||[]){const row=document.createElement('p');row.textContent=skill.name+' ｜ '+['','興味を持った','練習中','慣れてきた','得意'][skill.level];el.append(row);}}
 let buildBusy=false,buildStep=-1,buildOwner='',buildLastProgress=-1,buildQuestKey='';
 function renderHallBuild(data){
  const panel=$('#hall-build');if(!panel)return;
@@ -656,9 +659,9 @@ function renderHallBuild(data){
  const dialogue=buildDialogues[questId]||buildDialogues.hall_lounge;
  const completeInfo=buildCompleteByQuest[questId]||buildCompleteByQuest.hall_lounge;
  if(!data.seen){
-  if(buildStep<0){panel.innerHTML=questId==='hall_stairs'?'<h2>寛ぎスペースが完成しました！</h2><p>二匹の獣が完成した家具を眺めながら、何か相談している。</p><button class="primary" id="build-start">話を聞く</button>':`<h2>${safe(data.title||'ホール拡張計画')}</h2><p>獣たちが何か相談している。</p><button class="primary" id="build-start">話を聞く</button>`;if(questId==='paper_sofa'||questId==='pyoro_table'){const prior=buildCompleteByQuest[questId==='paper_sofa'?'pyoro_rug':'paper_sofa'];const intro=document.createElement('div');const heading=document.createElement('h3');heading.textContent=prior.title;intro.append(heading);for(const line of prior.lines){const para=document.createElement('p');para.textContent=line;intro.append(para);}panel.prepend(intro);}$('#build-start').onclick=()=>{buildStep=0;renderHallBuild(data);};return;}
+  if(buildStep<0){panel.innerHTML=questId==='hall_stairs'?'<h2>寛ぎスペースが完成しました！</h2><p>二匹の獣が完成した家具を眺めながら、何か相談している。</p><button class="primary" id="build-start">話を聞く</button>':`<h2>${safe(data.title||'ホール拡張計画')}</h2><p>獣たちが何か相談している。</p><button class="primary" id="build-start">話を聞く</button>`;if(['paper_sofa','pyoro_table','paper_desk','pyoro_shelf'].includes(questId)){const prior=buildCompleteByQuest[({paper_sofa:'pyoro_rug',pyoro_table:'paper_sofa',paper_desk:'pyoro_table',pyoro_shelf:'paper_desk'})[questId]];const intro=document.createElement('div');const heading=document.createElement('h3');heading.textContent=prior.title;intro.append(heading);for(const line of prior.lines){const para=document.createElement('p');para.textContent=line;intro.append(para);}panel.prepend(intro);}$('#build-start').onclick=()=>{buildStep=0;renderHallBuild(data);};return;}
   const line=dialogue[buildStep];
-  const still=questId==='paper_room'?`images/memories/paper-room-event${buildStep<5?1:2}.webp`:questId==='paper_bed'?privateRoomImage('paper',1):questId==='pyoro_room'?privateRoomImage('paper',2):questId==='pyoro_bed'?privateRoomImage('pyoro',1):questId==='paper_rug'?privateRoomImage('paper',2):questId==='pyoro_rug'?privateRoomImage('pyoro',2):questId==='paper_sofa'?privateRoomImage('paper',3):questId==='pyoro_table'?privateRoomImage('pyoro',3):buildStillByQuest[questId]||buildStillByQuest.hall_lounge;
+  const still=questId==='paper_desk'?privateRoomImage('paper',4):questId==='pyoro_shelf'?privateRoomImage('pyoro',4):questId==='paper_room'?`images/memories/paper-room-event${buildStep<5?1:2}.webp`:questId==='paper_bed'?privateRoomImage('paper',1):questId==='pyoro_room'?privateRoomImage('paper',2):questId==='pyoro_bed'?privateRoomImage('pyoro',1):questId==='paper_rug'?privateRoomImage('paper',2):questId==='pyoro_rug'?privateRoomImage('pyoro',2):questId==='paper_sofa'?privateRoomImage('paper',3):questId==='pyoro_table'?privateRoomImage('pyoro',3):buildStillByQuest[questId]||buildStillByQuest.hall_lounge;
   panel.innerHTML=`<h2>${questId==='hall_stairs'?'もっと広くしよう！ 二階があるといいね！':safe(data.title||'ホール拡張計画')}</h2><img src="${safe(still)}" alt="相談する二匹の獣" style="display:block;width:100%;max-height:420px;object-fit:contain;border-radius:10px"><p><strong>${safe(line[0])}</strong></p><p>「${safe(line[1])}」</p><div class="actions"><button class="secondary" id="build-prev" ${buildStep===0?'disabled':''}>戻る</button><button class="primary" id="build-next">${buildStep===dialogue.length-1?'会話を終える':'次へ'}</button></div>`;
   $('#build-prev').onclick=()=>{if(buildStep>0){buildStep--;renderHallBuild(data);}};
   $('#build-next').onclick=handler(async()=>{if(buildBusy)return;if(buildStep<dialogue.length-1){buildStep++;renderHallBuild(data);return;}buildBusy=true;try{renderHallBuild(await api('/build/lounge/visit','POST',{questId}));buildStep=-1;}finally{buildBusy=false;}});return;
@@ -1027,7 +1030,7 @@ const paintPyoroProfile=(n,moved=false)=>{
  $('#pyoro-name').textContent='赤色の獣';
  $('#pyoro-hearts').textContent='♥'.repeat(n.affinity)+'♡'.repeat(10-n.affinity);
  $('#pyoro-relationship').textContent=`あなたとの関係：${n.relationship}`;
- $('#pyoro-relationship-detail').textContent=n.relationship;
+ $('#pyoro-relationship-detail').textContent=n.relationship;renderFurnitureSkills('pyoro-skills',n);
  $('#pyoro-description').textContent=n.description||'';
  $('#pyoro-personality').textContent=n.personality||'';
  $('#pyoro-memory').classList.toggle('hidden',!n.isFinder);
@@ -1393,7 +1396,7 @@ function renderNpc(moved){const n=currentNpc;
   $('#npc-life-actions').classList.toggle('hidden',!n.diaryUnlocked);
   $('#npc-affinity').textContent='♥'.repeat(n.affinity)+'♡'.repeat(10-n.affinity);
   $('#npc-relationship').textContent=`あなたとの関係：${n.relationship}`;
-  $('#npc-relationship-detail').textContent=n.relationship;
+  $('#npc-relationship-detail').textContent=n.relationship;renderFurnitureSkills('paper-skills',n);
   $('#npc-life-status').innerHTML=['energy','hunger','mood'].map((k)=>{const labels={energy:'元気',hunger:'空腹',mood:'気分'};const descriptions={energy:n.state.energyLabel,hunger:n.state.hungerLabel,mood:n.state.moodLabel};return `<div class="life-item"><span>${labels[k]}</span><strong>${safe(descriptions[k])}</strong></div>`;}).join('');
   $('#rest-btn').disabled=n.state.activity!=='awake';
   $('#wake-btn').disabled=n.state.activity!=='sleeping'||n.affinity<3;
