@@ -106,7 +106,7 @@
 </style>
   <script src="data/sea-items.js?v=0.17.0.3" defer></script>
   <script src="data/greenhouse-data.js?v=0.19.0" defer></script>
-  <script src="script.js?v=0.20.8.12" defer></script>
+  <script src="script.js?v=0.20.8.13" defer></script>
   <script src="data/cooking.js?v=0.18.7.5" defer></script>
   <script src="data/sea-game.js?v=0.17.1.5" defer></script>
 <style>
@@ -325,7 +325,7 @@
 <style>
 .collection-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0}.collection-tabs button{flex:1 0 auto;min-height:40px;padding:8px 10px;font-size:13px}.collection-tabs button[aria-pressed=true]{background:#c5a4e9;color:#211b31;border-color:#c5a4e9}.catalog-controls select,#gift-receiver,.gift-send-row select,#inventory-search,#catalog-search{width:100%;min-height:42px;background:#1b1c2e;color:#f4edf5;border:1px solid #625d77;border-radius:9px;padding:8px;font-size:14px}.catalog-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:10px 0}#inventory-list,#material-catalog-grid,.gift-picker-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px;align-items:stretch}#inventory-list .inventory-item,#material-catalog-grid .material-catalog-card,.gift-picker-grid button{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;min-width:0;padding:6px;gap:5px;text-align:center;border:1px solid #514b61;border-radius:9px;background:#202134;color:inherit;overflow:hidden}#inventory-list .material-thumb,#material-catalog-grid .material-catalog-image,.gift-picker-grid .material-thumb{width:100%;height:auto;aspect-ratio:1;object-fit:contain;margin:0}#material-catalog-grid .material-catalog-image img{width:100%;height:100%;object-fit:contain}#inventory-list strong,#material-catalog-grid strong,.gift-picker-grid strong{font-size:12px;overflow-wrap:anywhere;line-height:1.35}#material-catalog-grid .catalog-empty,#inventory-list>.muted{grid-column:1/-1}.collection-detail{max-width:min(90vw,420px);background:#26263a;color:#eee;border:1px solid #80728e;border-radius:12px;padding:20px}.collection-detail::backdrop{background:#0009}.collection-detail img{display:block;width:120px;max-width:100%;margin:auto}.collection-detail button{width:100%;margin-top:12px}.gift-picker-grid button[aria-pressed=true]{border-color:#e9c18b;background:#44394a}.gift-send-row{margin:10px 0}.gift-picker-grid{max-height:360px;overflow:auto}.collection-tabs .hidden,#mail-send-panel.hidden{display:none!important}@media(max-width:420px){#inventory-list,#material-catalog-grid,.gift-picker-grid{gap:4px}#inventory-list .inventory-item,#material-catalog-grid .material-catalog-card,.gift-picker-grid button{padding:4px}#inventory-list strong,#material-catalog-grid strong,.gift-picker-grid strong{font-size:10px}}
 </style><style>
-.cloth-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.cloth-recipe{position:relative;isolation:isolate;min-width:0;overflow:hidden;overflow-wrap:anywhere;padding:10px 5px!important;text-align:left;align-content:start;font-size:12px}.cloth-recipe::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(31,32,51,.92),rgba(31,32,51,.88));z-index:0;pointer-events:none}.cloth-recipe-created::before{content:"";position:absolute;inset:8px;background-image:var(--cloth-bg);background-position:center;background-repeat:no-repeat;background-size:contain;opacity:.14;z-index:0;pointer-events:none}.cloth-recipe > *{position:relative;z-index:1}.cloth-recipe strong{display:block;margin-bottom:8px;text-align:center}.cloth-recipe span span{display:block;margin:4px 0}.cloth-recipe small{font-size:10px}.cloth-short{color:#e6a1a4}.cloth-recipe:disabled{opacity:.45}.cloth-game{display:grid;gap:12px;margin:12px 0}.cloth-swatch{width:100px;height:80px;margin:auto;border:2px solid #cfb27f;border-radius:8px}.cloth-color-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.cloth-pattern{display:grid;gap:5px;max-width:330px;width:100%;margin:auto}.cloth-pattern[hidden]{display:none}.cloth-pattern button{aspect-ratio:1;padding:0!important;background:#37334a;opacity:1!important}.cloth-pattern .lit{background:#d9b777!important}.cloth-example{max-width:135px}.cloth-track{height:45px;position:relative;background:#3d3952;border-radius:10px;overflow:hidden;touch-action:manipulation}.cloth-needle{position:absolute;width:4px;background:white;height:100%;transform:translateX(-50%)}
+.cloth-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.cloth-recipe{position:relative;isolation:isolate;min-width:0;overflow:hidden;overflow-wrap:anywhere;padding:10px 5px!important;text-align:left;align-content:start;font-size:12px}.cloth-recipe-created::before{content:"";position:absolute;inset:5px;background-image:var(--cloth-bg);background-position:center;background-repeat:no-repeat;background-size:contain;opacity:.27;z-index:0;pointer-events:none}.cloth-grid > .cloth-recipe-created:disabled{opacity:1}.cloth-recipe-created:disabled > *{opacity:.55}.cloth-recipe-created > *{text-shadow:0 1px 3px #191a2b,0 0 4px #191a2b}.cloth-recipe > *{position:relative;z-index:1}.cloth-recipe strong{display:block;margin-bottom:8px;text-align:center}.cloth-recipe span span{display:block;margin:4px 0}.cloth-recipe small{font-size:10px}.cloth-short{color:#e6a1a4}.cloth-recipe:disabled{opacity:.45}.cloth-game{display:grid;gap:12px;margin:12px 0}.cloth-swatch{width:100px;height:80px;margin:auto;border:2px solid #cfb27f;border-radius:8px}.cloth-color-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.cloth-pattern{display:grid;gap:5px;max-width:330px;width:100%;margin:auto}.cloth-pattern[hidden]{display:none}.cloth-pattern button{aspect-ratio:1;padding:0!important;background:#37334a;opacity:1!important}.cloth-pattern .lit{background:#d9b777!important}.cloth-example{max-width:135px}.cloth-track{height:45px;position:relative;background:#3d3952;border-radius:10px;overflow:hidden;touch-action:manipulation}.cloth-needle{position:absolute;width:4px;background:white;height:100%;transform:translateX(-50%)}
 </style><style>
 .recipe-controls input,.recipe-controls select{box-sizing:border-box;width:100%;min-width:0;min-height:42px;background:#1b1c2e;color:#f4edf5;border:1px solid #625d77;border-radius:9px;padding:8px;font-size:14px;}
 .recipe-controls label{display:block;margin-bottom:6px;}
@@ -335,7 +335,7 @@
 .cloth-grid > button.cloth-recipe > span{display:block;width:100%;text-align:left;margin:0;}
 </style>
 <style>
-/* v0.20.8.12 — 管理画面の入力UIを図鑑・持ち物に統一 */
+/* v0.20.8.13 — 管理画面の入力UIを図鑑・持ち物に統一 */
 :is(#admin-editor-page,#admin-login-page) {color-scheme:dark;}
 :is(#admin-editor-page,#admin-login-page) :is(select,textarea,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]):not([type=color]):not([type=file]):not([type=button]):not([type=submit]):not([type=reset])) {
  box-sizing:border-box;width:100%;min-width:0;max-width:100%;min-height:42px;background:#1b1c2e;color:#f4edf5;border:1px solid #625d77;border-radius:9px;padding:8px 10px;font:inherit;font-size:14px;line-height:1.4;
@@ -362,7 +362,7 @@
 </style>
 
 <style>
-/* v0.20.8.12: スマホのホール内NPCを縮小 */
+/* v0.20.8.13: スマホのホール内NPCを縮小 */
 @media (max-width: 600px) {
   #hall-visual :is(#hall-paper-actor,#hall-pyoro-actor) {
     width: 19%; min-width: 0; max-width: 100px;
@@ -468,10 +468,10 @@
         </div>
       </section>
       <section id="moon-page" class="page hidden narrow">
-        <button type="button" id="moon-back-hall" class="back">← ホールへ戻る</button>
+        <nav class="workshop-cooking-nav" aria-label="移動先"><button type="button" id="moon-back-hall" class="back">← ホールへ戻る</button><button type="button" id="moon-enter-clothing" class="back">服飾しに行く →</button></nav>
         <div class="panel moon-panel lent-panel">
           <span class="eyebrow">THE MOONLIT MERCHANT</span>
-          <h1>月の扉の商人</h1>
+          <h1>月の商店</h1>
           <img id="lent-scene" class="lent-scene" src="images/npc/lent/normal.webp" alt="商人の部屋" loading="eager">
           <div class="lent-intro">
             <h2>商人</h2>
@@ -1177,7 +1177,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.20.8.12</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.20.8.13</span></footer>
   </div>
 </body>
 </html>
