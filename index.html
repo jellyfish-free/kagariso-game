@@ -57,6 +57,14 @@
 #npc-feeding-page .feeding-item-info p, #pyoro-feeding-page .feeding-item-info p {margin:4px 0 0;}
 #npc-feeding-page .feeding-item > button, #pyoro-feeding-page .feeding-item > button {width:auto!important;flex-shrink:0;}
 @media(max-width:420px){#npc-feeding-page .feeding-item,#pyoro-feeding-page .feeding-item{gap:8px;padding:8px;}#npc-feeding-page .feeding-item > button,#pyoro-feeding-page .feeding-item > button{padding:8px 6px;font-size:.75rem;}}
+
+/* 図鑑の検索・レア度欄を下端で揃える */
+#material-catalog-page .catalog-search-row{align-items:end}
+#material-catalog-page .catalog-search-row > div{min-width:0;display:flex;flex-direction:column}
+#material-catalog-page .catalog-search-row label{display:block;line-height:1.4;margin-bottom:6px}
+#material-catalog-page .catalog-search-note{font-size:.68em;white-space:nowrap}
+#material-catalog-page .catalog-search-row input,#material-catalog-page .catalog-search-row select{box-sizing:border-box;height:42px;min-height:42px;margin:0;min-width:0}
+@media(max-width:480px){#material-catalog-page label[for="catalog-search"]{font-size:clamp(11px,3.5vw,14px)}}
 </style>
   <style>
   /* v0.16.4.10 白い扉イベントのスチル差し替え */
@@ -94,7 +102,7 @@
 </style>
   <script src="data/sea-items.js?v=0.17.0.3" defer></script>
   <script src="data/greenhouse-data.js?v=0.19.0" defer></script>
-  <script src="script.js?v=0.20.8.3" defer></script>
+  <script src="script.js?v=0.20.8.4" defer></script>
   <script src="data/cooking.js?v=0.18.7.5" defer></script>
   <script src="data/sea-game.js?v=0.17.1.5" defer></script>
 <style>
@@ -323,7 +331,7 @@
 .cloth-grid > button.cloth-recipe > span{display:block;width:100%;text-align:left;margin:0;}
 </style>
 <style>
-/* v0.20.8.3 — 管理画面の入力UIを図鑑・持ち物に統一 */
+/* v0.20.8.4 — 管理画面の入力UIを図鑑・持ち物に統一 */
 :is(#admin-editor-page,#admin-login-page) {color-scheme:dark;}
 :is(#admin-editor-page,#admin-login-page) :is(select,textarea,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]):not([type=color]):not([type=file]):not([type=button]):not([type=submit]):not([type=reset])) {
  box-sizing:border-box;width:100%;min-width:0;max-width:100%;min-height:42px;background:#1b1c2e;color:#f4edf5;border:1px solid #625d77;border-radius:9px;padding:8px 10px;font:inherit;font-size:14px;line-height:1.4;
@@ -471,7 +479,7 @@
           </div>
         </div>
       </section>
-      <section id="clothing-page" class="page hidden narrow"><button type="button" id="clothing-back" class="back">← 工房へ戻る</button><div class="panel workshop-panel"><span class="eyebrow">CLOTHING</span><h2>服飾</h2><img class="workshop-hero" src="images/backgrounds/Clothing.webp" alt="服飾工房"><p class="muted">必要な素材を揃えて服を作りましょう。完成するまで衣装の姿は秘密です。</p><div id="clothing-recipes"></div></div></section>
+      <section id="clothing-page" class="page hidden narrow"><button type="button" id="clothing-back" class="back">← 工房へ戻る</button><button type="button" id="clothing-hall-back" class="back">← ホールに戻る</button><div class="panel workshop-panel"><span class="eyebrow">CLOTHING</span><h2>服飾</h2><img class="workshop-hero" src="images/backgrounds/Clothing.webp" alt="服飾工房"><p class="muted">必要な素材を揃えて服を作りましょう。完成するまで衣装の姿は秘密です。</p><div id="clothing-recipes"></div></div></section>
       <section id="cooking-page" class="page hidden narrow">
   <nav class="workshop-cooking-nav" aria-label="移動先">
     <button type="button" id="cooking-back" class="back">← 工房へ戻る</button>
@@ -633,7 +641,7 @@
             <div class="hidden"><label for="catalog-kind">ジャンル</label><select id="catalog-kind"><option value="all">すべて</option><option value="material">素材</option><option value="event">イベントアイテム</option><option value="gift">プレゼント</option><option value="crafted">作製物</option></select></div>
             <div><label for="catalog-source">入手場所・入手方法</label><select id="catalog-source"><option value="all">すべて</option><option value="洞窟">洞窟</option><option value="海">海</option><option value="黄色い獣">黄色い獣</option><option value="その他">その他</option></select></div>
           </div>
-          <div class="catalog-controls"><div><label for="catalog-search">名前で検索（発見済み）</label><input id="catalog-search" type="search" placeholder="素材名など"></div><div><label for="catalog-rarity">素材のレア度</label><select id="catalog-rarity"><option value="all">すべて</option><option value="1">★</option><option value="2">★★</option><option value="3">★★★</option><option value="4">★★★★</option><option value="5">★★★★★</option></select></div></div>
+          <div class="catalog-controls catalog-search-row"><div><label for="catalog-search">名前で検索<span class="catalog-search-note">（発見済み）</span></label><input id="catalog-search" type="search" placeholder="素材名など"></div><div><label for="catalog-rarity">素材のレア度</label><select id="catalog-rarity"><option value="all">すべて</option><option value="1">★</option><option value="2">★★</option><option value="3">★★★</option><option value="4">★★★★</option><option value="5">★★★★★</option></select></div></div>
           <p id="catalog-results" class="muted tiny" aria-live="polite"></p>
           <div id="material-catalog-grid" class="material-catalog-grid"></div>
         </div>
@@ -1111,7 +1119,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.20.8.3</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.20.8.4</span></footer>
   </div>
 </body>
 </html>

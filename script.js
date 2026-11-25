@@ -39,6 +39,7 @@ async function refreshClothing(){
 }
 $('#workshop-enter-clothing').onclick=async()=>{try{if((await api('/clothing/unlock')).unlocked){show('clothing');await openClothingRecipes();}}catch(e){toast(e.message);}};
 $('#clothing-back').onclick=()=>show('workshop');
+$('#clothing-hall-back').onclick=async()=>{if(clothBusy)return;try{await openHall();}catch(e){toast(e.message);}};
 window.KAGARISO_SEA_BRIDGE={api,show,openHall:()=>openHall(),checkEvents:()=>checkSeaEvents()};
 window.KAGARISO_COOKING_BRIDGE={api,show,openHall:()=>openHall(),checkEvents:()=>checkSeaEvents()};
 const openCookingFromProfile=()=>window.KAGARISO_COOKING.open();
@@ -479,7 +480,7 @@ function ghRender(){
  if(potKey!==ghPotKey){ghPotKey=potKey;$('#gh-pots').innerHTML=Array.from({length:5},(_,i)=>{
   const flower=ready?c.pots[i]:null, src=flower?`plant${ghFlowers[flower.id.replace('GH_FLOWER_','')]}.webp`:growing?phase:state==='planted'?'plant3.webp':'plantEmpty.webp';
   const label=flower?`${ghName(flower.id)} ×${flower.quantity}本`:state==='empty'?'空き':growing?'育成中':'種まき済み';
-  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.20.8.3" alt=""><span>${safe(label)}</span></div>`;
+  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.20.8.4" alt=""><span>${safe(label)}</span></div>`;
  }).join('');}
  $('#gh-can').innerHTML=ghData.canColor?`<img src="${ghDir}jouro${ghData.canColor}.webp" alt="じょうろ">${({B:'青',G:'緑',R:'赤',Y:'黄'})[ghData.canColor]}のじょうろ`:'じょうろを受け取っていません';
  $('#gh-owned').textContent=`種：${ghQuantity('LENT_SEED')}袋　腐葉土：${ghQuantity('S0047')}個　肥料：${ghQuantity('GH_FERTILIZER')}個`;
@@ -2971,7 +2972,7 @@ bind('#admin-show-clothing',async()=>{for(const p of document.querySelectorAll('
 bind('#cl-admin-new',()=>{clGet('admin-list').value='';clSelect();});bind('#cl-admin-reload',()=>clLoad(clGet('id').value));bind('#cl-add-material',()=>{if(clGet('materials').children.length<30)clMaterialRow();});bind('#cl-add-step',()=>{if(clGet('steps').children.length<20)clStepRow();});
 clGet('admin-search').addEventListener('input',()=>clList(clGet('id').value));clGet('admin-list').addEventListener('change',()=>clSelect(clAdminData.recipes.find(r=>r.id===clGet('admin-list').value)));clGet('image').addEventListener('input',clPreview);clGet('limited').addEventListener('change',()=>clGet('period').classList.toggle('hidden',!clGet('limited').checked));
 clGet('admin-form').addEventListener('submit',handler(async e=>{e.preventDefault();const button=clGet('save');button.disabled=true;try{const id=clGet('id').value.trim();const date=k=>clGet(k).value?new Date(clGet(k).value+':00+09:00').toISOString():null;const body={id,revision:clRevision,name:clGet('name').value,category:clGet('category').value,description:clGet('description').value,image:clGet('image').value,published:clGet('published').checked,limited:clGet('limited').checked,startsAt:date('start'),endsAt:date('end'),ingredients:[...clGet('materials').children].map(r=>({id:r.querySelector('select').value,quantity:Number(r.querySelector('input').value)})),steps:[...clGet('steps').children].map(r=>({type:r.querySelectorAll('select')[0].value,difficulty:Number(r.querySelectorAll('select')[1].value)}))};clAdminData=await adminApi('/clothing/save','POST',body);clGet('admin-search').value='';clList(id);clSelect(clAdminData.recipes.find(r=>r.id===id));toast('服飾レシピを保存しました。');}finally{button.disabled=false;}}));
-// v0.20.8.3 Clothing workshop. Images are returned only after a successful attempt.
+// v0.20.8.4 Clothing workshop. Images are returned only after a successful attempt.
 let clothBusy=false, clothFilter='all';
 async function openClothingRecipes(){
  const root=$('#clothing-recipes');root.textContent='読み込み中…';const {recipes}=await api('/clothing/recipes');root.replaceChildren();
@@ -3000,11 +3001,11 @@ function clothGame(root,step){return new Promise(resolve=>{
  root.append(clothButton('工程をスキップ（失敗）',()=>finish(false)));
 });}
 async function startClothing(r){
- if(clothBusy)return;if(!confirm('必要素材を消費して作成を始めますか？'))return;clothBusy=true;const back=$('#clothing-back');back.disabled=true;const root=$('#clothing-recipes');
+ if(clothBusy)return;if(!confirm('必要素材を消費して作成を始めますか？'))return;clothBusy=true;const back=$('#clothing-back'),hallBack=$('#clothing-hall-back');back.disabled=true;hallBack.disabled=true;const root=$('#clothing-recipes');
  try{const attemptId=crypto.randomUUID();const a=await api('/clothing/start','POST',{id:r.id,revision:r.revision,attemptId});const results=[];for(let i=0;i<a.steps.length;i++){const header=document.createElement('p');header.textContent=`${r.name}　工程 ${i+1}/${a.steps.length}`;const game=document.createElement('div');root.replaceChildren(header,game);results.push(await clothGame(game,a.steps[i]));game.textContent=results.at(-1)?'成功！':'失敗…';await new Promise(resolve=>setTimeout(resolve,600));}
  const finish=async()=>{const result=await api('/clothing/finish','POST',{id:a.id,results});root.replaceChildren();const h=document.createElement('h3');h.textContent=result.success?'完成しました！':'作成に失敗しました。';root.append(h);if(result.success){const img=document.createElement('img');img.src=result.item.image;img.alt=result.item.name;img.style.cssText='width:100%;max-width:520px;display:block;margin:auto;border-radius:12px';root.append(img);const name=document.createElement('p');name.textContent=result.item.name+' ×1 を持ち物に追加しました。';root.append(name);const link=document.createElement('a');link.href=result.item.image;link.download=result.item.id+'.webp';link.textContent='完成画像を保存する';link.className='button';root.append(link);}root.append(clothButton('レシピ一覧へ',()=>openClothingRecipes().catch(e=>toast(e.message))));};
  try{await finish();}catch(e){root.replaceChildren(clothButton('完成結果を再取得',()=>finish().catch(e=>toast(e.message))));toast(e.message);}
- }catch(e){toast(e.message);await openClothingRecipes().catch(()=>{});}finally{clothBusy=false;back.disabled=false;}
+ }catch(e){toast(e.message);await openClothingRecipes().catch(()=>{});}finally{clothBusy=false;back.disabled=false;hallBack.disabled=false;}
 }
 
 })();
