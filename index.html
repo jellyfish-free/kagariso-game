@@ -102,7 +102,7 @@
 </style>
   <script src="data/sea-items.js?v=0.17.0.3" defer></script>
   <script src="data/greenhouse-data.js?v=0.19.0" defer></script>
-  <script src="script.js?v=0.20.8.4" defer></script>
+  <script src="script.js?v=0.20.8.5" defer></script>
   <script src="data/cooking.js?v=0.18.7.5" defer></script>
   <script src="data/sea-game.js?v=0.17.1.5" defer></script>
 <style>
@@ -331,7 +331,7 @@
 .cloth-grid > button.cloth-recipe > span{display:block;width:100%;text-align:left;margin:0;}
 </style>
 <style>
-/* v0.20.8.4 — 管理画面の入力UIを図鑑・持ち物に統一 */
+/* v0.20.8.5 — 管理画面の入力UIを図鑑・持ち物に統一 */
 :is(#admin-editor-page,#admin-login-page) {color-scheme:dark;}
 :is(#admin-editor-page,#admin-login-page) :is(select,textarea,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]):not([type=color]):not([type=file]):not([type=button]):not([type=submit]):not([type=reset])) {
  box-sizing:border-box;width:100%;min-width:0;max-width:100%;min-height:42px;background:#1b1c2e;color:#f4edf5;border:1px solid #625d77;border-radius:9px;padding:8px 10px;font:inherit;font-size:14px;line-height:1.4;
@@ -355,6 +355,36 @@
 #admin-editor-page #cl-save{width:100%;min-height:42px;margin:8px 0 16px;}
 #admin-editor-page .sea-admin-table input{width:86px;min-width:64px;}
 @media(max-width:520px){#admin-editor-page .admin-fields-grid{grid-template-columns:1fr;}#admin-editor-page #cl-steps .admin-reply-row{grid-template-columns:repeat(2,minmax(0,1fr));}#cl-steps .admin-reply-row>div{grid-column:1/-1;justify-content:flex-end;}#admin-editor-page #cl-materials .admin-reply-row{grid-template-columns:minmax(0,1fr) 70px auto;}}
+</style>
+
+<style>
+/* v0.20.8.5: スマホのホール内NPCを縮小 */
+@media (max-width: 600px) {
+  #hall-visual :is(#hall-paper-actor,#hall-pyoro-actor) {
+    width: 19%; min-width: 0; max-width: 100px;
+  }
+  #hall-visual :is(#hall-paper-actor,#hall-pyoro-actor).hall-lounge-actor {
+    width: 14% !important; min-width: 0; max-width: 80px;
+    height: auto;
+  }
+  #hall-visual :is(#hall-paper-actor,#hall-pyoro-actor).hall-lounge-actor img {
+    width: 100%; height: auto; max-height: none;
+  }
+  #hall-visual #hall-paper-actor.hall-chatting { left: 41% !important; }
+  #hall-visual #hall-pyoro-actor.hall-chatting { left: 59% !important; }
+  #hall-visual :is(#hall-paper-label,#hall-pyoro-label) {
+    font-size: 9px; padding: 3px 4px; white-space: normal;
+    width: max-content; max-width: 60px; line-height: 1.25;
+    text-align: center; overflow-wrap: anywhere;
+  }
+  #hall-visual .npc-actor.hall-chatting .hall-chat-bubble {
+    top: -9px; right: 0; min-width: 22px; height: 22px;
+    padding: 0 5px; font-size: 11px;
+  }
+  #hall-visual .npc-actor.hall-chatting .hall-chat-bubble::after {
+    width: 7px; height: 7px; bottom: -3px; left: 7px;
+  }
+}
 </style>
 </head>
 <body>
@@ -1119,7 +1149,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.20.8.4</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.20.8.5</span></footer>
   </div>
 </body>
 </html>
