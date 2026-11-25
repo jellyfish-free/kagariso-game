@@ -479,7 +479,7 @@ function ghRender(){
  if(potKey!==ghPotKey){ghPotKey=potKey;$('#gh-pots').innerHTML=Array.from({length:5},(_,i)=>{
   const flower=ready?c.pots[i]:null, src=flower?`plant${ghFlowers[flower.id.replace('GH_FLOWER_','')]}.webp`:growing?phase:state==='planted'?'plant3.webp':'plantEmpty.webp';
   const label=flower?`${ghName(flower.id)} ×${flower.quantity}本`:state==='empty'?'空き':growing?'育成中':'種まき済み';
-  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.20.6.9" alt=""><span>${safe(label)}</span></div>`;
+  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.20.6.10" alt=""><span>${safe(label)}</span></div>`;
  }).join('');}
  $('#gh-can').innerHTML=ghData.canColor?`<img src="${ghDir}jouro${ghData.canColor}.webp" alt="じょうろ">${({B:'青',G:'緑',R:'赤',Y:'黄'})[ghData.canColor]}のじょうろ`:'じょうろを受け取っていません';
  $('#gh-owned').textContent=`種：${ghQuantity('LENT_SEED')}袋　腐葉土：${ghQuantity('S0047')}個　肥料：${ghQuantity('GH_FERTILIZER')}個`;
@@ -913,14 +913,15 @@ const collectionTabs=[['material','素材'],['cooked','料理'],['snack','おや
 let inventoryTab='material',catalogTab='material',mailTab='receive';
 function collectionKind(i){const k=String(i.kind||''),c=String(i.category||'');if(k==='gift')return 'gift';if(k==='event')return 'event';if(k==='clothing'||/服飾|衣服/.test(c))return 'clothing';if(k==='cooked'||k==='cooking')return /おやつ|菓子|dessert|snack/i.test(c)?'snack':'cooked';if(k==='crafted'||k==='craft')return 'crafted';return k==='material'?'material':'other';}
 function collectionTabBar(id,tabs,current,change){const root=$(id);root.replaceChildren();for(const [key,label] of tabs){const b=document.createElement('button');b.type='button';b.className='secondary';b.textContent=label;b.setAttribute('aria-pressed',String(key===current));b.onclick=()=>change(key);root.append(b);}}
-function collectionDetail(i){const d=document.createElement('dialog');d.className='collection-detail';d.innerHTML=`<h2>${safe(i.name)}</h2>${i.image?`<img src="${safe(i.image)}" alt="">`:''}<p>${safe(i.description||'')}</p><p class="muted">${safe(i.category||'')} · ${safe(sourceLabel(i.source)||'')}${i.quantity==null?'':` · 所持数 ×${Number(i.quantity)}`}</p><button class="secondary">閉じる</button>`;document.body.append(d);d.querySelector('button').onclick=()=>d.close();d.addEventListener('close',()=>d.remove(),{once:true});d.showModal();}
+function collectionDetail(i){const d=document.createElement('dialog');d.className='collection-detail';d.innerHTML=`<h2>${safe(i.name)}</h2>${i.image?`<img src="${safe(i.image)}" alt="">`:''}<p>${safe(i.description||'')}</p><p class="muted">${safe(i.category||'')} · ${safe(sourceLabel(i.source)||'')}${i.quantity==null?'':` · 所持数 ×${Number(i.quantity)}`}</p>${i.firstCreatedAt?`<p class="muted">作成済み${i.times==null?'':` · 作成回数 ${Number(i.times)}回`}${i.totalCreated==null?'':` · 累計作成数 ${Number(i.totalCreated)}個`}</p>`:''}<button class="secondary">閉じる</button>`;document.body.append(d);d.querySelector('button').onclick=()=>d.close();d.addEventListener('close',()=>d.remove(),{once:true});d.showModal();}
 function collectionCards(root,items){[...root.querySelectorAll('article')].forEach((card,n)=>{const item=items[n];if(!item||item.found===false)return;card.tabIndex=0;card.setAttribute('role','button');card.onclick=()=>collectionDetail(item);card.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();collectionDetail(item);}};});}
 async function openMaterialCatalog(){
- const [discovery,eventData,giftData,giftStats]=await Promise.all([
+ const [discovery,eventData,giftData,giftStats,createdData]=await Promise.all([
    api('/materials/discovered'),
    api('/catalog/events'),
    api('/inventory'),
-   api('/catalog/gifts')
+   api('/catalog/gifts'),
+   api('/catalog/created')
  ]);
  const discovered=new Set(discovery.ids||[]);
  const forestReady=Boolean(forestState?.unlocked&&forestState?.seen&&forestState?.eligible);
@@ -938,15 +939,15 @@ async function openMaterialCatalog(){
    return {id:g.itemId,name:g.name||def.name,description:g.description||def.description,
      image:g.image||def.image||'',kind:'gift',source:g.npcName||'黄色い獣',found:true};
  });
- // 作製物の所持記録は未実装。今後の調合・工作システム追加時にここへ統合する。
+ // 作成履歴は所持数と独立してサーバーから取得する。
  // 未発見の返礼品は名前・IDを公開せず、総数のみ図鑑に反映。
  const giftTotal=Math.max(gifts.length,Number(giftStats.total)||0);
  const foundByNpc=new Map();gifts.forEach(g=>foundByNpc.set(g.source,(foundByNpc.get(g.source)||0)+1));
  const giftUnknown=(giftStats.byNpc||[{name:'黄色い獣',count:giftTotal}]).flatMap(({name,count})=>Array.from({length:Math.max(0,Number(count)-(foundByNpc.get(name)||0))},(_,n)=>({id:`gift-unknown-${name}-${n}`,name:'？？？？？',kind:'gift',source:name,found:false})));
- const entries=[...materials,...events,...gifts,...giftUnknown,...(giftData.cooked||[]).map(d=>({...d,kind:'cooked',source:'料理',found:true}))].sort((a,b)=>sourceRank(a.source)-sourceRank(b.source));
+ const entries=[...materials,...events,...gifts,...giftUnknown,...(createdData.items||[])].sort((a,b)=>sourceRank(a.source)-sourceRank(b.source));
  const progress=$('#catalog-progress');
- progress.textContent=`素材：${materials.filter(m=>m.found).length} / ${materials.length} ｜ イベントアイテム：${events.length?events.length:"-"} ｜ プレゼント：${gifts.length}/${giftTotal}`;
- const kindLabels={material:'素材',event:'イベントアイテム',gift:'プレゼント',crafted:'作製物'};
+ progress.textContent=`素材：${materials.filter(m=>m.found).length} / ${materials.length} ｜ イベントアイテム：${events.length?events.length:"-"} ｜ プレゼント：${gifts.length}/${giftTotal} ｜ 作成済み：${(createdData.items||[]).length}種類`;
+ const kindLabels={material:'素材',event:'イベントアイテム',gift:'プレゼント',crafted:'作製物',cooked:'作成済み',clothing:'服飾'};
  const render=()=>{
    const state=$('#catalog-filter').value;
    const rarity=$('#catalog-rarity').value, query=$('#catalog-search').value.trim().toLowerCase();
