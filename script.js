@@ -14,7 +14,7 @@ let pendingRecovery='';
 let inventoryReturn='hall';
 let gathering=false;
 let npcReturn='hall', mandatoryStory=false;
-const pages=['auth','recovery','hall','npc','conversation','room','private-room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-diary','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor','forest-event','forest','forest-area','forest-memories','sea','sea-event','pyoro','pyoro-conversation','pyoro-history','pyoro-feeding','pyoro-requests','pyoro-words','pyoro-word-history','pyoro-diary','pyoro-gifts','pair-memories','workshop','clothing','cooking','cooking-recipe','moon','greenhouse'];
+const pages=['auth','recovery','hall','npc','conversation','room','private-room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-diary','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor','forest-event','forest','forest-area','forest-memories','sea','sea-event','front-event','pyoro','pyoro-conversation','pyoro-history','pyoro-feeding','pyoro-requests','pyoro-words','pyoro-word-history','pyoro-diary','pyoro-gifts','pair-memories','workshop','clothing','cooking','cooking-recipe','moon','greenhouse'];
 let activePage='';
 const show=(name)=>{
   const changed=activePage!==name; activePage=name;
@@ -388,7 +388,14 @@ function showSeaEvent(kind,e,replay=false){
  next.onclick=handler(async()=>{if(seaEventBusy)return;if(index<story.pages.length-1){index++;render();return;}seaEventBusy=true;next.disabled=true;try{if(!replay)await api('/sea/event','POST',{event:kind,choice});if(replay)await openForestMemories();else await openHall();}finally{seaEventBusy=false;next.disabled=false;}});
  render();show('sea-event');
 }
-async function checkSeaEvents(){if(!seaState?.unlocked||!seaState?.eligible)return false;const e=await api('/sea/events');if(!e.greenSeen){showSeaEvent('green',e);return true;}if(e.discovered&&!e.encounterSeen){showSeaEvent(e.isFinder?'discover':'meet',e);return true;}return false;}
+const frontStoryPages=["大理石のホールに、カチリ、と小さな音が響いた。\n\nこれまで固く閉ざされていた中央の透明な扉が、誰も触れていないというのに、ゆっくりと開き始める。扉の向こうから溢れ出した柔らかな光が、磨かれた床を淡い虹色に染めていった。", "「……あれ？　ねえねえ、あの扉、開いてるよ！」\n\n黄色い獣が大きな耳をぴんと立て、虹色の尻尾を揺らしながら扉を見つめる。", "「本当だ！　いつの間に開いたんだ？」\n\n赤い獣も首元の鈴を鳴らしながら駆け寄ってきた。二匹は並んで扉の向こうを覗き込もうとするものの、光に包まれたその先の様子は、まだよく分からない。", "「……なんだか、美味しそうな匂いがしない？」\n\n黄色い獣が鼻をひくひくと動かす。", "「美味しいものがあるのか！？　もしかして、ご馳走がいっぱいある場所かもしれないぞ！」\n\n「でも、何かを作る場所かもしれないよ。自分たちで美味しいものを作れたら楽しそうだね！」\n\n「食べ物だけじゃなくて、色んなものが作れたりしてな！　今まで集めたものも使えるかもしれないぞ！」", "まだ見ぬ扉の先を想像しながら、二匹は楽しそうに顔を見合わせる。赤い獣は待ちきれない様子で足踏みをし、黄色い獣は住人たちの方へと振り返った。\n\n「ねえ、みんなは何があると思う？」\n\n「ここで考えてても分からないぞ！　一緒に確かめに行こうぜ！」", "これまでの探索で集めてきた、様々な素材や不思議な品々。それらにも、もしかすると新たな使い道が見つかるのかもしれない。"];
+function showFrontEvent(replay=false){
+ let index=0,busy=false;const next=$('#front-event-next');
+ const render=()=>{$('#front-event-text').textContent=frontStoryPages[index];$('#front-event-progress').textContent=`${index+1} / ${frontStoryPages.length}`;next.textContent=index===frontStoryPages.length-1?(replay?'思い出に戻る →':'物語を終える →'):'続きを読む →';};
+ next.disabled=false;next.onclick=handler(async()=>{if(busy)return;if(index<frontStoryPages.length-1){index++;render();return;}busy=true;next.disabled=true;try{if(replay){await openForestMemories();return;}await api('/sea/event','POST',{event:'front'});await openHall();}finally{busy=false;next.disabled=false;}});
+ render();show('front-event');
+}
+async function checkSeaEvents(){if(!seaState?.unlocked||!seaState?.eligible)return false;const e=await api('/sea/events');if(!e.greenSeen){showSeaEvent('green',e);return true;}if(e.discovered&&!e.encounterSeen){showSeaEvent(e.isFinder?'discover':'meet',e);return true;}if(e.discovered&&e.encounterSeen&&!e.frontSeen){showFrontEvent();return true;}return false;}
 
 // v0.18.7 商人lent。画像は背景と人物が一体のWebPを使う。
 let lentBusy=false,lentCurrentProfile=null;
@@ -481,7 +488,7 @@ function ghRender(){
  if(potKey!==ghPotKey){ghPotKey=potKey;$('#gh-pots').innerHTML=Array.from({length:5},(_,i)=>{
   const flower=ready?c.pots[i]:null, src=flower?`plant${ghFlowers[flower.id.replace('GH_FLOWER_','')]}.webp`:growing?phase:state==='planted'?'plant3.webp':'plantEmpty.webp';
   const label=flower?`${ghName(flower.id)} ×${flower.quantity}本`:state==='empty'?'空き':growing?'育成中':'種まき済み';
-  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.20.8.6" alt=""><span>${safe(label)}</span></div>`;
+  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.20.8.7" alt=""><span>${safe(label)}</span></div>`;
  }).join('');}
  $('#gh-can').innerHTML=ghData.canColor?`<img src="${ghDir}jouro${ghData.canColor}.webp" alt="じょうろ">${({B:'青',G:'緑',R:'赤',Y:'黄'})[ghData.canColor]}のじょうろ`:'じょうろを受け取っていません';
  $('#gh-owned').textContent=`種：${ghQuantity('LENT_SEED')}袋　腐葉土：${ghQuantity('S0047')}個　肥料：${ghQuantity('GH_FERTILIZER')}個`;
@@ -608,6 +615,7 @@ async function openHall(){const data=await api('/hall');resident=data.resident;$
   updateHallBackground();
   updateForestHall(data.forest);
   seaState=data.sea||null;
+  $('#hall-closed-door-copy').classList.toggle('hidden',!!seaState?.unlocked);
   frontCookingUnlocked=!!data.frontUnlocked;
   moonDoorUnlocked=!!data.moonUnlocked;
   greenhouseUnlocked=!!data.greenhouseUnlocked;
@@ -2019,7 +2027,7 @@ function showForestArea(id){
 for(const a of FOREST_AREAS)bind('#forest-area-'+a.id,()=>showForestArea(a.id));
 bind('#forest-area-hall',openHall);bind('#forest-inventory',()=>openInventory('forest-area'));
 
-async function openForestMemories(){const {forest}=await api('/forest/status');if(forest.unlocked&&forest.seen&&forest.eligible){const e=await api('/sea/events');const list=$('#sea-memory-buttons');list.replaceChildren();for(const [kind,label,seen] of [['green','緑の扉の向こう側',e.greenSeen],[e.isFinder?'discover':'meet',e.isFinder?'海から釣れた、へんなもの':'赤色の獣との出会い',e.encounterSeen]])if(seen){const b=document.createElement('button');b.className='secondary';b.textContent=label+' →';b.onclick=()=>showSeaEvent(kind,e,true);list.append(b);}$('#sea-memories').classList.toggle('hidden',!list.childElementCount);show('forest-memories');}else toast('まだ思い出はありません。');}
+async function openForestMemories(){const {forest}=await api('/forest/status');if(forest.unlocked&&forest.seen&&forest.eligible){const e=await api('/sea/events');const list=$('#sea-memory-buttons');list.replaceChildren();for(const [kind,label,seen] of [['green','緑の扉の向こう側',e.greenSeen],[e.isFinder?'discover':'meet',e.isFinder?'海から釣れた、へんなもの':'赤色の獣との出会い',e.encounterSeen]])if(seen){const b=document.createElement('button');b.className='secondary';b.textContent=label+' →';b.onclick=()=>showSeaEvent(kind,e,true);list.append(b);}if(e.frontSeen){const b=document.createElement('button');b.className='secondary';b.textContent='正面の扉の向こう側 →';b.onclick=()=>showFrontEvent(true);list.append(b);}$('#sea-memories').classList.toggle('hidden',!list.childElementCount);show('forest-memories');}else toast('まだ思い出はありません。');}
 bind('#forest-memory',openForestMemories);
 bind('#forest-memories-back',openHall);
 bind('#forest-memory-cave',async()=>{await openCave();if(activePage==='cave'){$('#cave-history').closest('details').open=true;$('#cave-history').scrollIntoView({block:'nearest'});}});
@@ -2973,7 +2981,7 @@ bind('#admin-show-clothing',async()=>{for(const p of document.querySelectorAll('
 bind('#cl-admin-new',()=>{clGet('admin-list').value='';clSelect();});bind('#cl-admin-reload',()=>clLoad(clGet('id').value));bind('#cl-add-material',()=>{if(clGet('materials').children.length<30)clMaterialRow();});bind('#cl-add-step',()=>{if(clGet('steps').children.length<20)clStepRow();});
 clGet('admin-search').addEventListener('input',()=>clList(clGet('id').value));clGet('admin-list').addEventListener('change',()=>clSelect(clAdminData.recipes.find(r=>r.id===clGet('admin-list').value)));clGet('image').addEventListener('input',clPreview);clGet('limited').addEventListener('change',()=>clGet('period').classList.toggle('hidden',!clGet('limited').checked));
 clGet('admin-form').addEventListener('submit',handler(async e=>{e.preventDefault();const button=clGet('save');button.disabled=true;try{const id=clGet('id').value.trim();const date=k=>clGet(k).value?new Date(clGet(k).value+':00+09:00').toISOString():null;const body={id,revision:clRevision,name:clGet('name').value,category:clGet('category').value,description:clGet('description').value,image:clGet('image').value,published:clGet('published').checked,limited:clGet('limited').checked,startsAt:date('start'),endsAt:date('end'),ingredients:[...clGet('materials').children].map(r=>({id:r.querySelector('select').value,quantity:Number(r.querySelector('input').value)})),steps:[...clGet('steps').children].map(r=>({type:r.querySelectorAll('select')[0].value,difficulty:Number(r.querySelectorAll('select')[1].value)}))};clAdminData=await adminApi('/clothing/save','POST',body);clGet('admin-search').value='';clList(id);clSelect(clAdminData.recipes.find(r=>r.id===id));toast('服飾レシピを保存しました。');}finally{button.disabled=false;}}));
-// v0.20.8.6 Clothing workshop. Images are returned only after a successful attempt.
+// v0.20.8.7 Clothing workshop. Images are returned only after a successful attempt.
 let clothBusy=false, clothFilter='all';
 async function openClothingRecipes(){
  const root=$('#clothing-recipes');root.textContent='読み込み中…';const {recipes}=await api('/clothing/recipes');root.replaceChildren();
