@@ -494,7 +494,7 @@ function ghRender(){
  if(potKey!==ghPotKey){ghPotKey=potKey;$('#gh-pots').innerHTML=Array.from({length:5},(_,i)=>{
   const flower=ready?c.pots[i]:null, src=flower?`plant${ghFlowers[flower.id.replace('GH_FLOWER_','')]}.webp`:growing?phase:state==='planted'?'plant3.webp':'plantEmpty.webp';
   const label=flower?`${ghName(flower.id)} ×${flower.quantity}本`:state==='empty'?'空き':growing?'育成中':'種まき済み';
-  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.20.8.8" alt=""><span>${safe(label)}</span></div>`;
+  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.20.8.9" alt=""><span>${safe(label)}</span></div>`;
  }).join('');}
  $('#gh-can').innerHTML=ghData.canColor?`<img src="${ghDir}jouro${ghData.canColor}.webp" alt="じょうろ">${({B:'青',G:'緑',R:'赤',Y:'黄'})[ghData.canColor]}のじょうろ`:'じょうろを受け取っていません';
  $('#gh-owned').textContent=`種：${ghQuantity('LENT_SEED')}袋　腐葉土：${ghQuantity('S0047')}個　肥料：${ghQuantity('GH_FERTILIZER')}個`;
@@ -666,7 +666,7 @@ async function openHall(){const data=await api('/hall');resident=data.resident;$
   if(data.forest?.unlocked&&data.forest.eligible&&!data.forest.seen){showForestEvent(false);return;}
   if(await checkSeaEvents())return;
   if(data.moonUnlocked&&data.frontUnlocked&&!data.moonSeen){showMoonEvent();return;}
-  if(data.build?.active&&!data.build.seen){showBuildEvent(data);return;}
+  if(data.build?.active&&!data.build.seen){showBuildEvent(data.build);return;}
   if(data.build?.completedAt&&!isBuildCompletionClosed(data.build)){showBuildEvent(data.build,true);return;}
   checkGameNotifications().catch(console.warn);
 }
@@ -696,7 +696,7 @@ const dismissedBuildCompletions=new Set();
 function buildCompletionKey(data){return `kagariso-build-closed:${resident?.id}:${data.questId}:${data.completedAt}`;}
 function isBuildCompletionClosed(data){const key=buildCompletionKey(data);try{return dismissedBuildCompletions.has(key)||localStorage.getItem(key)==='1';}catch{return dismissedBuildCompletions.has(key);}}
 function closeBuildCompletion(data){const key=buildCompletionKey(data);dismissedBuildCompletions.add(key);try{localStorage.setItem(key,'1');}catch{}renderHallBuild(data);}
-function showBuildEvent(data,complete=false){
+function showBuildEvent(data,complete=false,replay=false){
  const questId=data.questId;let index=0,busy=false;
  const done=buildCompleteByQuest[questId];const dialogue=complete?(done?.lines||[]).map(line=>['',line]):(buildDialogues[questId]||[]);
  if(!dialogue.length)return;
@@ -705,8 +705,8 @@ function showBuildEvent(data,complete=false){
  const still=questId==='paper_decor'?privateRoomImage('paper',5):questId==='pyoro_decor'?privateRoomImage('pyoro',5):questId==='paper_desk'?privateRoomImage('paper',4):questId==='pyoro_shelf'?privateRoomImage('pyoro',4):questId==='paper_room'?`images/memories/paper-room-event${index<5?1:2}.webp`:questId==='paper_bed'?privateRoomImage('paper',1):questId==='pyoro_room'?privateRoomImage('paper',2):questId==='pyoro_bed'?privateRoomImage('pyoro',1):questId==='paper_rug'?privateRoomImage('paper',2):questId==='pyoro_rug'?privateRoomImage('pyoro',2):questId==='paper_sofa'?privateRoomImage('paper',3):questId==='pyoro_table'?privateRoomImage('pyoro',3):buildStillByQuest[questId]||buildStillByQuest.hall_lounge;
  let picture=still;if(complete){const npc=questId.startsWith('paper_')?'paper':questId.startsWith('pyoro_')?'pyoro':null;const levels={room:1,bed:2,rug:3,sofa:4,table:4,desk:5,shelf:5,decor:6};if(npc)picture=privateRoomImage(npc,levels[questId.split('_')[1]]);else picture=`images/memories/${questId==='hall_stairs'?'hall-stairs':'hall-expansion'}.webp`;}
  $('#build-event-title').textContent=complete?done.title:(data.title||'ホール拡張計画');img.src=picture;
- const line=dialogue[index];$('#build-event-text').textContent=line[0]?`${line[0]}\n\n「${line[1]}」`:line[1];$('#build-event-progress').textContent=`${index+1} / ${dialogue.length}`;prev.disabled=index===0;next.textContent=index===dialogue.length-1?(complete?'閉じる':'会話を終える →'):'続きを読む →';};
- prev.onclick=()=>{if(!busy&&index>0){index--;render();}};next.disabled=false;next.onclick=handler(async()=>{if(busy)return;if(index<dialogue.length-1){index++;render();return;}busy=true;next.disabled=true;try{if(complete){closeBuildCompletion(data);}else{try{await api('/build/lounge/visit','POST',{questId});}catch(e){const latest=await api('/build/lounge');if(latest.active&&latest.questId===questId)throw e;}}await openHall();}finally{busy=false;next.disabled=false;}});render();show('build-event');
+ const line=dialogue[index];$('#build-event-text').textContent=line[0]?`${line[0]}\n\n「${line[1]}」`:line[1];$('#build-event-progress').textContent=`${index+1} / ${dialogue.length}`;prev.disabled=index===0;next.textContent=index===dialogue.length-1?(replay?'思い出に戻る':complete?'閉じる':'会話を終える →'):'続きを読む →';};
+ prev.onclick=()=>{if(!busy&&index>0){index--;render();}};next.disabled=false;next.onclick=handler(async()=>{if(busy)return;if(index<dialogue.length-1){index++;render();return;}busy=true;next.disabled=true;try{if(replay){await openForestMemories();return;}if(complete){closeBuildCompletion(data);}else{try{await api('/build/lounge/visit','POST',{questId});}catch(e){const latest=await api('/build/lounge');if(latest.active&&latest.questId===questId)throw e;}}await openHall();}finally{busy=false;next.disabled=false;}});render();show('build-event');
 }
 function renderHallBuild(data){
  const panel=$('#hall-build');if(!panel)return;
@@ -2043,7 +2043,24 @@ function showForestArea(id){
 for(const a of FOREST_AREAS)bind('#forest-area-'+a.id,()=>showForestArea(a.id));
 bind('#forest-area-hall',openHall);bind('#forest-inventory',()=>openInventory('forest-area'));
 
-async function openForestMemories(){const {forest}=await api('/forest/status');if(forest.unlocked&&forest.seen&&forest.eligible){const e=await api('/sea/events');const list=$('#sea-memory-buttons');list.replaceChildren();for(const [kind,label,seen] of [['green','緑の扉の向こう側',e.greenSeen],[e.isFinder?'discover':'meet',e.isFinder?'海から釣れた、へんなもの':'赤色の獣との出会い',e.encounterSeen]])if(seen){const b=document.createElement('button');b.className='secondary';b.textContent=label+' →';b.onclick=()=>showSeaEvent(kind,e,true);list.append(b);}if(e.frontSeen){const b=document.createElement('button');b.className='secondary';b.textContent='正面の扉の向こう側 →';b.onclick=()=>showFrontEvent(true);list.append(b);}if(e.moonSeen){const b=document.createElement('button');b.className='secondary';b.textContent='月の扉の向こう側 →';b.onclick=()=>showMoonEvent(true);list.append(b);}$('#sea-memories').classList.toggle('hidden',!list.childElementCount);show('forest-memories');}else toast('まだ思い出はありません。');}
+const buildMemoryTitles={hall_lounge:'ホールの拡張を企てる二匹',hall_stairs:'階段をつけようとする二匹',paper_room:'自分のおへやがほしい黄色い獣',pyoro_room:'オレもおへやがほしい'};
+async function openForestMemories(){
+ const {forest}=await api('/forest/status');
+ if(!(forest.unlocked&&forest.seen&&forest.eligible)){toast('まだ思い出はありません。');return;}
+ const [e,build]=await Promise.all([api('/sea/events'),api('/build/lounge')]);
+ const add=(list,label,action)=>{const b=document.createElement('button');b.className='secondary';b.textContent=label+' →';b.onclick=handler(action);list.append(b);};
+ const sections=['sea','front','moon','build'];
+ for(const name of sections)$('#'+name+'-memory-buttons').replaceChildren();
+ const seaList=$('#sea-memory-buttons');
+ for(const [kind,label,seen] of [['green','緑の扉の向こう側',e.greenSeen],[e.isFinder?'discover':'meet',e.isFinder?'海から釣れた、へんなもの':'赤色の獣との出会い',e.encounterSeen]])if(seen)add(seaList,label,()=>showSeaEvent(kind,e,true));
+ if(e.frontSeen)add($('#front-memory-buttons'),'正面の扉の向こう側',()=>showFrontEvent(true));
+ if(e.moonSeen)add($('#moon-memory-buttons'),'月の扉の向こう側',()=>showMoonEvent(true));
+ for(const q of build.quests||[]){const title=buildMemoryTitles[q.id];if(!title)continue;
+  if(q.completedAt||(q.startedAt&&build.questId===q.id&&build.seen))add($('#build-memory-buttons'),title,()=>showBuildEvent({questId:q.id,title},false,true));
+ }
+ for(const name of sections)$('#'+name+'-memories').classList.toggle('hidden',!$('#'+name+'-memory-buttons').childElementCount);
+ show('forest-memories');
+}
 bind('#forest-memory',openForestMemories);
 bind('#forest-memories-back',openHall);
 bind('#forest-memory-cave',async()=>{await openCave();if(activePage==='cave'){$('#cave-history').closest('details').open=true;$('#cave-history').scrollIntoView({block:'nearest'});}});
@@ -2997,7 +3014,7 @@ bind('#admin-show-clothing',async()=>{for(const p of document.querySelectorAll('
 bind('#cl-admin-new',()=>{clGet('admin-list').value='';clSelect();});bind('#cl-admin-reload',()=>clLoad(clGet('id').value));bind('#cl-add-material',()=>{if(clGet('materials').children.length<30)clMaterialRow();});bind('#cl-add-step',()=>{if(clGet('steps').children.length<20)clStepRow();});
 clGet('admin-search').addEventListener('input',()=>clList(clGet('id').value));clGet('admin-list').addEventListener('change',()=>clSelect(clAdminData.recipes.find(r=>r.id===clGet('admin-list').value)));clGet('image').addEventListener('input',clPreview);clGet('limited').addEventListener('change',()=>clGet('period').classList.toggle('hidden',!clGet('limited').checked));
 clGet('admin-form').addEventListener('submit',handler(async e=>{e.preventDefault();const button=clGet('save');button.disabled=true;try{const id=clGet('id').value.trim();const date=k=>clGet(k).value?new Date(clGet(k).value+':00+09:00').toISOString():null;const body={id,revision:clRevision,name:clGet('name').value,category:clGet('category').value,description:clGet('description').value,image:clGet('image').value,published:clGet('published').checked,limited:clGet('limited').checked,startsAt:date('start'),endsAt:date('end'),ingredients:[...clGet('materials').children].map(r=>({id:r.querySelector('select').value,quantity:Number(r.querySelector('input').value)})),steps:[...clGet('steps').children].map(r=>({type:r.querySelectorAll('select')[0].value,difficulty:Number(r.querySelectorAll('select')[1].value)}))};clAdminData=await adminApi('/clothing/save','POST',body);clGet('admin-search').value='';clList(id);clSelect(clAdminData.recipes.find(r=>r.id===id));toast('服飾レシピを保存しました。');}finally{button.disabled=false;}}));
-// v0.20.8.8 Clothing workshop. Images are returned only after a successful attempt.
+// v0.20.8.9 Clothing workshop. Images are returned only after a successful attempt.
 let clothBusy=false, clothFilter='all';
 async function openClothingRecipes(){
  const root=$('#clothing-recipes');root.textContent='読み込み中…';const {recipes}=await api('/clothing/recipes');root.replaceChildren();
