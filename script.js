@@ -479,7 +479,7 @@ function ghRender(){
  if(potKey!==ghPotKey){ghPotKey=potKey;$('#gh-pots').innerHTML=Array.from({length:5},(_,i)=>{
   const flower=ready?c.pots[i]:null, src=flower?`plant${ghFlowers[flower.id.replace('GH_FLOWER_','')]}.webp`:growing?phase:state==='planted'?'plant3.webp':'plantEmpty.webp';
   const label=flower?`${ghName(flower.id)} ×${flower.quantity}本`:state==='empty'?'空き':growing?'育成中':'種まき済み';
-  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.20.6.5" alt=""><span>${safe(label)}</span></div>`;
+  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.20.6.6" alt=""><span>${safe(label)}</span></div>`;
  }).join('');}
  $('#gh-can').innerHTML=ghData.canColor?`<img src="${ghDir}jouro${ghData.canColor}.webp" alt="じょうろ">${({B:'青',G:'緑',R:'赤',Y:'黄'})[ghData.canColor]}のじょうろ`:'じょうろを受け取っていません';
  $('#gh-owned').textContent=`種：${ghQuantity('LENT_SEED')}袋　腐葉土：${ghQuantity('S0047')}個　肥料：${ghQuantity('GH_FERTILIZER')}個`;
@@ -535,19 +535,27 @@ function ghRenderShop(p){
  if(!p?.flowerQuest?.seedClaimed||!p?.flowerQuest?.canClaimed||!p?.canTrade)return;
  api('/greenhouse/shop').then(data=>{
   if(ticket!==ghShopRender||activePage!=='moon'||!data.canTrade)return;
+  const refreshers=[];
   const cats=['園芸用品','染料','生地','裁縫素材'];
   host.innerHTML=`<div class="gh-tabs">${cats.map(x=>`<button class="secondary small ${x===ghShopCategory?'gh-selected':''}" data-gh-cat="${x}">${x}</button>`).join('')}</div><div id="gh-recipes"></div>`;
-  host.querySelectorAll('[data-gh-cat]').forEach(b=>b.onclick=()=>{ghShopCategory=b.dataset.ghCat;ghRenderShop(p);});
+  host.querySelectorAll('[data-gh-cat]').forEach(b=>b.onclick=()=>{if(lentBusy)return;ghShopCategory=b.dataset.ghCat;ghRenderShop(p);});
   for(const recipe of GH.recipes.filter(x=>x.category===ghShopCategory)){
    const item=GH.items.find(x=>x.id===recipe.result.id),card=document.createElement('article');card.className='request-card gh-recipe';
    const desc=recipe.alternatives.map(a=>a.map(x=>`${ghName(x.id)}×${x.quantity}`).join(' ＋ '));
-   card.innerHTML=`<div class="gh-result-row"><img src="${safe(item.image)}" alt=""><div><strong>${safe(item.name)}</strong><p class="muted tiny">所持：${data.owned[item.id]||0}個</p></div></div><label>交換素材<select class="gh-alt">${desc.map((x,i)=>`<option value="${i}">${safe(x)}</option>`).join('')}</select></label><p class="muted tiny gh-cost"></p><div class="gh-qty"><button class="secondary small" data-step="-10">−10</button><input type="number" min="1" value="1" inputmode="numeric"><button class="secondary small" data-step="10">＋10</button><button class="secondary small" data-step="max">最大</button></div><button class="primary gh-exchange">交換する</button>`;
+   card.innerHTML=`<div class="gh-result-row"><img src="${safe(item.image)}" alt=""><div><strong>${safe(item.name)}</strong><p class="muted tiny gh-owned">所持：${data.owned[item.id]||0}個</p></div></div><label>交換素材<select class="gh-alt">${desc.map((x,i)=>`<option value="${i}">${safe(x)}</option>`).join('')}</select></label><p class="muted tiny gh-cost"></p><div class="gh-qty"><button class="secondary small" data-step="-10">−10</button><input type="number" min="1" value="1" inputmode="numeric"><button class="secondary small" data-step="10">＋10</button><button class="secondary small" data-step="max">最大</button></div><button class="primary gh-exchange">交換する</button>`;
    const sel=card.querySelector('select'),input=card.querySelector('input'),btn=card.querySelector('.gh-exchange');
    const max=()=>Math.min(1000,...recipe.alternatives[Number(sel.value)].map(x=>Math.floor((data.owned[x.id]||0)/x.quantity)));
-   const refresh=()=>{const m=max();input.max=String(m);input.value=String(Math.max(1,Math.min(m||1,Math.floor(Number(input.value)||1))));btn.disabled=m<1||lentBusy;card.querySelector('.gh-cost').textContent=recipe.alternatives[Number(sel.value)].map(x=>`${ghName(x.id)}：所持${data.owned[x.id]||0}個 / 必要${x.quantity*Number(input.value)}個`).join('　');};
+   const refresh=()=>{const m=max();input.max=String(m);input.value=String(Math.max(1,Math.min(m||1,Math.floor(Number(input.value)||1))));btn.disabled=m<1||lentBusy||!data.canTrade;card.querySelector('.gh-owned').textContent=`所持：${data.owned[item.id]||0}個`;card.querySelector('.gh-cost').textContent=recipe.alternatives[Number(sel.value)].map(x=>`${ghName(x.id)}：所持${data.owned[x.id]||0}個 / 必要${x.quantity*Number(input.value)}個`).join('　');};
    sel.onchange=refresh;input.onchange=refresh;input.oninput=()=>{card.querySelector('.gh-cost').textContent=recipe.alternatives[Number(sel.value)].map(x=>`${ghName(x.id)}：所持${data.owned[x.id]||0}個 / 必要${x.quantity*(Number(input.value)||0)}個`).join('　');};
    card.querySelectorAll('[data-step]').forEach(b=>b.onclick=()=>{input.value=String(b.dataset.step==='max'?max():Number(input.value)+Number(b.dataset.step));refresh();});
-   btn.onclick=handler(async()=>{if(lentBusy)return;refresh();const quantity=Number(input.value);if(quantity>max())return;lentBusy=true;btn.disabled=true;try{await api('/greenhouse/trade','POST',{recipeId:recipe.id,alternative:Number(sel.value),quantity,operationId:crypto.randomUUID()});toast(`${item.name}を${quantity}個交換しました。`);}finally{lentBusy=false;if(activePage==='moon'){const r=await api('/lent');renderLent(r.lent);}}});
+   btn.onclick=handler(async()=>{
+    if(lentBusy||!data.canTrade)return;refresh();const quantity=Number(input.value),alternative=Number(sel.value);if(quantity>max())return;
+    lentBusy=true;refreshers.forEach(fn=>fn());
+    try{const result=await api('/greenhouse/trade','POST',{recipeId:recipe.id,alternative,quantity,operationId:crypto.randomUUID()});Object.assign(data,result);toast(`${item.name}を${quantity}個交換しました。`);}
+    catch(e){try{Object.assign(data,await api('/greenhouse/shop'));}catch(_){}throw e;}
+    finally{lentBusy=false;if(ticket===ghShopRender&&activePage==='moon')refreshers.forEach(fn=>fn());}
+   });
+   refreshers.push(refresh);
    refresh();host.querySelector('#gh-recipes').append(card);
   }
  }).catch(e=>{if(ticket===ghShopRender)host.textContent=e.message;});
