@@ -14,7 +14,7 @@ let pendingRecovery='';
 let inventoryReturn='hall';
 let gathering=false;
 let npcReturn='hall', mandatoryStory=false;
-const pages=['auth','recovery','hall','npc','conversation','room','private-room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-diary','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor','forest-event','forest','forest-area','forest-memories','sea','sea-event','front-event','pyoro','pyoro-conversation','pyoro-history','pyoro-feeding','pyoro-requests','pyoro-words','pyoro-word-history','pyoro-diary','pyoro-gifts','pair-memories','workshop','clothing','cooking','cooking-recipe','moon','greenhouse'];
+const pages=['auth','recovery','hall','npc','conversation','room','private-room','history','cave','cave-story','inventory','material-catalog','npc-requests','npc-diary','npc-gifts','gift-history','npc-words','word-history','npc-feeding','admin-login','admin-editor','forest-event','forest','forest-area','forest-memories','sea','sea-event','front-event','moon-event','build-event','pyoro','pyoro-conversation','pyoro-history','pyoro-feeding','pyoro-requests','pyoro-words','pyoro-word-history','pyoro-diary','pyoro-gifts','pair-memories','workshop','clothing','cooking','cooking-recipe','moon','greenhouse'];
 let activePage='';
 const show=(name)=>{
   const changed=activePage!==name; activePage=name;
@@ -395,6 +395,12 @@ function showFrontEvent(replay=false){
  next.disabled=false;next.onclick=handler(async()=>{if(busy)return;if(index<frontStoryPages.length-1){index++;render();return;}busy=true;next.disabled=true;try{if(replay){await openForestMemories();return;}await api('/sea/event','POST',{event:'front'});await openHall();}finally{busy=false;next.disabled=false;}});
  render();show('front-event');
 }
+const moonStoryPages=["大理石のホールを歩いていた赤い獣の耳に、聞き慣れない音が届いた。\n\nギィ……。\n\n何かが軋むような音に足を止め、辺りを見回す。すると、金色の月が描かれた黒い扉が、いつの間にか開いているではないか。", "「……えっ？」\n\n赤い獣の尻尾がぴたりと止まった。\n\n開いた扉の向こうには、紫がかった仄暗い光が漂っている。昼間の明るいホールとは対照的なその光景に、思わず一歩、二歩と後退った。", "「お、おい……。あんなところ、開いてたか？」\n\n恐る恐る様子を窺っていると、扉の奥から何やら硬貨が触れ合うような音が聞こえてきた。", "チャリン、チャリン。\n\n「……な、なんかいるぞ！　絶対になんかいる！」\n\n慌てて近くの柱の陰へと駆け込み、顔だけを覗かせる。しばらく耳を澄ませていたが、聞こえてくるのは物を動かす音や、時折響く小さな物音ばかり。", "「もしかして、誰か住んでるのか？　……いや、でも、あんな暗いところに住んでるやつなんて、怪しいに決まってるぞ……」\n\n気にはなるものの、自分から確かめに行く勇気はないらしい。住人の姿を見つけると、これ幸いとばかりに駆け寄ってきた。", "「なあなあ！　あそこの黒い扉、開いてるんだ！　中から変な音もするんだぞ！」\n\n一生懸命に状況を伝えながらも、ちらちらと扉の方を気にしている。", "「……ちょっと見てきてくれないか？　オレはここで待ってるから！　べ、別に怖いわけじゃないぞ！　誰かがここを見張ってないといけないだろ？」\n\nそう言って胸を張るものの、尻尾はすっかり身体に巻き付いていた。"];
+function showMoonEvent(replay=false){
+ let index=0,busy=false;const next=$('#moon-event-next');
+ const render=()=>{$('#moon-event-text').textContent=moonStoryPages[index];$('#moon-event-progress').textContent=`${index+1} / ${moonStoryPages.length}`;next.textContent=index===moonStoryPages.length-1?(replay?'思い出に戻る →':'商店へ →'):'続きを読む →';};
+ next.disabled=false;next.onclick=handler(async()=>{if(busy)return;if(index<moonStoryPages.length-1){index++;render();return;}busy=true;next.disabled=true;try{if(replay){await openForestMemories();return;}await api('/sea/event','POST',{event:'moon'});await openMoonDoor();}finally{busy=false;next.disabled=false;}});render();show('moon-event');
+}
 async function checkSeaEvents(){if(!seaState?.unlocked||!seaState?.eligible)return false;const e=await api('/sea/events');if(!e.greenSeen){showSeaEvent('green',e);return true;}if(e.discovered&&!e.encounterSeen){showSeaEvent(e.isFinder?'discover':'meet',e);return true;}if(e.discovered&&e.encounterSeen&&!e.frontSeen){showFrontEvent();return true;}return false;}
 
 // v0.18.7 商人lent。画像は背景と人物が一体のWebPを使う。
@@ -488,7 +494,7 @@ function ghRender(){
  if(potKey!==ghPotKey){ghPotKey=potKey;$('#gh-pots').innerHTML=Array.from({length:5},(_,i)=>{
   const flower=ready?c.pots[i]:null, src=flower?`plant${ghFlowers[flower.id.replace('GH_FLOWER_','')]}.webp`:growing?phase:state==='planted'?'plant3.webp':'plantEmpty.webp';
   const label=flower?`${ghName(flower.id)} ×${flower.quantity}本`:state==='empty'?'空き':growing?'育成中':'種まき済み';
-  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.20.8.7" alt=""><span>${safe(label)}</span></div>`;
+  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.20.8.8" alt=""><span>${safe(label)}</span></div>`;
  }).join('');}
  $('#gh-can').innerHTML=ghData.canColor?`<img src="${ghDir}jouro${ghData.canColor}.webp" alt="じょうろ">${({B:'青',G:'緑',R:'赤',Y:'黄'})[ghData.canColor]}のじょうろ`:'じょうろを受け取っていません';
  $('#gh-owned').textContent=`種：${ghQuantity('LENT_SEED')}袋　腐葉土：${ghQuantity('S0047')}個　肥料：${ghQuantity('GH_FERTILIZER')}個`;
@@ -580,6 +586,7 @@ async function openMoonDoor(){
  const hall=await api('/hall');
  moonDoorUnlocked=!!hall.moonUnlocked;
  if(!moonDoorUnlocked){toast('月の扉はまだ開かない。');return;}
+ const e=await api('/sea/events');if(!e.moonSeen){if(!e.frontSeen){await openHall();return;}showMoonEvent();return;}
  const data=await api('/lent');
  renderLent(data.lent);
  showLentLine(data.lent,'entry');
@@ -658,6 +665,9 @@ async function openHall(){const data=await api('/hall');resident=data.resident;$
   if(data.requiredStory){toast('先に洞窟での大切な物語を体験しよう。');await openCave(1);return;}
   if(data.forest?.unlocked&&data.forest.eligible&&!data.forest.seen){showForestEvent(false);return;}
   if(await checkSeaEvents())return;
+  if(data.moonUnlocked&&data.frontUnlocked&&!data.moonSeen){showMoonEvent();return;}
+  if(data.build?.active&&!data.build.seen){showBuildEvent(data);return;}
+  if(data.build?.completedAt&&!isBuildCompletionClosed(data.build)){showBuildEvent(data.build,true);return;}
   checkGameNotifications().catch(console.warn);
 }
 // v0.20.1 shared hall build event chain and donation UI.
@@ -685,6 +695,19 @@ let buildBusy=false,buildStep=-1,buildOwner='',buildLastProgress=-1,buildQuestKe
 const dismissedBuildCompletions=new Set();
 function buildCompletionKey(data){return `kagariso-build-closed:${resident?.id}:${data.questId}:${data.completedAt}`;}
 function isBuildCompletionClosed(data){const key=buildCompletionKey(data);try{return dismissedBuildCompletions.has(key)||localStorage.getItem(key)==='1';}catch{return dismissedBuildCompletions.has(key);}}
+function closeBuildCompletion(data){const key=buildCompletionKey(data);dismissedBuildCompletions.add(key);try{localStorage.setItem(key,'1');}catch{}renderHallBuild(data);}
+function showBuildEvent(data,complete=false){
+ const questId=data.questId;let index=0,busy=false;
+ const done=buildCompleteByQuest[questId];const dialogue=complete?(done?.lines||[]).map(line=>['',line]):(buildDialogues[questId]||[]);
+ if(!dialogue.length)return;
+ const next=$('#build-event-next'),prev=$('#build-event-prev'),img=$('#build-event-image');
+ const render=()=>{
+ const still=questId==='paper_decor'?privateRoomImage('paper',5):questId==='pyoro_decor'?privateRoomImage('pyoro',5):questId==='paper_desk'?privateRoomImage('paper',4):questId==='pyoro_shelf'?privateRoomImage('pyoro',4):questId==='paper_room'?`images/memories/paper-room-event${index<5?1:2}.webp`:questId==='paper_bed'?privateRoomImage('paper',1):questId==='pyoro_room'?privateRoomImage('paper',2):questId==='pyoro_bed'?privateRoomImage('pyoro',1):questId==='paper_rug'?privateRoomImage('paper',2):questId==='pyoro_rug'?privateRoomImage('pyoro',2):questId==='paper_sofa'?privateRoomImage('paper',3):questId==='pyoro_table'?privateRoomImage('pyoro',3):buildStillByQuest[questId]||buildStillByQuest.hall_lounge;
+ let picture=still;if(complete){const npc=questId.startsWith('paper_')?'paper':questId.startsWith('pyoro_')?'pyoro':null;const levels={room:1,bed:2,rug:3,sofa:4,table:4,desk:5,shelf:5,decor:6};if(npc)picture=privateRoomImage(npc,levels[questId.split('_')[1]]);else picture=`images/memories/${questId==='hall_stairs'?'hall-stairs':'hall-expansion'}.webp`;}
+ $('#build-event-title').textContent=complete?done.title:(data.title||'ホール拡張計画');img.src=picture;
+ const line=dialogue[index];$('#build-event-text').textContent=line[0]?`${line[0]}\n\n「${line[1]}」`:line[1];$('#build-event-progress').textContent=`${index+1} / ${dialogue.length}`;prev.disabled=index===0;next.textContent=index===dialogue.length-1?(complete?'閉じる':'会話を終える →'):'続きを読む →';};
+ prev.onclick=()=>{if(!busy&&index>0){index--;render();}};next.disabled=false;next.onclick=handler(async()=>{if(busy)return;if(index<dialogue.length-1){index++;render();return;}busy=true;next.disabled=true;try{if(complete){closeBuildCompletion(data);}else{try{await api('/build/lounge/visit','POST',{questId});}catch(e){const latest=await api('/build/lounge');if(latest.active&&latest.questId===questId)throw e;}}await openHall();}finally{busy=false;next.disabled=false;}});render();show('build-event');
+}
 function renderHallBuild(data){
  const panel=$('#hall-build');if(!panel)return;
  const hasPanel=!!(data?.active||data?.completedAt)&&!(data?.completedAt&&!data.active&&isBuildCompletionClosed(data));
@@ -692,24 +715,17 @@ function renderHallBuild(data){
  panel.classList.toggle('hidden',!hasPanel);buildLastProgress=data?.progress??0;buildLastCompletedAt=data?.completedAt??null;if(!hasPanel){panel.replaceChildren();return;}
  if(!data.active&&data.completedAt){
   const done=buildCompleteByQuest[data.questId]||{title:'ホール拡張が完成しました！',lines:['みんなで力を合わせて、ホールがより居心地のよい場所になった。']};
-  panel.innerHTML=`<h2>${safe(done.title)}</h2>${done.lines.map(line=>`<p>${safe(line)}</p>`).join('')}`;if(data.questId==='pyoro_decor'){const celebration=document.createElement('div');celebration.style.cssText='display:flex;justify-content:center;gap:12px';for(const src of [paperImage('happy'),pyoroImage('happy')]){const img=document.createElement('img');img.src=src;img.alt='嬉しそうな獣';img.style.cssText='width:42%;max-width:200px;object-fit:contain';celebration.append(img);}panel.prepend(celebration);}const close=document.createElement('button');close.type='button';close.className='secondary';close.textContent='閉じる';close.onclick=()=>{const key=buildCompletionKey(data);dismissedBuildCompletions.add(key);try{localStorage.setItem(key,'1');}catch{}renderHallBuild(data);};panel.append(close);return;
+  panel.innerHTML=`<h2>${safe(done.title)}</h2><button class="primary" id="build-complete-story">様子を見る</button>`;$('#build-complete-story').onclick=()=>showBuildEvent(data,true);const close=document.createElement('button');close.type='button';close.className='secondary';close.textContent='閉じる';close.onclick=()=>closeBuildCompletion(data);panel.append(close);return;
  }
  const questId=data.questId||'hall_lounge';
  const dialogue=buildDialogues[questId]||buildDialogues.hall_lounge;
  const completeInfo=buildCompleteByQuest[questId]||buildCompleteByQuest.hall_lounge;
- if(!data.seen){
-  if(buildStep<0){panel.innerHTML=questId==='hall_stairs'?'<h2>寛ぎスペースが完成しました！</h2><p>二匹の獣が完成した家具を眺めながら、何か相談している。</p><button class="primary" id="build-start">話を聞く</button>':`<h2>${safe(data.title||'ホール拡張計画')}</h2><p>獣たちが何か相談している。</p><button class="primary" id="build-start">話を聞く</button>`;if(['paper_sofa','pyoro_table','paper_desk','pyoro_shelf','paper_decor','pyoro_decor'].includes(questId)){const prior=buildCompleteByQuest[({paper_sofa:'pyoro_rug',pyoro_table:'paper_sofa',paper_desk:'pyoro_table',pyoro_shelf:'paper_desk',paper_decor:'pyoro_shelf',pyoro_decor:'paper_decor'})[questId]];const intro=document.createElement('div');const heading=document.createElement('h3');heading.textContent=prior.title;intro.append(heading);for(const line of prior.lines){const para=document.createElement('p');para.textContent=line;intro.append(para);}panel.prepend(intro);}$('#build-start').onclick=()=>{buildStep=0;renderHallBuild(data);};return;}
-  const line=dialogue[buildStep];
-  const still=questId==='paper_decor'?privateRoomImage('paper',5):questId==='pyoro_decor'?privateRoomImage('pyoro',5):questId==='paper_desk'?privateRoomImage('paper',4):questId==='pyoro_shelf'?privateRoomImage('pyoro',4):questId==='paper_room'?`images/memories/paper-room-event${buildStep<5?1:2}.webp`:questId==='paper_bed'?privateRoomImage('paper',1):questId==='pyoro_room'?privateRoomImage('paper',2):questId==='pyoro_bed'?privateRoomImage('pyoro',1):questId==='paper_rug'?privateRoomImage('paper',2):questId==='pyoro_rug'?privateRoomImage('pyoro',2):questId==='paper_sofa'?privateRoomImage('paper',3):questId==='pyoro_table'?privateRoomImage('pyoro',3):buildStillByQuest[questId]||buildStillByQuest.hall_lounge;
-  panel.innerHTML=`<h2>${questId==='hall_stairs'?'もっと広くしよう！ 二階があるといいね！':safe(data.title||'ホール拡張計画')}</h2><img src="${safe(still)}" alt="相談する二匹の獣" style="display:block;width:100%;max-height:420px;object-fit:contain;border-radius:10px"><p><strong>${safe(line[0])}</strong></p><p>「${safe(line[1])}」</p><div class="actions"><button class="secondary" id="build-prev" ${buildStep===0?'disabled':''}>戻る</button><button class="primary" id="build-next">${buildStep===dialogue.length-1?'会話を終える':'次へ'}</button></div>`;
-  $('#build-prev').onclick=()=>{if(buildStep>0){buildStep--;renderHallBuild(data);}};
-  $('#build-next').onclick=handler(async()=>{if(buildBusy)return;if(buildStep<dialogue.length-1){buildStep++;renderHallBuild(data);return;}buildBusy=true;try{renderHallBuild(await api('/build/lounge/visit','POST',{questId}));buildStep=-1;}finally{buildBusy=false;}});return;
- }
+ if(!data.seen){panel.innerHTML=`<h2>${safe(data.title||'ホール拡張計画')}</h2><p>獣たちが何か相談している。</p><button class="primary" id="build-start">話を聞く</button>`;$('#build-start').onclick=()=>showBuildEvent(data);return;}
  const total=data.requirements.reduce((a,r)=>a+r.needed,0),done=data.requirements.reduce((a,r)=>a+r.donated,0);
  panel.innerHTML=`<h2>共同クエスト｜${safe(data.title||completeInfo.title)}</h2><div class="progress-track"><div class="progress-fill" style="width:${total?100*done/total:0}%"></div></div><p class="muted">${done} / ${total} 納品済み</p><div id="build-reqs" class="cave-requirements"></div>`;
  for(const r of data.requirements){const card=document.createElement('div');card.className='requirement-row';const remaining=r.needed-r.donated;card.innerHTML=`<div class="material-inline">${matIcon(r.id)}<div><strong>${safe(r.name)}</strong><div class="muted tiny">納品済み ${r.donated} / ${r.needed}　残り ${remaining}　｜持ち物 ×${r.owned}　｜あなたの納品 ${r.personal}</div></div></div>`;
  if(remaining>0){const form=document.createElement('form');form.className='donation-form';const input=document.createElement('input');input.type='number';input.min='1';input.max=String(Math.min(remaining,r.owned));input.step='1';input.value=String(Math.min(10,Number(input.max))||1);input.setAttribute('aria-label',r.name+'の納品数');const btn=document.createElement('button');btn.type='submit';btn.className='secondary small';btn.textContent='納品';btn.disabled=Number(input.max)<1;appendDonationControls(form,input,btn);let pending=null;
- form.onsubmit=handler(async e=>{e.preventDefault();if(buildBusy)return;const quantity=Number(input.value);if(!Number.isSafeInteger(quantity)||quantity<1||quantity>Number(input.max))throw new Error('納品数を確認してください。');if(!pending||pending.quantity!==quantity)pending={quantity,itemId:r.id,questId,requestId:crypto.randomUUID()};buildBusy=true;btn.disabled=true;const previousLevel=hallBuildLevel;try{const result=await api('/build/lounge/donate','POST',pending);pending=null;hallBuildLevel=result.level;renderHallBuild(result);renderPrivateRoomLinks(result);updateHallBackground();const completedMessage=result.level>previousLevel?(result.level>=3?'ホール拡張が完成しました！':'寛ぎスペースが完成しました！'):'納品しました。';toast(result.questId!==questId||!result.active?(buildCompleteByQuest[questId]?.title||'おへやの共同クエストが完成しました！'):completedMessage);}catch(err){if(err.message.includes('納品状況')){pending=null;renderHallBuild(await api('/build/lounge'));}throw err;}finally{buildBusy=false;btn.disabled=false;}});card.append(form);}$('#build-reqs').append(card);}
+ form.onsubmit=handler(async e=>{e.preventDefault();if(buildBusy)return;const quantity=Number(input.value);if(!Number.isSafeInteger(quantity)||quantity<1||quantity>Number(input.max))throw new Error('納品数を確認してください。');if(!pending||pending.quantity!==quantity)pending={quantity,itemId:r.id,questId,requestId:crypto.randomUUID()};buildBusy=true;btn.disabled=true;const previousLevel=hallBuildLevel;try{const result=await api('/build/lounge/donate','POST',pending);pending=null;hallBuildLevel=result.level;renderHallBuild(result);renderPrivateRoomLinks(result);updateHallBackground();if(activePage==='hall'&&result.completedAt&&!isBuildCompletionClosed(result))showBuildEvent(result,true);const completedMessage=result.level>previousLevel?(result.level>=3?'ホール拡張が完成しました！':'寛ぎスペースが完成しました！'):'納品しました。';toast(result.questId!==questId||!result.active?(buildCompleteByQuest[questId]?.title||'おへやの共同クエストが完成しました！'):completedMessage);}catch(err){if(err.message.includes('納品状況')){pending=null;renderHallBuild(await api('/build/lounge'));}throw err;}finally{buildBusy=false;btn.disabled=false;}});card.append(form);}$('#build-reqs').append(card);}
 }
 let selectedCaveSection=1,activeCaveStory=null,caveStoryReplay=false;
 const caveQty=(n)=>Number(n)||0;
@@ -2027,7 +2043,7 @@ function showForestArea(id){
 for(const a of FOREST_AREAS)bind('#forest-area-'+a.id,()=>showForestArea(a.id));
 bind('#forest-area-hall',openHall);bind('#forest-inventory',()=>openInventory('forest-area'));
 
-async function openForestMemories(){const {forest}=await api('/forest/status');if(forest.unlocked&&forest.seen&&forest.eligible){const e=await api('/sea/events');const list=$('#sea-memory-buttons');list.replaceChildren();for(const [kind,label,seen] of [['green','緑の扉の向こう側',e.greenSeen],[e.isFinder?'discover':'meet',e.isFinder?'海から釣れた、へんなもの':'赤色の獣との出会い',e.encounterSeen]])if(seen){const b=document.createElement('button');b.className='secondary';b.textContent=label+' →';b.onclick=()=>showSeaEvent(kind,e,true);list.append(b);}if(e.frontSeen){const b=document.createElement('button');b.className='secondary';b.textContent='正面の扉の向こう側 →';b.onclick=()=>showFrontEvent(true);list.append(b);}$('#sea-memories').classList.toggle('hidden',!list.childElementCount);show('forest-memories');}else toast('まだ思い出はありません。');}
+async function openForestMemories(){const {forest}=await api('/forest/status');if(forest.unlocked&&forest.seen&&forest.eligible){const e=await api('/sea/events');const list=$('#sea-memory-buttons');list.replaceChildren();for(const [kind,label,seen] of [['green','緑の扉の向こう側',e.greenSeen],[e.isFinder?'discover':'meet',e.isFinder?'海から釣れた、へんなもの':'赤色の獣との出会い',e.encounterSeen]])if(seen){const b=document.createElement('button');b.className='secondary';b.textContent=label+' →';b.onclick=()=>showSeaEvent(kind,e,true);list.append(b);}if(e.frontSeen){const b=document.createElement('button');b.className='secondary';b.textContent='正面の扉の向こう側 →';b.onclick=()=>showFrontEvent(true);list.append(b);}if(e.moonSeen){const b=document.createElement('button');b.className='secondary';b.textContent='月の扉の向こう側 →';b.onclick=()=>showMoonEvent(true);list.append(b);}$('#sea-memories').classList.toggle('hidden',!list.childElementCount);show('forest-memories');}else toast('まだ思い出はありません。');}
 bind('#forest-memory',openForestMemories);
 bind('#forest-memories-back',openHall);
 bind('#forest-memory-cave',async()=>{await openCave();if(activePage==='cave'){$('#cave-history').closest('details').open=true;$('#cave-history').scrollIntoView({block:'nearest'});}});
@@ -2394,7 +2410,7 @@ async function checkGameNotifications(){
     const moonKey=`kagariso-moon-unlocked-v0.18.7.1:${id}`;
     if(localStorage.getItem(moonKey)!==data.moon.unlockedAt){
       localStorage.setItem(moonKey,data.moon.unlockedAt);
-      pushGameNotice('誰かが料理50種類を完成させた！ ホールの月の扉が開いたようです。',openMoonDoor,'商店へ','あとで行く');
+      pushGameNotice('誰かが料理50種類を完成させた！ ホールの月の扉が開いたようです。',openMoonDoor,'話を聞く','あとで行く');
       if(activePage==='hall'){
         moonDoorUnlocked=true;
         positionHallCaveDoor();
@@ -2981,7 +2997,7 @@ bind('#admin-show-clothing',async()=>{for(const p of document.querySelectorAll('
 bind('#cl-admin-new',()=>{clGet('admin-list').value='';clSelect();});bind('#cl-admin-reload',()=>clLoad(clGet('id').value));bind('#cl-add-material',()=>{if(clGet('materials').children.length<30)clMaterialRow();});bind('#cl-add-step',()=>{if(clGet('steps').children.length<20)clStepRow();});
 clGet('admin-search').addEventListener('input',()=>clList(clGet('id').value));clGet('admin-list').addEventListener('change',()=>clSelect(clAdminData.recipes.find(r=>r.id===clGet('admin-list').value)));clGet('image').addEventListener('input',clPreview);clGet('limited').addEventListener('change',()=>clGet('period').classList.toggle('hidden',!clGet('limited').checked));
 clGet('admin-form').addEventListener('submit',handler(async e=>{e.preventDefault();const button=clGet('save');button.disabled=true;try{const id=clGet('id').value.trim();const date=k=>clGet(k).value?new Date(clGet(k).value+':00+09:00').toISOString():null;const body={id,revision:clRevision,name:clGet('name').value,category:clGet('category').value,description:clGet('description').value,image:clGet('image').value,published:clGet('published').checked,limited:clGet('limited').checked,startsAt:date('start'),endsAt:date('end'),ingredients:[...clGet('materials').children].map(r=>({id:r.querySelector('select').value,quantity:Number(r.querySelector('input').value)})),steps:[...clGet('steps').children].map(r=>({type:r.querySelectorAll('select')[0].value,difficulty:Number(r.querySelectorAll('select')[1].value)}))};clAdminData=await adminApi('/clothing/save','POST',body);clGet('admin-search').value='';clList(id);clSelect(clAdminData.recipes.find(r=>r.id===id));toast('服飾レシピを保存しました。');}finally{button.disabled=false;}}));
-// v0.20.8.7 Clothing workshop. Images are returned only after a successful attempt.
+// v0.20.8.8 Clothing workshop. Images are returned only after a successful attempt.
 let clothBusy=false, clothFilter='all';
 async function openClothingRecipes(){
  const root=$('#clothing-recipes');root.textContent='読み込み中…';const {recipes}=await api('/clothing/recipes');root.replaceChildren();

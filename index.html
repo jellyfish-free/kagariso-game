@@ -102,7 +102,7 @@
 </style>
   <script src="data/sea-items.js?v=0.17.0.3" defer></script>
   <script src="data/greenhouse-data.js?v=0.19.0" defer></script>
-  <script src="script.js?v=0.20.8.7" defer></script>
+  <script src="script.js?v=0.20.8.8" defer></script>
   <script src="data/cooking.js?v=0.18.7.5" defer></script>
   <script src="data/sea-game.js?v=0.17.1.5" defer></script>
 <style>
@@ -331,7 +331,7 @@
 .cloth-grid > button.cloth-recipe > span{display:block;width:100%;text-align:left;margin:0;}
 </style>
 <style>
-/* v0.20.8.7 — 管理画面の入力UIを図鑑・持ち物に統一 */
+/* v0.20.8.8 — 管理画面の入力UIを図鑑・持ち物に統一 */
 :is(#admin-editor-page,#admin-login-page) {color-scheme:dark;}
 :is(#admin-editor-page,#admin-login-page) :is(select,textarea,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]):not([type=color]):not([type=file]):not([type=button]):not([type=submit]):not([type=reset])) {
  box-sizing:border-box;width:100%;min-width:0;max-width:100%;min-height:42px;background:#1b1c2e;color:#f4edf5;border:1px solid #625d77;border-radius:9px;padding:8px 10px;font:inherit;font-size:14px;line-height:1.4;
@@ -358,7 +358,7 @@
 </style>
 
 <style>
-/* v0.20.8.7: スマホのホール内NPCを縮小 */
+/* v0.20.8.8: スマホのホール内NPCを縮小 */
 @media (max-width: 600px) {
   #hall-visual :is(#hall-paper-actor,#hall-pyoro-actor) {
     width: 19%; min-width: 0; max-width: 100px;
@@ -582,6 +582,8 @@
   </div>
 </section>
 <section id="front-event-page" class="page hidden narrow"><div class="panel story"><span class="eyebrow">THE DOOR OF CREATION</span><h1>正面の扉の向こう側</h1><img src="images/memories/frontDoorUnlock.webp" alt="正面の扉の前で喜ぶ二匹の獣" style="display:block;width:100%;height:auto;border-radius:16px"><div id="front-event-text" class="scene" style="white-space:pre-line;margin-top:16px" aria-live="polite"></div><p id="front-event-progress" class="muted tiny"></p><button id="front-event-next" class="primary">続きを読む →</button></div></section>
+<section id="moon-event-page" class="page hidden narrow"><div class="panel story"><span class="eyebrow">THE DOOR OF THE MOON</span><h1>月の扉の向こう側</h1><img src="images/memories/moonDoorUnlock.webp" alt="月の扉に気付いた赤色の獣" style="display:block;width:100%;height:auto;border-radius:16px"><div id="moon-event-text" class="scene" style="white-space:pre-line;margin-top:16px" aria-live="polite"></div><p id="moon-event-progress" class="muted tiny"></p><button id="moon-event-next" class="primary">続きを読む →</button></div></section>
+<section id="build-event-page" class="page hidden narrow"><div class="panel story"><span class="eyebrow">A PLACE TO CALL HOME</span><h1 id="build-event-title"></h1><img id="build-event-image" alt="拡張イベント" style="display:block;width:100%;height:auto;border-radius:16px"><div id="build-event-text" class="scene" style="white-space:pre-line;margin-top:16px" aria-live="polite"></div><p id="build-event-progress" class="muted tiny"></p><div class="actions"><button id="build-event-prev" class="secondary">戻る</button><button id="build-event-next" class="primary">続きを読む →</button></div></div></section>
 <section id="sea-event-page" class="page hidden narrow"><div class="panel story"><span class="eyebrow">A MEMORY BY THE SEA</span><h1 id="sea-event-title"></h1><img id="sea-event-image" alt="物語の思い出" style="display:block;width:100%;height:auto;border-radius:16px"><div id="sea-event-text" class="scene" style="white-space:pre-line;margin-top:16px"></div><div id="sea-event-choices" class="choice-list"></div><button id="sea-event-next" class="primary">続きを読む →</button></div></section>
 <section id="sea-page" class="page hidden narrow">
  <button type="button" id="sea-back" class="back">← ホールに戻る</button>
@@ -1164,7 +1166,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.20.8.7</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.20.8.8</span></footer>
   </div>
 </body>
 </html>
