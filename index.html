@@ -94,7 +94,7 @@
 </style>
   <script src="data/sea-items.js?v=0.17.0.3" defer></script>
   <script src="data/greenhouse-data.js?v=0.19.0" defer></script>
-  <script src="script.js?v=0.20.6.11" defer></script>
+  <script src="script.js?v=0.20.7" defer></script>
   <script src="data/cooking.js?v=0.18.7.5" defer></script>
   <script src="data/sea-game.js?v=0.17.1.5" defer></script>
 <style>
@@ -435,7 +435,7 @@
           </div>
         </div>
       </section>
-      <section id="clothing-page" class="page hidden narrow"><button type="button" id="clothing-back" class="back">← 工房へ戻る</button><div class="panel workshop-panel"><span class="eyebrow">CLOTHING</span><h2>服飾</h2><img class="workshop-hero" src="images/backgrounds/Clothing.webp" alt="服飾工房"><p>服飾工房が解放されました。裁縫・染色のレシピは準備中です。</p></div></section>
+      <section id="clothing-page" class="page hidden narrow"><button type="button" id="clothing-back" class="back">← 工房へ戻る</button><div class="panel workshop-panel"><span class="eyebrow">CLOTHING</span><h2>服飾</h2><img class="workshop-hero" src="images/backgrounds/Clothing.webp" alt="服飾工房"><p class="muted">裁縫・染色のミニゲームは準備中です。</p><div id="clothing-recipes"></div></div></section>
       <section id="cooking-page" class="page hidden narrow">
   <nav class="workshop-cooking-nav" aria-label="移動先">
     <button type="button" id="cooking-back" class="back">← 工房へ戻る</button>
@@ -945,7 +945,7 @@
       <div class="admin-npc-selector"><label for="admin-npc-target">管理するNPC</label>
       <select id="admin-npc-target" aria-label="管理するNPC"><option value="paper">黄色い獣（paper）</option><option value="pyoro">赤色の獣（pyoro）</option></select>
       <p class="muted tiny">対象NPCのデータだけを編集します。住人データの初期化は行いません。</p></div>
-      <div class="admin-editor-switch"><button id="admin-show-dialogue-editor" class="secondary small" type="button">会話エディター</button><button id="admin-show-request-editor" class="secondary small" type="button">お願いエディター</button><button id="admin-show-gift-editor" class="secondary small" type="button">返礼品エディター</button><button id="admin-show-ai-editor" class="secondary small" type="button">AI人格エディター</button><button id="admin-show-pyoro-foods" class="secondary small" type="button">食事・おやつエディター</button><button id="admin-show-quest-editor" class="secondary small" type="button">クエストエディター</button><button id="admin-show-material-editor" class="secondary small" type="button">素材エディター</button><button id="admin-show-sea-editor" class="secondary small" type="button">海の難易度・発見イベント</button><button id="admin-show-stats" class="secondary small" type="button">管理者ダッシュボード</button><button id="admin-show-recovery" class="secondary small" type="button">住人の復旧コード</button></div>
+      <div class="admin-editor-switch"><button id="admin-show-clothing" class="secondary small" type="button">服飾エディター</button><button id="admin-show-dialogue-editor" class="secondary small" type="button">会話エディター</button><button id="admin-show-request-editor" class="secondary small" type="button">お願いエディター</button><button id="admin-show-gift-editor" class="secondary small" type="button">返礼品エディター</button><button id="admin-show-ai-editor" class="secondary small" type="button">AI人格エディター</button><button id="admin-show-pyoro-foods" class="secondary small" type="button">食事・おやつエディター</button><button id="admin-show-quest-editor" class="secondary small" type="button">クエストエディター</button><button id="admin-show-material-editor" class="secondary small" type="button">素材エディター</button><button id="admin-show-sea-editor" class="secondary small" type="button">海の難易度・発見イベント</button><button id="admin-show-stats" class="secondary small" type="button">管理者ダッシュボード</button><button id="admin-show-recovery" class="secondary small" type="button">住人の復旧コード</button></div>
       <section id="admin-recovery-panel" class="hidden" aria-label="住人の復旧コード再発行">
   <h2>住人の復旧コード再発行</h2>
   <p class="muted">選択した住人の復旧コードを新しくします。住人情報・持ち物・親密度・図鑑・思い出は変更されません。</p>
@@ -973,6 +973,18 @@
   <details><summary id="pyoro-admin-history-title">管理者の編集履歴（直近100件）</summary><div id="pyoro-admin-audit" class="details-content"></div><button id="pyoro-admin-audit-refresh" type="button" class="secondary small">履歴を更新</button></details>
   </div></div>
 </section>
+<section id="admin-clothing-panel" class="hidden admin-quest">
+<h2>服飾エディター</h2><p class="muted">レシピ登録・公開期間・必要素材・ミニゲーム工程を管理します。登録だけでは作成できません。</p>
+<div class="admin-fields-grid"><div><label for="cl-admin-search">服を検索</label><input id="cl-admin-search" placeholder="名前・ID・分類"></div><div><label for="cl-admin-list">登録済みの服</label><select id="cl-admin-list"></select></div></div>
+<button id="cl-admin-new" type="button" class="secondary small">＋ 新しい服</button> <button id="cl-admin-reload" type="button" class="secondary small">再読み込み</button>
+<form id="cl-admin-form"><div class="admin-fields-grid"><div><label>ID（SUIT_0001形式）</label><input id="cl-id" required pattern="SUIT_[0-9]{4,8}"></div><div><label>服の名前</label><input id="cl-name" required maxlength="100"></div><div><label>分類・シリーズ</label><input id="cl-category" required maxlength="80"></div><div><label>画像パス</label><input id="cl-image" required placeholder="images/clothing/suit0001.webp"></div></div>
+<img id="cl-preview" alt="服のプレビュー" style="display:none;max-width:180px;width:100%;height:auto;border-radius:8px"><label>説明文</label><textarea id="cl-description" maxlength="2000"></textarea>
+<label class="admin-enabled"><input id="cl-published" type="checkbox"> レシピを公開する</label><label class="admin-enabled"><input id="cl-limited" type="checkbox"> 期間限定・イベント品</label>
+<div id="cl-period" class="admin-fields-grid hidden"><div><label>公開開始（日本時間、任意）</label><input id="cl-start" type="datetime-local"></div><div><label>公開終了（日本時間、任意）</label><input id="cl-end" type="datetime-local"></div></div>
+<h3>必要素材</h3><div id="cl-materials"></div><button id="cl-add-material" type="button" class="secondary small">＋ 素材追加</button>
+<h3>ミニゲーム工程（上から順に実行）</h3><div id="cl-steps"></div><button id="cl-add-step" type="button" class="secondary small">＋ 工程追加</button>
+<p id="cl-admin-status" class="muted"></p><button id="cl-save" type="submit">レシピを保存</button></form>
+<details><summary>編集履歴（最新30件）</summary><div id="cl-audit"></div></details></section>
 <section id="admin-sea-panel" class="hidden admin-quest" aria-label="海の釣り難易度と発見イベント管理">
   <h2>海の難易度・発見イベント</h2>
   <p class="muted">設定の保存は次に開始する釣りから反映。進行中の釣りと住人の記録は変更しません。</p>
@@ -1063,7 +1075,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.20.6.11</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.20.7</span></footer>
   </div>
 </body>
 </html>
