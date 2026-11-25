@@ -479,7 +479,7 @@ function ghRender(){
  if(potKey!==ghPotKey){ghPotKey=potKey;$('#gh-pots').innerHTML=Array.from({length:5},(_,i)=>{
   const flower=ready?c.pots[i]:null, src=flower?`plant${ghFlowers[flower.id.replace('GH_FLOWER_','')]}.webp`:growing?phase:state==='planted'?'plant3.webp':'plantEmpty.webp';
   const label=flower?`${ghName(flower.id)} ×${flower.quantity}本`:state==='empty'?'空き':growing?'育成中':'種まき済み';
-  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.20.6.6" alt=""><span>${safe(label)}</span></div>`;
+  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.20.6.7" alt=""><span>${safe(label)}</span></div>`;
  }).join('');}
  $('#gh-can').innerHTML=ghData.canColor?`<img src="${ghDir}jouro${ghData.canColor}.webp" alt="じょうろ">${({B:'青',G:'緑',R:'赤',Y:'黄'})[ghData.canColor]}のじょうろ`:'じょうろを受け取っていません';
  $('#gh-owned').textContent=`種：${ghQuantity('LENT_SEED')}袋　腐葉土：${ghQuantity('S0047')}個　肥料：${ghQuantity('GH_FERTILIZER')}個`;
@@ -671,15 +671,18 @@ Object.assign(buildCompleteByQuest,{paper_desk:{title:'黄色い獣の机が完�
 Object.assign(buildDialogues,{paper_decor:[['黄色い獣','ねぇねぇ、ぼくのおへや、すっかりすてきになったねぇ！'],['黄色い獣','おほしさまのかざりと、きれいなカーテンもあったらいいなぁ。'],['赤色の獣','夜もあかるくなるように、ランプもつけたらどうだ？'],['黄色い獣','わぁ！ さいごのおねがい、てつだってくれる？']],pyoro_decor:[['赤色の獣','……オレのへやも、もうちょっとだけかざりたいんだ。'],['赤色の獣','たからものをしまうタンスと、あったかいあかりがほしい。'],['黄色い獣','おはなや、きれいなつぼもいいねぇ！'],['赤色の獣','へへっ。これでさいごだ。みんな、てつだってくれるか？']]});
 Object.assign(buildCompleteByQuest,{paper_decor:{title:'黄色い獣のおへやが完成しました！',lines:['黄色い獣「わぁ～！ きらきらだぁ！ みんな、だいすき！」']},pyoro_decor:{title:'二匹のおへやが完成しました！',lines:['黄色い獣「わぁ～！ ぼくたちのおへや、こんなにすてきになったよぉ！」','赤色の獣「へへっ……オレ、こんなにいいへやができるなんておもわなかったぞ！」','黄色い獣「みんながいっぱいおてつだいしてくれたからだねぇ！」','赤色の獣「……ほんとに、ありがとな！」','黄色い獣「これからも、いっぱいあそぼうねぇ！」','二匹は顔を見合わせ、嬉しそうににっこりと笑った。']}});
 function renderFurnitureSkills(id,n){const el=document.getElementById(id);if(!el)return;el.replaceChildren();for(const skill of n.skills||[]){const row=document.createElement('p');row.textContent=skill.name+' ｜ '+['','興味を持った','練習中','慣れてきた','得意'][skill.level];el.append(row);}}
-let buildBusy=false,buildStep=-1,buildOwner='',buildLastProgress=-1,buildQuestKey='';
+let buildBusy=false,buildStep=-1,buildOwner='',buildLastProgress=-1,buildQuestKey='',buildLastCompletedAt=null;
+const dismissedBuildCompletions=new Set();
+function buildCompletionKey(data){return `kagariso-build-closed:${resident?.id}:${data.questId}:${data.completedAt}`;}
+function isBuildCompletionClosed(data){const key=buildCompletionKey(data);try{return dismissedBuildCompletions.has(key)||localStorage.getItem(key)==='1';}catch{return dismissedBuildCompletions.has(key);}}
 function renderHallBuild(data){
  const panel=$('#hall-build');if(!panel)return;
- const hasPanel=!!(data?.startedAt||data?.completedAt||data?.active);
+ const hasPanel=!!(data?.active||data?.completedAt)&&!(data?.completedAt&&!data.active&&isBuildCompletionClosed(data));
  if(buildOwner!==resident?.id||buildQuestKey!==String(data?.questId||'')){buildOwner=resident?.id;buildQuestKey=String(data?.questId||'');buildStep=-1;buildLastProgress=-1;}
- panel.classList.toggle('hidden',!hasPanel);if(!hasPanel)return;buildLastProgress=data.progress??0;
+ panel.classList.toggle('hidden',!hasPanel);buildLastProgress=data?.progress??0;buildLastCompletedAt=data?.completedAt??null;if(!hasPanel){panel.replaceChildren();return;}
  if(!data.active&&data.completedAt){
   const done=buildCompleteByQuest[data.questId]||{title:'ホール拡張が完成しました！',lines:['みんなで力を合わせて、ホールがより居心地のよい場所になった。']};
-  panel.innerHTML=`<h2>${safe(done.title)}</h2>${done.lines.map(line=>`<p>${safe(line)}</p>`).join('')}`;if(data.questId==='pyoro_decor'){const celebration=document.createElement('div');celebration.style.cssText='display:flex;justify-content:center;gap:12px';for(const src of [paperImage('happy'),pyoroImage('happy')]){const img=document.createElement('img');img.src=src;img.alt='嬉しそうな獣';img.style.cssText='width:42%;max-width:200px;object-fit:contain';celebration.append(img);}panel.prepend(celebration);}return;
+  panel.innerHTML=`<h2>${safe(done.title)}</h2>${done.lines.map(line=>`<p>${safe(line)}</p>`).join('')}`;if(data.questId==='pyoro_decor'){const celebration=document.createElement('div');celebration.style.cssText='display:flex;justify-content:center;gap:12px';for(const src of [paperImage('happy'),pyoroImage('happy')]){const img=document.createElement('img');img.src=src;img.alt='嬉しそうな獣';img.style.cssText='width:42%;max-width:200px;object-fit:contain';celebration.append(img);}panel.prepend(celebration);}const close=document.createElement('button');close.type='button';close.className='secondary';close.textContent='閉じる';close.onclick=()=>{const key=buildCompletionKey(data);dismissedBuildCompletions.add(key);try{localStorage.setItem(key,'1');}catch{}renderHallBuild(data);};panel.append(close);return;
  }
  const questId=data.questId||'hall_lounge';
  const dialogue=buildDialogues[questId]||buildDialogues.hall_lounge;
@@ -2349,7 +2352,7 @@ async function checkGameNotifications(){
     }
     if(activePage==='hall')renderPrivateRoomLinks(data.build);
     if(hallBuildLevel!==data.build.level){hallBuildLevel=data.build.level;updateHallBackground();updateConversationBackground();}
-    if(activePage==='hall'&&!buildBusy&&(String(data.build.questId||'')!==buildQuestKey||data.build.progress!==buildLastProgress||$('#hall-build').classList.contains('hidden'))&&!$('#hall-build').contains(document.activeElement)){renderHallBuild(await api('/build/lounge'));}
+    if(activePage==='hall'&&!buildBusy&&(String(data.build.questId||'')!==buildQuestKey||(data.build.progress??0)!==buildLastProgress||(data.build.completedAt??null)!==buildLastCompletedAt||(data.build.active&&$('#hall-build').classList.contains('hidden')))&&!$('#hall-build').contains(document.activeElement)){renderHallBuild(await api('/build/lounge'));}
   }
   // v0.18.7.1: 月の扉は住人全員の共同達成。解放時刻ごとに本人の端末に一度知らせる。
   // 通知履歴は住人ID別で管理し、既存の贈り物・探索通知を妨げない。
