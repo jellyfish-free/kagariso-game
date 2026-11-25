@@ -140,7 +140,7 @@ const updateHallBackground=()=>{
 const updateConversationBackground=()=>{
   const img=$('#conversation-background');
   if(!img||!currentNpc)return;
-  if(currentNpc.state.location==='room'&&currentNpc.roomLevel){applyImageFallback(img,[privateRoomImage('paper',currentNpc.roomLevel)],'conversationBackground');return;}
+  if(currentNpc.state.location==='room'){const lv=Number(currentNpc.roomLevel||roomLevels.paper||1);applyImageFallback(img,[privateRoomImage('paper',lv)],'conversationBackground');return;}
   if(currentNpc.state.location==='cave'){
     applyImageFallback(img,[bgVisual.cave||bgVisual.hall||'images/backgrounds/cave.png'],'conversationBackground');
     return;
@@ -247,7 +247,8 @@ window.addEventListener('resize',positionHallCaveDoor);
 setInterval(()=>{
   if(document.hidden)return;
   if(!$('#hall-page')?.classList.contains('hidden')){ updateHallBackground(); updateHallLoungeActors($('#hall-paper-actor')?.classList.contains('hidden')?null:{state:{activity:$('#hall-paper-label')?.textContent.includes('おやすみ')?'sleeping':'awake'}}, $('#hall-pyoro-actor')?.classList.contains('hidden')?null:{state:{activity:$('#hall-pyoro-label')?.textContent.includes('おやすみ')?'sleeping':'awake'}}); }
-  if(!$('#conversation-page')?.classList.contains('hidden')) updateConversationBackground();
+  if(activePage==='conversation') refreshConversationScene('paper');
+  if(activePage==='pyoro-conversation') refreshConversationScene('pyoro');
 },30000);
 
 const paperImage=(expression='normal')=>{
@@ -472,7 +473,7 @@ function ghRender(){
  if(potKey!==ghPotKey){ghPotKey=potKey;$('#gh-pots').innerHTML=Array.from({length:5},(_,i)=>{
   const flower=ready?c.pots[i]:null, src=flower?`plant${ghFlowers[flower.id.replace('GH_FLOWER_','')]}.webp`:growing?phase:state==='planted'?'plant3.webp':'plantEmpty.webp';
   const label=flower?`${ghName(flower.id)} ×${flower.quantity}本`:state==='empty'?'空き':growing?'育成中':'種まき済み';
-  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.20.6.3" alt=""><span>${safe(label)}</span></div>`;
+  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.20.6.4" alt=""><span>${safe(label)}</span></div>`;
  }).join('');}
  $('#gh-can').innerHTML=ghData.canColor?`<img src="${ghDir}jouro${ghData.canColor}.webp" alt="じょうろ">${({B:'青',G:'緑',R:'赤',Y:'黄'})[ghData.canColor]}のじょうろ`:'じょうろを受け取っていません';
  $('#gh-owned').textContent=`種：${ghQuantity('LENT_SEED')}袋　腐葉土：${ghQuantity('S0047')}個　肥料：${ghQuantity('GH_FERTILIZER')}個`;
@@ -1093,11 +1094,33 @@ bind('#pyoro-diary-open',async()=>{await loadPyoroDiary(true);show('pyoro-diary'
 bind('#pyoro-diary-back',openPyoro);
 bind('#pyoro-gifts-open',()=>openNpcGifts('pyoro'));
 bind('#pyoro-gifts-back',openPyoro);
-const openPyoroConversation=async()=>{
- const npc=pyoroProfile||(await api('/npcs/pyoro')).npc;
- paintPyoroProfile(npc);
+const updatePyoroConversationBackground=npc=>{
  const background=$('#pyoro-conversation-background');
- applyImageFallback(background,npc.state.location==='room'&&npc.roomLevel?[privateRoomImage('pyoro',npc.roomLevel)]:hallBackgroundFiles(hallBackgroundName()),'pyoroConversationBackground');
+ applyImageFallback(background,npc.state.location==='room'?[privateRoomImage('pyoro',Number(npc.roomLevel||roomLevels.pyoro||1))]:hallBackgroundFiles(hallBackgroundName()),'pyoroConversationBackground');
+};
+// Refresh scene text and background from the same server snapshot.
+let conversationSceneRefreshBusy=false;
+async function refreshConversationScene(npcId){
+ if(conversationSceneRefreshBusy)return;
+ const page=npcId==='paper'?'conversation':'pyoro-conversation';
+ const before=npcId==='paper'?currentNpc:pyoroProfile;
+ conversationSceneRefreshBusy=true;
+ try{
+  const {npc}=await api('/npcs/'+npcId);
+  if(activePage!==page||(npcId==='paper'?currentNpc:pyoroProfile)!==before)return;
+  if(npcId==='paper'){
+   currentNpc=npc;updateConversationBackground();$('#conversation-scene').textContent=npc.scene;
+   if(before?.state?.location!==npc.state.location||before?.state?.activity!==npc.state.activity)paintPaper('#conversation-paper-image',npc);
+  }else{
+   paintPyoroProfile(npc);updatePyoroConversationBackground(npc);$('#pyoro-conversation-scene').textContent=pyoroStateScene(npc);
+   if(before?.state?.location!==npc.state.location||before?.state?.activity!==npc.state.activity)paintPyoro('#pyoro-conversation-image',npc);
+  }
+ }catch(e){console.warn('会話場面の更新に失敗しました',e);}finally{conversationSceneRefreshBusy=false;}
+}
+const openPyoroConversation=async()=>{
+ const {npc}=await api('/npcs/pyoro');
+ paintPyoroProfile(npc);
+ updatePyoroConversationBackground(npc);
  paintPyoro('#pyoro-conversation-image',npc);
  $('#pyoro-conversation-scene').textContent=pyoroStateScene(npc);
  $('#pyoro-talk-result').textContent='「……なんだ？ オレに話があるのか？」';
@@ -1117,7 +1140,7 @@ for(const [id,action] of [['#pyoro-rest-btn','rest'],['#pyoro-wake-btn','wake']]
 let pyoroBusy=false;
 // v0.18.5.1: 表示を見出しに一本化。削除された #pyoro-ai-usage にはアクセスしない。
 const paintPyoroTalkUsage=u=>{const title=$('#pyoro-ai-remaining');if(title)title.textContent=`自由に話しかける（${u.used}/${u.limit}回）`;};
-const pyoroReply=r=>{ $('#pyoro-talk-result').textContent=r.response;paintPyoroProfile(r.npc);paintPyoro('#pyoro-conversation-image',r.npc,pyoroReplyExpression(r.response));$('#pyoro-conversation-scene').textContent=pyoroStateScene(r.npc);paintPyoroTalkUsage(r.usage);};
+const pyoroReply=r=>{ $('#pyoro-talk-result').textContent=r.response;paintPyoroProfile(r.npc);updatePyoroConversationBackground(r.npc);paintPyoro('#pyoro-conversation-image',r.npc,pyoroReplyExpression(r.response));$('#pyoro-conversation-scene').textContent=pyoroStateScene(r.npc);paintPyoroTalkUsage(r.usage);};
 const pyoroAction=async(path,body)=>{if(pyoroBusy)return;pyoroBusy=true;try{const r=await api(path,'POST',body);pyoroReply(r);return r;}finally{pyoroBusy=false;}};
 const loadPyoroTalk=async()=>{const data=await api('/npcs/pyoro/conversation/options');paintPyoroTalkUsage(data.usage);const list=$('#pyoro-talk-options');list.replaceChildren();for(const t of data.choices){const b=document.createElement('button');b.className='secondary';b.textContent=t.disabled?'挨拶する（この時間帯は挨拶済み）':t.label;b.disabled=!!t.disabled;b.onclick=handler(async()=>{const r=await pyoroAction('/npcs/pyoro/conversation',{choice:t.id});if(r)await loadPyoroTalk();});list.append(b);}};
 $('#pyoro-ai-form').addEventListener('submit',handler(async e=>{e.preventDefault();const field=$('#pyoro-ai-message');const r=await pyoroAction('/npcs/pyoro/ai/chat',{message:field.value});if(r)field.value='';}));
@@ -1216,9 +1239,9 @@ const renderPyoroFood=(data,message='')=>{
       if(pyoroFeedingBusy)return;pyoroFeedingBusy=true;
       document.querySelectorAll('#pyoro-feeding-page .feeding-item button').forEach(b=>b.disabled=true);
       try{
-        if(item.cooked){const response=await api('/cooking/feed','POST',{npcId:'pyoro',recipeId:item.id});await loadPyoroFood(response.message);}
-        else{const response=await api('/npcs/pyoro/feeding','POST',{itemId:item.id});await loadPyoroFood(response.message+(response.affinityChange?`（親密度 +${response.affinityChange}pt）`:''));}
-      }catch(e){await loadPyoroFood().catch(()=>{});throw e;}finally{pyoroFeedingBusy=false;}
+        if(item.cooked){const response=await api('/cooking/feed','POST',{npcId:'pyoro',recipeId:item.id});pyoroFeedingBusy=false;await loadPyoroFood(response.message);}
+        else{const response=await api('/npcs/pyoro/feeding','POST',{itemId:item.id});pyoroFeedingBusy=false;await loadPyoroFood(response.message+(response.affinityChange?`（親密度 +${response.affinityChange}pt）`:''));}
+      }catch(e){pyoroFeedingBusy=false;await loadPyoroFood().catch(()=>{});throw e;}finally{pyoroFeedingBusy=false;}
     }));card.append(button);list.append(card);
   }
  }
@@ -1447,7 +1470,7 @@ function renderConversationChoices(options){
       [...box.querySelectorAll('button')].forEach(b=>b.disabled=true);
       try{
         const data=await api('/npcs/paper/conversation','POST',{choice:opt.id});
-        currentNpc=data.npc;updateConversationBackground();paintPaper('#conversation-paper-image',data.npc);
+        currentNpc=data.npc;updateConversationBackground();$('#conversation-scene').textContent=data.npc.scene;paintPaper('#conversation-paper-image',data.npc);
         $('#speech-line').textContent=data.response;
         // v0.18.5.21: 選択式会話の下に親密度の説明通知を出さない。
         // 会話の反応文と親密度の更新処理はそのまま維持する。
@@ -1487,6 +1510,7 @@ $('#npc-ai-form').addEventListener('submit',handler(async event=>{
   try{
     const result=await api('/npcs/paper/ai/chat','POST',{message});
     currentNpc=result.npc;
+    updateConversationBackground();$('#conversation-scene').textContent=result.npc.scene;
     paintPaper('#conversation-paper-image',result.npc);
     $('#speech-line').textContent=result.response;
     $('#npc-ai-result').textContent='黄色い獣がお返事してくれたよ。';
@@ -1894,7 +1918,7 @@ bind('#open-npc-feeding',openNpcFeeding);
 bind('#npc-feeding-back',async()=>{
   if(feedingReturn==='conversation'){
     // 会話画面の選択肢と台詞を保持し、食後のNPC画像だけ更新する。
-    try{const {npc}=await api('/npcs/paper');currentNpc=npc;paintPaper('#conversation-paper-image',npc);}catch{}
+    try{const {npc}=await api('/npcs/paper');currentNpc=npc;updateConversationBackground();$('#conversation-scene').textContent=npc.scene;paintPaper('#conversation-paper-image',npc);}catch{}
     show('conversation');
   }else await openNpc(npcReturn);
 });
