@@ -106,7 +106,7 @@
 </style>
   <script src="data/sea-items.js?v=0.17.0.3" defer></script>
   <script src="data/greenhouse-data.js?v=0.19.0" defer></script>
-  <script src="script.js?v=0.20.8.13" defer></script>
+  <script src="script.js?v=0.20.8.14" defer></script>
   <script src="data/cooking.js?v=0.18.7.5" defer></script>
   <script src="data/sea-game.js?v=0.17.1.5" defer></script>
 <style>
@@ -335,7 +335,7 @@
 .cloth-grid > button.cloth-recipe > span{display:block;width:100%;text-align:left;margin:0;}
 </style>
 <style>
-/* v0.20.8.13 — 管理画面の入力UIを図鑑・持ち物に統一 */
+/* v0.20.8.14 — 管理画面の入力UIを図鑑・持ち物に統一 */
 :is(#admin-editor-page,#admin-login-page) {color-scheme:dark;}
 :is(#admin-editor-page,#admin-login-page) :is(select,textarea,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]):not([type=color]):not([type=file]):not([type=button]):not([type=submit]):not([type=reset])) {
  box-sizing:border-box;width:100%;min-width:0;max-width:100%;min-height:42px;background:#1b1c2e;color:#f4edf5;border:1px solid #625d77;border-radius:9px;padding:8px 10px;font:inherit;font-size:14px;line-height:1.4;
@@ -362,7 +362,7 @@
 </style>
 
 <style>
-/* v0.20.8.13: スマホのホール内NPCを縮小 */
+/* v0.20.8.14: スマホのホール内NPCを縮小 */
 @media (max-width: 600px) {
   #hall-visual :is(#hall-paper-actor,#hall-pyoro-actor) {
     width: 19%; min-width: 0; max-width: 100px;
@@ -524,7 +524,7 @@
           <div class="workshop-choices">
             <button type="button" id="workshop-enter-cooking" class="workshop-choice">
               <img src="images/backgrounds/kitchen.webp" alt="" loading="lazy">
-              <span class="workshop-choice-text"><strong>料理を作る</strong><small>台所でレシピを選び、素材を調理する</small></span>
+              <span class="workshop-choice-text"><strong>料理</strong></span>
               </button>
             <button type="button" id="workshop-enter-clothing" class="workshop-choice workshop-choice-disabled" disabled>
               <img src="images/backgrounds/Clothing.webp" alt="" loading="lazy">
@@ -541,7 +541,7 @@
     <button type="button" id="cooking-hall-back" class="back">← ホールへ戻る</button>
   </nav>
   <div class="panel">
-    <span class="eyebrow">THE KITCHEN</span><h1>料理を作る</h1>
+    <span class="eyebrow">THE KITCHEN</span><h1>料理</h1>
     <img class="workshop-hero kitchen-hero" src="images/backgrounds/kitchen.webp" alt="明るい工房の台所" loading="lazy">
     <p id="cooking-first" class="scene hidden">重い正面の扉が、ことりと開いた。奥には、よく磨かれた調理台と、誰かが並べた古い料理帳。料理帳には、まだ余白がたくさん残されている。</p>
     <p id="cooking-progress" class="cooking-progress-plain"></p><p id="cooking-moon" class="hidden" aria-hidden="true"></p>
@@ -1177,7 +1177,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.20.8.13</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.20.8.14</span></footer>
   </div>
 </body>
 </html>

@@ -494,7 +494,7 @@ function ghRender(){
  if(potKey!==ghPotKey){ghPotKey=potKey;$('#gh-pots').innerHTML=Array.from({length:5},(_,i)=>{
   const flower=ready?c.pots[i]:null, src=flower?`plant${ghFlowers[flower.id.replace('GH_FLOWER_','')]}.webp`:growing?phase:state==='planted'?'plant3.webp':'plantEmpty.webp';
   const label=flower?`${ghName(flower.id)} ×${flower.quantity}本`:state==='empty'?'空き':growing?'育成中':'種まき済み';
-  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.20.8.13" alt=""><span>${safe(label)}</span></div>`;
+  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.20.8.14" alt=""><span>${safe(label)}</span></div>`;
  }).join('');}
  $('#gh-can').innerHTML=ghData.canColor?`<img src="${ghDir}jouro${ghData.canColor}.webp" alt="じょうろ">${({B:'青',G:'緑',R:'赤',Y:'黄'})[ghData.canColor]}のじょうろ`:'じょうろを受け取っていません';
  $('#gh-owned').textContent=`種：${ghQuantity('LENT_SEED')}袋　腐葉土：${ghQuantity('S0047')}個　肥料：${ghQuantity('GH_FERTILIZER')}個`;
@@ -3017,7 +3017,7 @@ bind('#admin-show-clothing',async()=>{for(const p of document.querySelectorAll('
 bind('#cl-admin-new',()=>{clGet('admin-list').value='';clSelect();});bind('#cl-admin-reload',()=>clLoad(clGet('id').value));bind('#cl-add-material',()=>{if(clGet('materials').children.length<30)clMaterialRow();});bind('#cl-add-step',()=>{if(clGet('steps').children.length<20)clStepRow();});
 clGet('admin-search').addEventListener('input',()=>clList(clGet('id').value));clGet('admin-list').addEventListener('change',()=>clSelect(clAdminData.recipes.find(r=>r.id===clGet('admin-list').value)));clGet('image').addEventListener('input',clPreview);clGet('limited').addEventListener('change',()=>clGet('period').classList.toggle('hidden',!clGet('limited').checked));
 clGet('admin-form').addEventListener('submit',handler(async e=>{e.preventDefault();const button=clGet('save');button.disabled=true;try{const id=clGet('id').value.trim();const date=k=>clGet(k).value?new Date(clGet(k).value+':00+09:00').toISOString():null;const body={id,revision:clRevision,name:clGet('name').value,category:clGet('category').value,description:clGet('description').value,image:clGet('image').value,published:clGet('published').checked,limited:clGet('limited').checked,startsAt:date('start'),endsAt:date('end'),ingredients:[...clGet('materials').children].map(r=>({id:r.querySelector('select').value,quantity:Number(r.querySelector('input').value)})),steps:[...clGet('steps').children].map(r=>({type:r.querySelectorAll('select')[0].value,difficulty:Number(r.querySelectorAll('select')[1].value)}))};clAdminData=await adminApi('/clothing/save','POST',body);clGet('admin-search').value='';clList(id);clSelect(clAdminData.recipes.find(r=>r.id===id));toast('服飾レシピを保存しました。');}finally{button.disabled=false;}}));
-// v0.20.8.13 Clothing workshop. Images are returned only after a successful attempt.
+// v0.20.8.14 Clothing workshop. Images are returned only after a successful attempt.
 let clothBusy=false, clothFilter='all';
 async function openClothingRecipes(){
  const root=$('#clothing-recipes');root.textContent='読み込み中…';const [{recipes},createdData]=await Promise.all([api('/clothing/recipes'),api('/catalog/created')]);const createdImages=new Map((createdData.items||[]).filter(i=>i.kind==='clothing'&&i.found===true&&(Number(i.times)>0||Number(i.totalCreated)>0||i.firstCreatedAt)&&i.image).map(i=>[i.id,i.image]));root.replaceChildren();
