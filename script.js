@@ -104,7 +104,13 @@ const hallWeather=(day)=>{
 let hallBuildLevel=1, roomLevels={paper:0,pyoro:0};
 const privateRoomImage=(npc,level)=>{const t=hallJapanClock(),band=hallTimeBand(t.hour),cloud=hallWeather(t.day)!=='clear';return `images/backgrounds/${npc}RoomLv${level}-${band==='evening'?2:band==='night'?(cloud?5:3):cloud?4:1}.webp`;};
 function renderPrivateRoomLinks(data){if(!data?.rooms)return;roomLevels=data.rooms;const el=$('#private-room-links');el.innerHTML=Object.entries(roomLevels).filter(([,lv])=>lv>0).map(([npc,lv])=>`<button class="secondary" data-private-room="${npc}">${npc==='paper'?'黄色い獣':'赤色の獣'}のおへや Lv.${lv}</button>`).join('');el.classList.toggle('hidden',!Object.values(roomLevels).some(Boolean));el.querySelectorAll('button').forEach(btn=>btn.onclick=handler(()=>openPrivateRoom(btn.dataset.privateRoom)));}
-async function openPrivateRoom(npc){const data=await api('/hall');renderPrivateRoomLinks(data.build);const lv=roomLevels[npc];if(!lv)return;const n=data.npcs.find(x=>x.id===npc);$('#private-room-title').textContent=(npc==='paper'?'黄色い獣':'赤色の獣')+'のおへや Lv.'+lv;$('#private-room-bg').src=privateRoomImage(npc,lv);const here=n?.state.location==='room';const actor=$('#private-room-actor');actor.classList.toggle('hidden',!here);if(here){if(npc==='paper')paintPaper('#private-room-actor img',n);else paintPyoro('#private-room-actor img',n);actor.style.left=/^(desk_|shelf_)/.test(n.state.furnitureAction||'')?'86%':n.state.furnitureAction?(npc==='paper'?'53%':'65%'):n.state.activity==='sleeping'?'30%':lv>=3&&n.state.activity==='resting'?'65%':'53%';actor.style.bottom=/^(desk_|shelf_)/.test(n.state.furnitureAction||'')?'18%':n.state.furnitureAction?(npc==='paper'?'35%':'15%'):n.state.activity==='sleeping'?'30%':lv>=3&&n.state.activity==='resting'?'15%':'8%';$('#private-room-sleep').classList.toggle('hidden',n.state.activity!=='sleeping');}$('#private-room-status').textContent=here?n.state.activityLabel:'今はおへやにいないようだ。';$('#private-room-talk').classList.toggle('hidden',!here||n.state.activity==='sleeping');$('#private-room-talk').onclick=handler(()=>npc==='paper'?openNpc('hall'):openPyoro());show('private-room');}
+async function openPrivateRoom(npc){const data=await api('/hall');renderPrivateRoomLinks(data.build);const lv=roomLevels[npc];if(!lv)return;const n=data.npcs.find(x=>x.id===npc);$('#private-room-title').textContent=(npc==='paper'?'黄色い獣':'赤色の獣')+'のおへや Lv.'+lv;$('#private-room-bg').src=privateRoomImage(npc,lv);const here=n?.state.location==='room';const actor=$('#private-room-actor');actor.classList.toggle('hidden',!here);if(here){if(npc==='paper')paintPaper('#private-room-actor img',n);else paintPyoro('#private-room-actor img',n);actor.style.left=/^(desk_|shelf_)/.test(n.state.furnitureAction||'')?'86%':n.state.furnitureAction?(npc==='paper'?'53%':'65%'):n.state.activity==='sleeping'?'30%':lv>=3&&n.state.activity==='resting'?'65%':'53%';actor.style.bottom=/^(desk_|shelf_)/.test(n.state.furnitureAction||'')?'18%':n.state.furnitureAction?(npc==='paper'?'35%':'15%'):n.state.activity==='sleeping'?'30%':lv>=3&&n.state.activity==='resting'?'15%':'8%';$('#private-room-sleep').classList.toggle('hidden',n.state.activity!=='sleeping');}$('#private-room-status').textContent=here?n.state.activityLabel:'今はおへやにいないようだ。';
+ const button=$('#private-room-talk'),sleeping=n?.state.activity==='sleeping';
+ button.classList.remove('hidden');button.textContent=sleeping&&n?.affinity>=8?'そっと声をかけて起こす':'話しかける';
+ button.disabled=!here||n.affinity<3||(sleeping&&n.affinity<8);
+ const msg=$('#private-room-message');msg.classList.add('hidden');msg.textContent='';
+ button.onclick=handler(async()=>{if(button.disabled)return;button.disabled=true;try{const result=await api(`/npcs/${npc}/room/enter`,'POST',{});if(result.allowed){await (npc==='paper'?openConversation():openPyoroConversation());}else{msg.textContent=result.message;msg.classList.remove('hidden');}}finally{button.disabled=!here||n.affinity<3||(sleeping&&n.affinity<8);}});
+ show('private-room');}
 
 const hallBackgroundName=()=>{
   const t=hallJapanClock();
@@ -473,7 +479,7 @@ function ghRender(){
  if(potKey!==ghPotKey){ghPotKey=potKey;$('#gh-pots').innerHTML=Array.from({length:5},(_,i)=>{
   const flower=ready?c.pots[i]:null, src=flower?`plant${ghFlowers[flower.id.replace('GH_FLOWER_','')]}.webp`:growing?phase:state==='planted'?'plant3.webp':'plantEmpty.webp';
   const label=flower?`${ghName(flower.id)} ×${flower.quantity}本`:state==='empty'?'空き':growing?'育成中':'種まき済み';
-  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.20.6.4" alt=""><span>${safe(label)}</span></div>`;
+  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.20.6.5" alt=""><span>${safe(label)}</span></div>`;
  }).join('');}
  $('#gh-can').innerHTML=ghData.canColor?`<img src="${ghDir}jouro${ghData.canColor}.webp" alt="じょうろ">${({B:'青',G:'緑',R:'赤',Y:'黄'})[ghData.canColor]}のじょうろ`:'じょうろを受け取っていません';
  $('#gh-owned').textContent=`種：${ghQuantity('LENT_SEED')}袋　腐葉土：${ghQuantity('S0047')}個　肥料：${ghQuantity('GH_FERTILIZER')}個`;
@@ -1027,6 +1033,7 @@ const pyoroReplyExpression=(response)=>{
 };
 const pyoroStateScene=n=>{
  const state=n.state||{};
+ if(state.location==='room'&&state.activity==='sleeping')return '赤色の獣は自室のベッドですやすや眠っている。';
  if(state.location==='room')return state.furnitureAction?'赤色の獣は'+state.activityLabel+'。':'赤色の獣は自室でのんびり過ごしている。';
  if(state.activity==='sleeping')return '赤色の獣はホールの片隅で小さく丸まり、すうすうと眠っている。時おり耳がぴくりと動く。';
  if(state.hunger>75)return '赤色の獣はおなかを押さえ、こちらの様子をちらちらうかがっている。……どうやら、おなかが空いたらしい。';
@@ -1058,10 +1065,12 @@ const paintPyoroProfile=(n,moved=false)=>{
  updatePyoroHallLabel(n);
  const notice=$('#pyoro-move-notice');
  if(moved){notice.textContent=`赤色の獣は${st.locationLabel||'ホール'}へ移動しました。`;notice.classList.remove('hidden');}
- $('#pyoro-talk-open').disabled=st.activity==='sleeping';
+ $('#pyoro-talk-open').disabled=st.activity==='sleeping'||st.location==='room';
+ $('#pyoro-room-btn').classList.toggle('hidden',!n.roomLevel);
+ $('#pyoro-room-btn').disabled=!n.roomLevel;
  $('#pyoro-talk-open').title=st.activity==='sleeping'?'赤色の獣は眠っています。':'';
  $('#pyoro-rest-btn').disabled=st.activity!=='awake';
- $('#pyoro-wake-btn').disabled=st.activity!=='sleeping'||n.affinity<3;
+ $('#pyoro-wake-btn').disabled=st.activity!=='sleeping'||n.affinity<3||st.location==='room';
 };
 async function openPyoro(){
  const {npc}=await api('/npcs/pyoro');
@@ -1129,6 +1138,7 @@ const openPyoroConversation=async()=>{
  show('pyoro-conversation');
 };
 bind('#pyoro-talk-open',openPyoroConversation);
+bind('#pyoro-room-btn',()=>openPrivateRoom('pyoro'));
 bind('#pyoro-conversation-back',openPyoro);
 bind('#pyoro-conversation-hall',openHall);
 bind('#pyoro-history-shortcut',()=>openPyoroHistory('pyoro'));
@@ -1433,18 +1443,18 @@ function renderNpc(moved){const n=currentNpc;
   $('#npc-relationship-detail').textContent=n.relationship;renderFurnitureSkills('paper-skills',n);
   $('#npc-life-status').innerHTML=['energy','hunger','mood'].map((k)=>{const labels={energy:'元気',hunger:'空腹',mood:'気分'};const descriptions={energy:n.state.energyLabel,hunger:n.state.hungerLabel,mood:n.state.moodLabel};return `<div class="life-item"><span>${labels[k]}</span><strong>${safe(descriptions[k])}</strong></div>`;}).join('');
   $('#rest-btn').disabled=n.state.activity!=='awake';
-  $('#wake-btn').disabled=n.state.activity!=='sleeping'||n.affinity<3;
+  $('#wake-btn').disabled=n.state.activity!=='sleeping'||n.affinity<3||n.state.location==='room';
   $('#npc-live-state').innerHTML=`<div class="state-item"><span>現在地</span><strong>${safe(n.state.locationLabel)}</strong></div><div class="state-item"><span>活動状態</span><strong>${safe(n.state.activityLabel)}</strong></div>`;
   paintPaper('#npc-profile-image',n);
   $('#npc-scene').textContent=profileScene;
   $('#npc-bio').textContent=n.description;$('#npc-personality').textContent=n.personality;
   if(moved){$('#npc-move-notice').textContent=`黄色い獣は${n.state.locationLabel}へ移動しました。描写はプロフィールを開き直すと更新されます。` ;$('#npc-move-notice').classList.remove('hidden');}
   else if($('#npc-move-notice').classList.contains('hidden')) {} // 移動通知は開き直すまで残す
-  $('#talk-btn').disabled=n.state.activity==='sleeping';
+  $('#talk-btn').disabled=n.state.activity==='sleeping'||n.state.location==='room';
   $('#talk-btn').title=n.state.activity==='sleeping'?'黄色い獣は眠っています。':'';
-  $('#room-btn').disabled=!n.roomUnlocked;
-  $('#room-btn').classList.toggle('hidden',!n.roomUnlocked);
-  $('#room-btn').title=n.roomUnlocked?'':'自室はまだありません。';
+  $('#room-btn').disabled=!n.roomLevel;
+  $('#room-btn').classList.toggle('hidden',!n.roomLevel);
+  $('#room-btn').title=n.roomLevel?'':'自室はまだありません。';
   $('#npc-back').textContent=npcReturn==='cave'?'← 洞窟に戻る':'← ホールに戻る';
 }
 const openConversation=async()=>{

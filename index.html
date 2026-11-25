@@ -94,7 +94,7 @@
 </style>
   <script src="data/sea-items.js?v=0.17.0.3" defer></script>
   <script src="data/greenhouse-data.js?v=0.19.0" defer></script>
-  <script src="script.js?v=0.20.6.4" defer></script>
+  <script src="script.js?v=0.20.6.5" defer></script>
   <script src="data/cooking.js?v=0.18.7.5" defer></script>
   <script src="data/sea-game.js?v=0.17.1.5" defer></script>
 <style>
@@ -612,7 +612,7 @@
     <div class="section-top compact"><h2>現在の様子</h2></div>
     <p id="pyoro-scene" class="scene"></p>
     <p id="pyoro-memory" class="scene hidden">自分を釣り上げてくれたあなたのことを覚えている。</p>
-    <div class="actions"><button id="pyoro-talk-open" type="button" class="primary">話しかける</button></div>
+    <div class="actions"><button id="pyoro-talk-open" type="button" class="primary">話しかける</button><button id="pyoro-room-btn" class="secondary hidden" type="button">自室を訪ねる</button></div>
     <section class="life-actions" id="pyoro-life-actions">
       <h3>赤色の獣の生活</h3>
       <p class="muted tiny">休息・睡眠の状態の変化は住人全員で共有されます。</p>
@@ -864,7 +864,7 @@
           <button type="button" id="gift-history-bottom-back" class="secondary gift-history-bottom-back">← 通信箱に戻る</button>
         </div>
       </section>
-      <section id="private-room-page" class="page hidden narrow"><button class="back" id="private-room-back">← ホールへ</button><div class="panel"><h1 id="private-room-title"></h1><div style="position:relative"><img id="private-room-bg" style="width:100%;display:block;border-radius:10px" alt="自室"><div id="private-room-actor" style="position:absolute;width:22%;transform:translateX(-50%)"><span id="private-room-sleep" style="position:absolute;right:0;top:0;color:white;text-shadow:0 1px 4px black">Zzz</span><img style="width:100%" alt="獣"></div></div><p id="private-room-status"></p><button id="private-room-talk" class="primary">会いに行く</button></div></section><section id="room-page" class="page hidden narrow"><button class="back" data-back="npc">← プロフィールへ</button><div class="panel story"><div class="big-icon">⌂</div><span class="eyebrow">THE YELLOW BEAST'S ROOM</span><h1>黄色い獣の部屋</h1><div id="room-message" class="scene"></div><p class="muted">小さな部屋には、ふかふかの寝床や、黄色い獣のお気に入りのものが置かれている。</p><button class="primary" id="room-talk">黄色い獣と話す</button></div></section>
+      <section id="private-room-page" class="page hidden narrow"><button class="back" id="private-room-back">← ホールへ戻る</button><div class="panel"><h1 id="private-room-title"></h1><div style="position:relative"><img id="private-room-bg" style="width:100%;display:block;border-radius:10px" alt="自室"><div id="private-room-actor" style="position:absolute;width:22%;transform:translateX(-50%)"><span id="private-room-sleep" style="position:absolute;right:0;top:0;color:white;text-shadow:0 1px 4px black">Zzz</span><img style="width:100%" alt="獣"></div></div><p id="private-room-status"></p><button id="private-room-talk" class="primary">話しかける</button><p id="private-room-message" class="scene hidden" aria-live="polite"></p></div></section><section id="room-page" class="page hidden narrow"><button class="back" data-back="npc">← プロフィールへ</button><div class="panel story"><div class="big-icon">⌂</div><span class="eyebrow">THE YELLOW BEAST'S ROOM</span><h1>黄色い獣の部屋</h1><div id="room-message" class="scene"></div><p class="muted">小さな部屋には、ふかふかの寝床や、黄色い獣のお気に入りのものが置かれている。</p><button class="primary" id="room-talk">黄色い獣と話す</button></div></section>
 
       <section id="npc-feeding-page" class="page hidden narrow">
         <button class="back" id="npc-feeding-back">← お話に戻る</button>
@@ -1057,7 +1057,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.20.6.4</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.20.6.5</span></footer>
   </div>
 </body>
 </html>
