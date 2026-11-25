@@ -65,6 +65,10 @@
 #material-catalog-page .catalog-search-note{font-size:.68em;white-space:nowrap}
 #material-catalog-page .catalog-search-row input,#material-catalog-page .catalog-search-row select{box-sizing:border-box;height:42px;min-height:42px;margin:0;min-width:0}
 @media(max-width:480px){#material-catalog-page label[for="catalog-search"]{font-size:clamp(11px,3.5vw,14px)}}
+
+/* 思い出一覧：文字幅に合わせたボタン */
+#forest-memories-page .choice-list {display:flex;flex-direction:column;align-items:flex-start;gap:10px;}
+#forest-memories-page details button.secondary {width:fit-content;max-width:100%;min-width:0;align-self:flex-start;text-align:left;white-space:normal;overflow-wrap:anywhere;}
 </style>
   <style>
   /* v0.16.4.10 白い扉イベントのスチル差し替え */
@@ -102,7 +106,7 @@
 </style>
   <script src="data/sea-items.js?v=0.17.0.3" defer></script>
   <script src="data/greenhouse-data.js?v=0.19.0" defer></script>
-  <script src="script.js?v=0.20.8.9" defer></script>
+  <script src="script.js?v=0.20.8.10" defer></script>
   <script src="data/cooking.js?v=0.18.7.5" defer></script>
   <script src="data/sea-game.js?v=0.17.1.5" defer></script>
 <style>
@@ -331,7 +335,7 @@
 .cloth-grid > button.cloth-recipe > span{display:block;width:100%;text-align:left;margin:0;}
 </style>
 <style>
-/* v0.20.8.9 — 管理画面の入力UIを図鑑・持ち物に統一 */
+/* v0.20.8.10 — 管理画面の入力UIを図鑑・持ち物に統一 */
 :is(#admin-editor-page,#admin-login-page) {color-scheme:dark;}
 :is(#admin-editor-page,#admin-login-page) :is(select,textarea,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]):not([type=color]):not([type=file]):not([type=button]):not([type=submit]):not([type=reset])) {
  box-sizing:border-box;width:100%;min-width:0;max-width:100%;min-height:42px;background:#1b1c2e;color:#f4edf5;border:1px solid #625d77;border-radius:9px;padding:8px 10px;font:inherit;font-size:14px;line-height:1.4;
@@ -358,7 +362,7 @@
 </style>
 
 <style>
-/* v0.20.8.9: スマホのホール内NPCを縮小 */
+/* v0.20.8.10: スマホのホール内NPCを縮小 */
 @media (max-width: 600px) {
   #hall-visual :is(#hall-paper-actor,#hall-pyoro-actor) {
     width: 19%; min-width: 0; max-width: 100px;
@@ -623,7 +627,7 @@
 黄色い獣が前足で扉に触れると、小さな音を立てて扉が開いた。</p>
           <p id="forest-event-unlocked" class="forest-gold">白い扉が解放されました。</p><button id="forest-event-finish" class="primary">ホールへ</button></div>
       </section>
-      <section id="forest-memories-page" class="page hidden narrow"><button id="forest-memories-back" class="back">← ホールに戻る</button><div class="panel"><span class="eyebrow">MEMORIES</span><h1>思い出を読み返す</h1><details open><summary>第1の扉 ― 洞窟</summary><button id="forest-memory-cave" class="secondary">洞窟の物語一覧へ →</button></details><details open><summary>第2の扉 ― 森</summary><button id="forest-memory-replay" class="secondary">白い扉の向こう側 →</button></details><details id="sea-memories" class="hidden"><summary>第3の扉 ― 海</summary><div id="sea-memory-buttons" class="choice-list"></div></details><details id="front-memories" class="hidden"><summary>第4の扉 ― 工房</summary><div id="front-memory-buttons" class="choice-list"></div></details><details id="moon-memories" class="hidden"><summary>第5の扉 ― 商人</summary><div id="moon-memory-buttons" class="choice-list"></div></details><details id="build-memories" class="hidden"><summary>ホールと二匹の暮らし</summary><div id="build-memory-buttons" class="choice-list"></div></details></div></section>
+      <section id="forest-memories-page" class="page hidden narrow"><button id="forest-memories-back" class="back">← ホールに戻る</button><div class="panel"><span class="eyebrow">MEMORIES</span><h1>思い出を読み返す</h1><details open><summary>第1の扉 ― 洞窟</summary><button id="forest-memory-cave" class="secondary">洞窟の物語一覧へ →</button></details><details open><summary>第2の扉 ― 森</summary><button id="forest-memory-replay" class="secondary">白い扉の向こう側 →</button></details><details id="sea-memories" class="hidden" open><summary>第3の扉 ― 海</summary><div id="sea-memory-buttons" class="choice-list"></div></details><details id="front-memories" class="hidden" open><summary>第4の扉 ― 工房</summary><div id="front-memory-buttons" class="choice-list"></div></details><details id="moon-memories" class="hidden" open><summary>第5の扉 ― 商人</summary><div id="moon-memory-buttons" class="choice-list"></div></details><details id="build-memories" class="hidden" open><summary>ホールと二匹の暮らし</summary><div id="build-memory-buttons" class="choice-list"></div></details></div></section>
       <section id="forest-area-page" class="page hidden narrow"><nav class="forest-area-nav" aria-label="戻る"><button id="forest-area-hall" class="back">← ホールに戻る</button></nav><div class="panel"><span class="eyebrow">THE FOREST</span><h1>森の探索</h1><div id="forest-sections" class="cave-section-nav" aria-label="森の探索区画"></div><img id="forest-area-img" class="forest-area-image" alt="区画の風景"><h2 id="forest-area-title"></h2><p id="forest-area-desc" class="muted"></p><h2>採取場所</h2><div id="forest-spots" class="forest-spots"></div><div id="forest-result" role="status" aria-live="polite"></div><div class="forest-area-footer"><button id="forest-inventory" class="secondary">持ち物を見る</button></div></div></section>
 <section id="forest-page" class="page hidden narrow"><button id="forest-back" class="back">← ホールに戻る</button><div class="panel"><span class="eyebrow">THE FOREST</span><h1>森</h1><p class="muted">白い扉の向こうに広がる森。好きな区画へ進んで探索できます。</p><div class="forest-map"><img src="images/backgrounds/forestMap.webp" alt="森の地図"><button type="button" id="forest-area-1" style="left:19%;top:27%">灯りの森</button><button type="button" id="forest-area-2" style="left:70%;top:47%">水辺の小道</button><button type="button" id="forest-area-3" style="left:21%;top:76%">朽ちた遺跡</button></div></div></section>
       <section id="cave-page" class="page hidden narrow">
@@ -1166,7 +1170,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.20.8.9</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.20.8.10</span></footer>
   </div>
 </body>
 </html>
