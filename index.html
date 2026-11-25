@@ -94,7 +94,7 @@
 </style>
   <script src="data/sea-items.js?v=0.17.0.3" defer></script>
   <script src="data/greenhouse-data.js?v=0.19.0" defer></script>
-  <script src="script.js?v=0.20.8.1" defer></script>
+  <script src="script.js?v=0.20.8.3" defer></script>
   <script src="data/cooking.js?v=0.18.7.5" defer></script>
   <script src="data/sea-game.js?v=0.17.1.5" defer></script>
 <style>
@@ -314,7 +314,41 @@
 .collection-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0}.collection-tabs button{flex:1 0 auto;min-height:40px;padding:8px 10px;font-size:13px}.collection-tabs button[aria-pressed=true]{background:#c5a4e9;color:#211b31;border-color:#c5a4e9}.catalog-controls select,#gift-receiver,.gift-send-row select,#inventory-search,#catalog-search{width:100%;min-height:42px;background:#1b1c2e;color:#f4edf5;border:1px solid #625d77;border-radius:9px;padding:8px;font-size:14px}.catalog-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:10px 0}#inventory-list,#material-catalog-grid,.gift-picker-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px;align-items:stretch}#inventory-list .inventory-item,#material-catalog-grid .material-catalog-card,.gift-picker-grid button{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;min-width:0;padding:6px;gap:5px;text-align:center;border:1px solid #514b61;border-radius:9px;background:#202134;color:inherit;overflow:hidden}#inventory-list .material-thumb,#material-catalog-grid .material-catalog-image,.gift-picker-grid .material-thumb{width:100%;height:auto;aspect-ratio:1;object-fit:contain;margin:0}#material-catalog-grid .material-catalog-image img{width:100%;height:100%;object-fit:contain}#inventory-list strong,#material-catalog-grid strong,.gift-picker-grid strong{font-size:12px;overflow-wrap:anywhere;line-height:1.35}#material-catalog-grid .catalog-empty,#inventory-list>.muted{grid-column:1/-1}.collection-detail{max-width:min(90vw,420px);background:#26263a;color:#eee;border:1px solid #80728e;border-radius:12px;padding:20px}.collection-detail::backdrop{background:#0009}.collection-detail img{display:block;width:120px;max-width:100%;margin:auto}.collection-detail button{width:100%;margin-top:12px}.gift-picker-grid button[aria-pressed=true]{border-color:#e9c18b;background:#44394a}.gift-send-row{margin:10px 0}.gift-picker-grid{max-height:360px;overflow:auto}.collection-tabs .hidden,#mail-send-panel.hidden{display:none!important}@media(max-width:420px){#inventory-list,#material-catalog-grid,.gift-picker-grid{gap:4px}#inventory-list .inventory-item,#material-catalog-grid .material-catalog-card,.gift-picker-grid button{padding:4px}#inventory-list strong,#material-catalog-grid strong,.gift-picker-grid strong{font-size:10px}}
 </style><style>
 .cloth-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.cloth-recipe{min-width:0;overflow-wrap:anywhere;padding:10px 5px!important;text-align:left;align-content:start;font-size:12px}.cloth-recipe strong{display:block;margin-bottom:8px;text-align:center}.cloth-recipe span span{display:block;margin:4px 0}.cloth-recipe small{font-size:10px}.cloth-short{color:#e6a1a4}.cloth-recipe:disabled{opacity:.45}.cloth-game{display:grid;gap:12px;margin:12px 0}.cloth-swatch{width:100px;height:80px;margin:auto;border:2px solid #cfb27f;border-radius:8px}.cloth-color-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.cloth-pattern{display:grid;gap:5px;max-width:330px;width:100%;margin:auto}.cloth-pattern[hidden]{display:none}.cloth-pattern button{aspect-ratio:1;padding:0!important;background:#37334a;opacity:1!important}.cloth-pattern .lit{background:#d9b777!important}.cloth-example{max-width:135px}.cloth-track{height:45px;position:relative;background:#3d3952;border-radius:10px;overflow:hidden;touch-action:manipulation}.cloth-needle{position:absolute;width:4px;background:white;height:100%;transform:translateX(-50%)}
-</style></head>
+</style><style>
+.recipe-controls input,.recipe-controls select{box-sizing:border-box;width:100%;min-width:0;min-height:42px;background:#1b1c2e;color:#f4edf5;border:1px solid #625d77;border-radius:9px;padding:8px;font-size:14px;}
+.recipe-controls label{display:block;margin-bottom:6px;}
+.cloth-grid > button.cloth-recipe{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;text-align:left;gap:0;min-width:0;white-space:normal;}
+.cloth-grid > button.cloth-recipe > strong{width:100%;text-align:center;margin:0 0 8px;}
+.cloth-grid > button.cloth-recipe > small{text-align:center;}
+.cloth-grid > button.cloth-recipe > span{display:block;width:100%;text-align:left;margin:0;}
+</style>
+<style>
+/* v0.20.8.3 — 管理画面の入力UIを図鑑・持ち物に統一 */
+:is(#admin-editor-page,#admin-login-page) {color-scheme:dark;}
+:is(#admin-editor-page,#admin-login-page) :is(select,textarea,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]):not([type=color]):not([type=file]):not([type=button]):not([type=submit]):not([type=reset])) {
+ box-sizing:border-box;width:100%;min-width:0;max-width:100%;min-height:42px;background:#1b1c2e;color:#f4edf5;border:1px solid #625d77;border-radius:9px;padding:8px 10px;font:inherit;font-size:14px;line-height:1.4;
+}
+:is(#admin-editor-page,#admin-login-page) textarea {display:block;min-height:100px;resize:vertical;}
+:is(#admin-editor-page,#admin-login-page) :is(select,textarea,input):focus-visible {outline:2px solid #c5a4e9;outline-offset:2px;}
+:is(#admin-editor-page,#admin-login-page) :is(input,textarea)::placeholder {color:#a29db1;opacity:1;}
+:is(#admin-editor-page,#admin-login-page) :is(input,select,textarea):disabled {opacity:.55;cursor:not-allowed;}
+#admin-editor-page input[readonly]{color:#b8b2c5;}
+#admin-editor-page select option {background:#1b1c2e;color:#f4edf5;}
+#admin-editor-page .admin-fields-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0;}
+#admin-editor-page .admin-fields-grid.hidden {display:none!important;}
+#admin-editor-page .admin-fields-grid label,#admin-clothing-panel form>label:not(.admin-enabled),#admin-login-page form>label {display:block;margin:8px 0 6px;}
+#admin-editor-page .admin-npc-selector select{width:auto;max-width:100%;min-width:160px;}
+#admin-editor-page .admin-enabled {display:flex;align-items:center;gap:9px;min-height:36px;margin:6px 0;}
+#admin-editor-page :is(input[type=checkbox],input[type=radio]){accent-color:#c5a4e9;width:18px!important;height:18px;flex:0 0 18px;margin:0;}
+#admin-editor-page #cl-materials .admin-reply-row {display:grid;grid-template-columns:minmax(0,1fr) minmax(64px,100px) auto;align-items:center;gap:8px;margin:8px 0;}
+#admin-editor-page #cl-steps .admin-reply-row {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;align-items:center;gap:8px;margin:8px 0;}
+#cl-steps .admin-reply-row>div{display:flex;gap:4px;}
+#admin-editor-page :is(#cl-materials,#cl-steps) button {min-height:42px;width:auto;white-space:nowrap;padding:6px 10px;}
+#admin-editor-page #cl-save{width:100%;min-height:42px;margin:8px 0 16px;}
+#admin-editor-page .sea-admin-table input{width:86px;min-width:64px;}
+@media(max-width:520px){#admin-editor-page .admin-fields-grid{grid-template-columns:1fr;}#admin-editor-page #cl-steps .admin-reply-row{grid-template-columns:repeat(2,minmax(0,1fr));}#cl-steps .admin-reply-row>div{grid-column:1/-1;justify-content:flex-end;}#admin-editor-page #cl-materials .admin-reply-row{grid-template-columns:minmax(0,1fr) 70px auto;}}
+</style>
+</head>
 <body>
   <div class="ambient ambient-a" aria-hidden="true"></div><div class="ambient ambient-b" aria-hidden="true"></div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -451,7 +485,7 @@
     <div id="cooking-message" role="status" aria-live="polite" class="cooking-notice" hidden></div>
     <div id="cooking-library">
       <h2>レシピ</h2><p class="muted tiny">レシピは料理や探索・獣たちとの交流、住人への贈り物で解放されます。調理回数に1日の制限はありません。</p>
-      <div class="cooking-toolbar"><select id="cooking-filter" aria-label="料理の種類"><option value="all">すべて</option><option>洞窟</option><option>森</option><option>海</option><option>複合</option><option>特別</option></select><input id="cooking-search" placeholder="料理名を検索" aria-label="料理名を検索"></div>
+      <div class="catalog-controls recipe-controls"><div><label for="cooking-filter">料理の種類</label><select id="cooking-filter" aria-label="料理の種類"><option value="all">すべて</option><option>洞窟</option><option>森</option><option>海</option><option>複合</option><option>特別</option></select></div><div><label for="cooking-search">名前で検索</label><input id="cooking-search" placeholder="料理名を検索" aria-label="料理名を検索"></div></div>
       <div id="cooking-recipes" class="cooking-recipe-grid" aria-label="レシピ一覧"></div>
       
     </div>
@@ -985,7 +1019,7 @@
 <div id="cl-period" class="admin-fields-grid hidden"><div><label>公開開始（日本時間、任意）</label><input id="cl-start" type="datetime-local"></div><div><label>公開終了（日本時間、任意）</label><input id="cl-end" type="datetime-local"></div></div>
 <h3>必要素材</h3><div id="cl-materials"></div><button id="cl-add-material" type="button" class="secondary small">＋ 素材追加</button>
 <h3>ミニゲーム工程（上から順に実行）</h3><div id="cl-steps"></div><button id="cl-add-step" type="button" class="secondary small">＋ 工程追加</button>
-<p id="cl-admin-status" class="muted"></p><button id="cl-save" type="submit">レシピを保存</button></form>
+<p id="cl-admin-status" class="muted"></p><button id="cl-save" class="primary" type="submit">レシピを保存</button></form>
 <details><summary>編集履歴（最新30件）</summary><div id="cl-audit"></div></details></section>
 <section id="admin-sea-panel" class="hidden admin-quest" aria-label="海の釣り難易度と発見イベント管理">
   <h2>海の難易度・発見イベント</h2>
@@ -1077,7 +1111,7 @@
     </div>
   </section>
   </main>
-    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.20.8.1</span></footer>
+    <footer>神狩荘 · 塀の扉の向こう側 <span>v0.20.8.3</span></footer>
   </div>
 </body>
 </html>
