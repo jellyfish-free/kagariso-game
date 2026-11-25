@@ -34,8 +34,8 @@ const api=async(path,method='GET',payload)=>{
 };
 let clothingCheck=0;
 async function refreshClothing(){
- const check=++clothingCheck,button=$('#workshop-enter-clothing');button.disabled=true;button.classList.add('workshop-choice-disabled');$('#clothing-status').textContent='確認中';
- try{const data=await api('/clothing/unlock');if(check!==clothingCheck)return;button.disabled=!data.unlocked;button.classList.toggle('workshop-choice-disabled',!data.unlocked);$('#clothing-status').textContent=data.unlocked?'':'未解放';$('#clothing-hint').textContent=data.unlocked?'裁縫や染色を行う場所':'温室で花を収穫すると解放されます';}catch(e){if(check===clothingCheck)$('#clothing-status').textContent='未確認';}
+ const check=++clothingCheck,button=$('#workshop-enter-clothing');button.disabled=true;button.classList.add('workshop-choice-disabled');$('#clothing-hint').textContent='解放状況を確認中…';
+ try{const data=await api('/clothing/unlock');if(check!==clothingCheck)return;button.disabled=!data.unlocked;button.classList.toggle('workshop-choice-disabled',!data.unlocked);$('#clothing-hint').textContent=data.unlocked?'裁縫や染色を行う場所':'温室で花を収穫すると解放されます';}catch(e){if(check===clothingCheck)$('#clothing-hint').textContent='解放状況を確認できませんでした';}
 }
 $('#workshop-enter-clothing').onclick=async()=>{try{if((await api('/clothing/unlock')).unlocked){show('clothing');await openClothingRecipes();}}catch(e){toast(e.message);}};
 $('#clothing-back').onclick=()=>show('workshop');
@@ -479,7 +479,7 @@ function ghRender(){
  if(potKey!==ghPotKey){ghPotKey=potKey;$('#gh-pots').innerHTML=Array.from({length:5},(_,i)=>{
   const flower=ready?c.pots[i]:null, src=flower?`plant${ghFlowers[flower.id.replace('GH_FLOWER_','')]}.webp`:growing?phase:state==='planted'?'plant3.webp':'plantEmpty.webp';
   const label=flower?`${ghName(flower.id)} ×${flower.quantity}本`:state==='empty'?'空き':growing?'育成中':'種まき済み';
-  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.20.8" alt=""><span>${safe(label)}</span></div>`;
+  return `<div class="gh-pot"><img src="${ghDir+src}?v=0.20.8.1" alt=""><span>${safe(label)}</span></div>`;
  }).join('');}
  $('#gh-can').innerHTML=ghData.canColor?`<img src="${ghDir}jouro${ghData.canColor}.webp" alt="じょうろ">${({B:'青',G:'緑',R:'赤',Y:'黄'})[ghData.canColor]}のじょうろ`:'じょうろを受け取っていません';
  $('#gh-owned').textContent=`種：${ghQuantity('LENT_SEED')}袋　腐葉土：${ghQuantity('S0047')}個　肥料：${ghQuantity('GH_FERTILIZER')}個`;
@@ -2793,7 +2793,7 @@ const pyoroAdminShow=async(section='topics')=>{
 };
 const syncAdminNpc=()=>{const red=$('#admin-npc-target').value==='pyoro';$('#admin-current-npc').textContent=red?'赤色の獣':'黄色い獣';$('#admin-show-pyoro-foods').classList.remove('hidden');};
 $('#admin-npc-target').addEventListener('change',handler(async()=>{
- syncAdminNpc();if(!$('#admin-ai-panel').classList.contains('hidden')){await loadAiProfile();return;}if(!$('#admin-pyoro-panel').classList.contains('hidden')&&pyoroAdminSection==='foods'){await pyoroAdminShow('foods');return;}if($('#admin-npc-target').value==='pyoro'){const section=!$('#admin-requests-panel').classList.contains('hidden')?'requests':!$('#admin-gifts-panel').classList.contains('hidden')?'gifts':!$('#admin-ai-panel').classList.contains('hidden')?'profile':'topics';await pyoroAdminShow(section);}
+ syncAdminNpc();if(!$('#admin-clothing-panel').classList.contains('hidden'))return;if(!$('#admin-ai-panel').classList.contains('hidden')){await loadAiProfile();return;}if(!$('#admin-pyoro-panel').classList.contains('hidden')&&pyoroAdminSection==='foods'){await pyoroAdminShow('foods');return;}if($('#admin-npc-target').value==='pyoro'){const section=!$('#admin-requests-panel').classList.contains('hidden')?'requests':!$('#admin-gifts-panel').classList.contains('hidden')?'gifts':!$('#admin-ai-panel').classList.contains('hidden')?'profile':'topics';await pyoroAdminShow(section);}
  else{const section=pyoroAdminSection;await openAdminEditor();const button={requests:'admin-show-request-editor',gifts:'admin-show-gift-editor',profile:'admin-show-ai-editor'}[section];if(button)$('#'+button).click();}
 }));
 // Prevent the original paper-only editors from running when editing pyoro.
@@ -2954,7 +2954,6 @@ bind('#admin-sea-enable',async()=>{
  finally{b.disabled=false;}
 });
 
-})();
 
 // Clothing editor and read-only recipe preview (crafting engine follows separately).
 const clothingStepLabels={cut:'裁断',sew:'裁縫',dye:'染色',button:'装飾・ボタン付け',finish:'仕上げ',weave:'機織り',embroidery:'刺繍'};
@@ -2967,12 +2966,12 @@ const clLocalDate=v=>v?new Date(Date.parse(v)+9*3600000).toISOString().slice(0,1
 function clSelect(r){clRevision=r?.revision||0;clGet('id').value=r?.id||'';clGet('id').readOnly=!!r;clGet('name').value=r?.name||'';clGet('category').value=r?.category||'';clGet('image').value=r?.image||'';clGet('description').value=r?.description||'';clGet('published').checked=!!r?.published;clGet('limited').checked=!!r?.limited;clGet('start').value=clLocalDate(r?.startsAt);clGet('end').value=clLocalDate(r?.endsAt);clGet('period').classList.toggle('hidden',!r?.limited);clGet('materials').replaceChildren();clGet('steps').replaceChildren();(r?.ingredients||[{}]).forEach(clMaterialRow);(r?.steps||[{type:'sew',difficulty:1}]).forEach(clStepRow);clGet('admin-status').textContent=r?`リビジョン ${r.revision} ／ ${r.available?'公開中':'非公開・期間外'}`:'新規登録（初期状態は非公開）';clPreview();}
 function clList(selected=''){const q=clGet('admin-search').value.toLowerCase().trim();clGet('admin-list').replaceChildren(new Option('服を選択',''),...clAdminData.recipes.filter(r=>[r.name,r.id,r.category].some(v=>v.toLowerCase().includes(q))).map(r=>new Option(`${r.available?'公開中':'非公開・期間外'}｜${r.name} (${r.id})`,r.id)));clGet('admin-list').value=selected;clGet('audit').replaceChildren(...clAdminData.history.map(r=>{const p=document.createElement('p');p.textContent=`${r.recipe_id} / rev.${r.revision} / ${r.created_at} UTC`;return p;}));}
 async function clLoad(selected=''){clAdminData=await adminApi('/clothing');clList(selected);clSelect(clAdminData.recipes.find(r=>r.id===selected));}
-for(const b of document.querySelectorAll('.admin-editor-switch button:not(#admin-show-clothing)'))b.addEventListener('click',()=>$('#admin-clothing-panel').classList.add('hidden'),true);
+$('.admin-editor-switch').addEventListener('click',e=>{const b=e.target.closest('button');if(b&&b.id!=='admin-show-clothing')$('#admin-clothing-panel').classList.add('hidden');},true);
 bind('#admin-show-clothing',async()=>{for(const p of document.querySelectorAll('#admin-editor-page section[id^="admin-"]'))if(p.id!=='admin-clothing-panel')p.classList.add('hidden');for(const id of ['admin-conversations-panel','admin-requests-panel','admin-gifts-panel','admin-ai-panel','admin-material-panel','admin-quest-panel','admin-stats-panel','admin-sea-panel','admin-pyoro-panel','admin-recovery-panel'])$('#'+id)?.classList.add('hidden');$('#admin-clothing-panel').classList.remove('hidden');await clLoad();});
 bind('#cl-admin-new',()=>{clGet('admin-list').value='';clSelect();});bind('#cl-admin-reload',()=>clLoad(clGet('id').value));bind('#cl-add-material',()=>{if(clGet('materials').children.length<30)clMaterialRow();});bind('#cl-add-step',()=>{if(clGet('steps').children.length<20)clStepRow();});
 clGet('admin-search').addEventListener('input',()=>clList(clGet('id').value));clGet('admin-list').addEventListener('change',()=>clSelect(clAdminData.recipes.find(r=>r.id===clGet('admin-list').value)));clGet('image').addEventListener('input',clPreview);clGet('limited').addEventListener('change',()=>clGet('period').classList.toggle('hidden',!clGet('limited').checked));
 clGet('admin-form').addEventListener('submit',handler(async e=>{e.preventDefault();const button=clGet('save');button.disabled=true;try{const id=clGet('id').value.trim();const date=k=>clGet(k).value?new Date(clGet(k).value+':00+09:00').toISOString():null;const body={id,revision:clRevision,name:clGet('name').value,category:clGet('category').value,description:clGet('description').value,image:clGet('image').value,published:clGet('published').checked,limited:clGet('limited').checked,startsAt:date('start'),endsAt:date('end'),ingredients:[...clGet('materials').children].map(r=>({id:r.querySelector('select').value,quantity:Number(r.querySelector('input').value)})),steps:[...clGet('steps').children].map(r=>({type:r.querySelectorAll('select')[0].value,difficulty:Number(r.querySelectorAll('select')[1].value)}))};clAdminData=await adminApi('/clothing/save','POST',body);clGet('admin-search').value='';clList(id);clSelect(clAdminData.recipes.find(r=>r.id===id));toast('服飾レシピを保存しました。');}finally{button.disabled=false;}}));
-// v0.20.8 Clothing workshop. Images are returned only after a successful attempt.
+// v0.20.8.1 Clothing workshop. Images are returned only after a successful attempt.
 let clothBusy=false, clothFilter='all';
 async function openClothingRecipes(){
  const root=$('#clothing-recipes');root.textContent='読み込み中…';const {recipes}=await api('/clothing/recipes');root.replaceChildren();
@@ -3007,3 +3006,5 @@ async function startClothing(r){
  try{await finish();}catch(e){root.replaceChildren(clothButton('完成結果を再取得',()=>finish().catch(e=>toast(e.message))));toast(e.message);}
  }catch(e){toast(e.message);await openClothingRecipes().catch(()=>{});}finally{clothBusy=false;back.disabled=false;}
 }
+
+})();
